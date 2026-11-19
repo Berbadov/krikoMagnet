@@ -1,0 +1,109 @@
+[
+  {
+    "id": "pq1",
+    "text": "best android phone camera 2026",
+    "candidates": [
+      "c01",
+      "c02",
+      "c03",
+      "c04",
+      "c05",
+      "c24"
+    ]
+  },
+  {
+    "id": "pq2",
+    "text": "sqlite window functions tutorial",
+    "candidates": [
+      "c06",
+      "c07",
+      "c08",
+      "c09",
+      "c26"
+    ]
+  },
+  {
+    "id": "pq3",
+    "text": "postgresql jsonb partial index",
+    "candidates": [
+      "c10",
+      "c07",
+      "c11",
+      "c06"
+    ]
+  },
+  {
+    "id": "pq4",
+    "text": "python asyncio httpx concurrent requests",
+    "candidates": [
+      "c09",
+      "c13",
+      "c07",
+      "c11"
+    ]
+  },
+  {
+    "id": "pq5",
+    "text": "nginx location regex priority",
+    "candidates": [
+      "c08",
+      "c07",
+      "c11",
+      "c26"
+    ]
+  },
+  {
+    "id": "pq6",
+    "text": "home espresso machine review under $500",
+    "candidates": [
+      "c14",
+      "c03",
+      "c04",
+      "c05",
+      "c22"
+    ]
+  },
+  {
+    "id": "pq7",
+    "text": "smartphone battery life comparison",
+    "candidates": [
+      "c01",
+      "c02",
+      "c03",
+      "c04",
+      "c24"
+    ]
+  },
+  {
+    "id": "pq8",
+    "text": "laptop display brightness and color accuracy",
+    "candidates": [
+      "c15",
+      "c14",
+      "c03",
+      "c04",
+      "c20"
+    ]
+  },
+  {
+    "id": "pq9",
+    "text": "how https tls encryption works",
+    "candidates": [
+      "c11",
+      "c07",
+      "c12",
+      "c26"
+    ]
+  },
+  {
+    "id": "pq10",
+    "text": "laptop manufacturer warranty support",
+    "candidates": [
+      "c17",
+      "c18",
+      "c19",
+      "c20",
+      "c05"
+    ]
+  }
+]

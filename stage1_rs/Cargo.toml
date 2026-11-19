@@ -1,0 +1,12 @@
+[package]
+name = "kriko-magnet-ranker"
+version = "0.1.0"
+edition = "2021"
+description = "Kriko Magnet Stage 1 hybrid ranker (BM25 + Tranco authority + freshness)"
+
+[dependencies]
+serde_json = "1"
+chrono = "0.4"
+
+[profile.release]
+opt-level = 3
