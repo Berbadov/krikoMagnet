@@ -16,34 +16,30 @@ stage's `README.md`.
 ## Architecture
 
 ```
-                 ┌──────────────────────────────┐
-   query ──────▶ │  STAGE 3 pipeline             │
-                 │  query-level cache (SQLite)   │
-                 │  ┌────────────┐               │
-                 │  │ STAGE 1    │  Rust ranker  │
-                 │  │ ranker      │  BM25 +      │
-                 │  │ (Rust)     │  Tranco prior │
-                 │  └─────┬──────┘  + freshness  │
-                 │        │ top-K candidate URLs │
-                 │  ┌─────▼──────┐               │
-                 │  │ STAGE 2    │  curl_cffi + │
-                 │  │ fetch worker│  trafilatura │
-                 │  └─────┬──────┘  (selectolax) │
-                 │        │ clean markdown       │
-                 │  ┌─────▼──────┐               │
-                 │  │ SQLite cache│ url_hash +    │
-                 │  │ (content)   │ query_hash    │
-                 │  └─────┬──────┘               │
-                 │        ▼                      │
-                 │  structured JSON results       │
-                 └──────────────────────────────┘
+query
+  |
+  v
+[STAGE 3 pipeline]
+  |-- query-level cache (SQLite)
+  |
+  v
+[STAGE 1 ranker]  Rust: BM25 + Tranco prior + freshness
+  |  top-K candidate URLs
+  v
+[STAGE 2 fetch worker]  curl_cffi + trafilatura (selectolax fallback)
+  |  clean markdown
+  v
+[SQLite cache]  url_hash + query_hash
+  |
+  v
+structured JSON results
 ```
 
 ### Stages
 | Stage | Directory | What it proves |
 |---|---|---|
 | 1A | `stage1_py/` | Python prototype: BM25 + Tranco authority + freshness; NDCG@5 |
-| 1B | `stage1_rs/` | Rust port; numerical parity with Python; p95 ≤ 2 ms |
+| 1B | `stage1_rs/` | Rust port; numerical parity with Python; p95 <= 2 ms |
 | 2 | `stage2_fetch/` | Real-world direct fetching + block-rate telemetry |
 | 3 | `stage3_pipeline/` | End-to-end pipeline + FastAPI + cache benchmark |
 
@@ -58,15 +54,15 @@ stage's `README.md`.
 
 | Gate | Metric | Result | Threshold | Verdict |
 |---|---|---|---|---|
-| 1A | NDCG@5 (mean) | **0.910** | ≥ 0.80 | PASS |
+| 1A | NDCG@5 (mean) | **0.910** | >= 0.80 | PASS |
 | 1A | Top-5 precision (mean) | 0.707 | — | — |
 | 1B | Rust rank-correlation vs Python (15/15) | identical | = 1.0 | PASS |
-| 1B | Rust latency p95 | **0.54 ms** | ≤ 2 ms | PASS |
-| 2 | Clean extraction success | **80.0%** (32/40) | ≥ 75% | PASS |
-| 2 | Hard/soft block rate | **17.5%** (7/40) | ≤ 25% | PASS |
+| 1B | Rust latency p95 | **0.54 ms** | <= 2 ms | PASS |
+| 2 | Clean extraction success | **80.0%** (32/40) | >= 75% | PASS |
+| 2 | Hard/soft block rate | **17.5%** (7/40) | <= 25% | PASS |
 | 3 | Warm-cache latency (10 queries) | **0.29 ms** median / 0.42 ms p95 | < 10 ms | PASS |
 
-Full tables: see `KRIKO_MAGNET_RESULTS.md`.
+Full tables: see `RESULTS.md`.
 
 ---
 
@@ -77,13 +73,13 @@ Full tables: see `KRIKO_MAGNET_RESULTS.md`.
    origin** (`tranco-list.s3.amazonaws.com`) with `curl_cffi` TLS
    impersonation (`impersonate="chrome"`).
 2. **Additive hybrid needs a lexical gate.** A pure additive
-   `α·BM25 + β·prior + γ·fresh` let zero-match but high-authority pages
+   `alpha*BM25 + beta*prior + gamma*fresh` let zero-match but high-authority pages
    (e.g. apple.com) float into top-5 on priors alone. Fix: only docs with
-   ≥1 query-token match are ranking candidates; the prior/freshness then
-   rescale real matches. Weights tuned (`α=0.40, β=0.60, γ=0.15`).
+   >=1 query-token match are ranking candidates; the prior/freshness then
+   rescale real matches. Weights tuned (`alpha=0.40, beta=0.60, gamma=0.15`).
 3. **Spam is lexical-perfect, so authority must be additive, not
-   multiplicative.** A multiplicative `BM25·(1+β·prior+γ·fresh)` lost to SEO
-   spam because spam’s full-query title gives it BM25≈1 and the multiplier
+   multiplicative.** A multiplicative `BM25*(1+beta*prior+gamma*fresh)` lost to SEO
+   spam because spam's full-query title gives it BM25≈1 and the multiplier
    amplifies that advantage faster than the prior compensates. The gated
    additive form is what wins.
 4. **Rust speed:** the first port re-tokenized the whole corpus on every rank
@@ -134,7 +130,7 @@ Other helpers: `stage1_py/tune.py` (weight search), `stage1_py/diag.py`
 ## Blocked domains (Stage 2, honestly reported)
 - **Hard:** `serverfault.com` → 403 (Cloudflare).
 - **Soft** (JS-shell / challenge, <300 clean chars):
-  `support.hp.com` (0), `quora.com` (118), `reddit.com` ×4 (144).
+  `support.hp.com` (0), `quora.com` (118), `reddit.com` x4 (144).
 - **HTTP error (non-block):** `arstechnica.com` → 405.
 
 ---

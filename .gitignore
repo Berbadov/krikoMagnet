@@ -1,0 +1,20 @@
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+
+# Rust build output
+stage1_rs/target/
+
+# Re-downloadable Tranco data (tranco_cache.py fetches these)
+data/tranco_top-1m.csv.zip
+data/tranco_top100k.txt
+
+# Runtime caches and scraped page text
+*.sqlite
+*.sqlite3
+*.db
+data/pages/
+data/sitemaps/
+*.log
