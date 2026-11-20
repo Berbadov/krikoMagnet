@@ -16,14 +16,17 @@ import argparse
 import asyncio
 import json
 import os
+import re
 import sqlite3
 import sys
 import time
 from dataclasses import dataclass
+from datetime import datetime
 from urllib.parse import urlparse
 
 from .adapters import (
     ASSET_EXT,
+    MODEL_TOKEN,
     AdapterOutcome,
     Candidate,
     parse_xml,
@@ -112,13 +115,32 @@ class SiteIndex:
         rows = list({row["url"]: row for row in rows}.values())
         if full and not rows:
             return 0  # a failed/empty ingest must not wipe a good index
+        now = self._clock()
         with self.conn:
             if full:
                 self.conn.execute(
                     "DELETE FROM pages_fts WHERE rowid IN "
                     "(SELECT rowid FROM pages WHERE site=?)", (site_id,))
                 self.conn.execute("DELETE FROM pages WHERE site=?", (site_id,))
-            now = self._clock()
+                base = self.conn.execute(
+                    "SELECT COALESCE(MAX(rowid), 0) FROM pages").fetchone()[0]
+                page_values = []
+                fts_values = []
+                for offset, row in enumerate(rows, 1):
+                    rowid = base + offset
+                    page_values.append((
+                        rowid, row["url"], site_id, row["title"], row["snippet"],
+                        row.get("lastmod"), row.get("method", "sitemap"),
+                        row["text"], now,
+                    ))
+                    fts_values.append((rowid, row["url"], site_id, row["text"]))
+                self.conn.executemany(
+                    """INSERT INTO pages(rowid,url,site,title,snippet,lastmod,method,text,updated)
+                       VALUES (?,?,?,?,?,?,?,?,?)""", page_values)
+                self.conn.executemany(
+                    "INSERT INTO pages_fts(rowid,url,site,text) VALUES (?,?,?,?)",
+                    fts_values)
+                return len(rows)
             for row in rows:
                 existing = self.conn.execute(
                     "SELECT rowid FROM pages WHERE url=?", (row["url"],)).fetchone()
@@ -162,7 +184,8 @@ class SiteIndex:
         return int(row[0]) if row else 0
 
     def query_sites(self, site_ids: list[str], query: str,
-                    max_results: int = 40, rows_per_site: int = 250) -> dict[str, list[Candidate]]:
+                    max_results: int = 40, rows_per_site: int = 250,
+                    max_age_days: dict[str, int] | None = None) -> dict[str, list[Candidate]]:
         """Lexical match per site, scored with the same scorer as live adapters."""
         from .text import product_aliases
 
@@ -194,51 +217,73 @@ class SiteIndex:
             if len(pairs) >= 12:
                 break
         all_and = " AND ".join(f'"{t}"' for t in retrieval)
-        loose = " OR ".join(f'"{t}"' for t in retrieval)
-        out: dict[str, list[Candidate]] = {}
-        base_sql = ("SELECT p.url, p.title, p.snippet, p.lastmod, p.method "
+        model_terms = [t for t in retrieval if MODEL_TOKEN.match(t)]
+        site_expr = " OR ".join(f"site:{s}" for s in site_ids)
+        limit = max(rows_per_site, rows_per_site * min(len(site_ids), 8))
+        base_sql = ("SELECT p.site, p.url, p.title, p.snippet, p.lastmod, p.method "
                     "FROM pages_fts f JOIN pages p ON p.rowid=f.rowid "
-                    "WHERE pages_fts MATCH ? AND f.site=? LIMIT ?")
-        ranked_sql = ("SELECT p.url, p.title, p.snippet, p.lastmod, p.method "
+                    "WHERE pages_fts MATCH ? LIMIT ?")
+        ranked_sql = ("SELECT p.site, p.url, p.title, p.snippet, p.lastmod, p.method "
                       "FROM pages_fts f JOIN pages p ON p.rowid=f.rowid "
-                      "WHERE pages_fts MATCH ? AND f.site=? ORDER BY rank LIMIT ?")
+                      "WHERE pages_fts MATCH ? ORDER BY rank LIMIT ?")
 
-        def fetch(expr: str) -> list:
+        def fetch(inner: str) -> list:
+            expr = f"({site_expr}) AND ({inner})"
             total = self.conn.execute(
                 "SELECT COUNT(*) FROM pages_fts WHERE pages_fts MATCH ?",
                 (expr,)).fetchone()[0]
-            sql = base_sql if total <= rows_per_site else ranked_sql
-            return self.conn.execute(sql, (expr, site_id, rows_per_site)).fetchall()
+            sql = base_sql if total <= limit else ranked_sql
+            return self.conn.execute(sql, (expr, limit)).fetchall()
 
-        for site_id in site_ids:
-            try:
-                total_all = self.conn.execute(
-                    "SELECT COUNT(*) FROM pages_fts WHERE pages_fts MATCH ?",
-                    (f"site:{site_id} AND ({all_and})",)).fetchone()[0]
-                if total_all >= 5:
-                    rows = fetch(f"site:{site_id} AND ({all_and})")
-                else:
-                    rows = fetch(f"site:{site_id} AND (" + " OR ".join(pairs) + ")")
-                    if not rows:
-                        rows = fetch(f"site:{site_id} AND ({loose})")
-            except sqlite3.OperationalError:
-                rows = []
+        rows = []
+        try:
+            total_all = self.conn.execute(
+                "SELECT COUNT(*) FROM pages_fts WHERE pages_fts MATCH ?",
+                (f"({site_expr}) AND ({all_and})",)).fetchone()[0]
+            if total_all >= 5:
+                rows = fetch(all_and)
+            else:
+                rows = fetch(" OR ".join(pairs))
+                if not rows and model_terms:
+                    # A missing model code may still match on the code alone.
+                    rows = fetch(" OR ".join(f'"{t}"' for t in model_terms))
+        except sqlite3.OperationalError:
+            rows = []
+
+        grouped: dict[str, list[dict]] = {}
+        now_ts = time.time()
+        for row in rows:
+            site_id = row[0]
+            days = int((max_age_days or {}).get(site_id) or 0)
+            if days and row[4]:
+                try:
+                    age = now_ts - datetime.fromisoformat(row[4]).timestamp()
+                    if age > days * 86400:
+                        continue
+                except (ValueError, TypeError):
+                    pass
+            grouped.setdefault(site_id, []).append(row)
+
+        out: dict[str, list[Candidate]] = {}
+        for site_id, site_rows in grouped.items():
             cands = [
                 Candidate(
-                    url=row[0], title=row[1] or unslug(row[0]),
-                    snippet=row[2] or "", published=iso_date(row[3]),
-                    source=site_id, method=row[4] or "sitemap",
+                    url=row[1], title=row[2] or unslug(row[1]),
+                    snippet=row[3] or "", published=iso_date(row[4]),
+                    source=site_id, method=row[5] or "sitemap",
                 )
-                for row in rows
+                for row in site_rows
             ]
             ranked = score_candidates(query, cands, max_results=max_results)
             if ranked:
                 out[site_id] = ranked
         return out
 
-    def query(self, site_ids: list[str], query: str, max_results: int = 40) -> list[Candidate]:
+    def query(self, site_ids: list[str], query: str, max_results: int = 40,
+              max_age_days: dict[str, int] | None = None) -> list[Candidate]:
         merged: dict[str, Candidate] = {}
-        for cands in self.query_sites(site_ids, query, max_results=max_results).values():
+        for cands in self.query_sites(site_ids, query, max_results=max_results,
+                                      max_age_days=max_age_days).values():
             for cand in cands:
                 key = _canonical(cand.url)
                 if key not in merged or cand.score > merged[key].score:
@@ -274,7 +319,6 @@ def _header(headers: dict | None, name: str) -> str | None:
 
 
 def _select_children(entries: list[dict], method: dict, limit: int) -> list[dict]:
-    import re
     include = [re.compile(p) for p in method.get("include_children", [])]
     exclude = [re.compile(p) for p in method.get("exclude_children", [])]
     selected = []
@@ -429,11 +473,18 @@ async def build(sites: list[str] | None = None, db: str = DEFAULT_DB, full: bool
     fetcher = Fetcher(concurrency=concurrency)
     try:
         async def one(site):
-            try:
-                row = await ingest_site(site, fetcher, index, full=full, recent=recent)
-            except Exception as exc:  # one bad site must not abort the build
-                row = {"site": site["id"], "pages": 0, "feeds": 0,
-                       "robots_skips": 0, "errors": [repr(exc)[:160]], "seconds": 0.0}
+            row = None
+            for attempt in range(2):
+                try:
+                    row = await ingest_site(site, fetcher, index, full=full, recent=recent)
+                    break
+                except Exception as exc:  # one bad site must not abort the build
+                    if isinstance(exc, sqlite3.OperationalError) and attempt == 0:
+                        await asyncio.sleep(2)
+                        continue
+                    row = {"site": site["id"], "pages": 0, "feeds": 0,
+                           "robots_skips": 0, "errors": [repr(exc)[:160]], "seconds": 0.0}
+                    break
             log.info("site indexed", extra={"site": row["site"], "pages": row["pages"],
                                             "status": "ok" if not row["errors"] else "error",
                                             "ms": round(row["seconds"] * 1000)})

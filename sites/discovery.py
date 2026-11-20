@@ -19,7 +19,7 @@ from .text import long_ago, ranker_text, unslug
 
 log = get_logger("sites.discovery")
 BREAKER = CircuitBreaker()
-SITE_TIMEOUT = 25.0
+SITE_TIMEOUT = 8.0
 
 MULTI_SUFFIX = {
     "co.uk", "com.tr", "gov.tr", "org.tr", "net.tr", "com.au", "co.jp",
@@ -49,7 +49,9 @@ def _collapse_paginated(candidates: list[Candidate]) -> list[Candidate]:
 
 
 def _latest_year(query: str, candidates: list[Candidate], topics: list[str]) -> list[Candidate]:
-    if "cars" not in topics or YEAR.search(query):
+    if "cars" not in topics or "recalls" in topics or "complaints" in topics:
+        return candidates
+    if YEAR.search(query):
         return candidates
     years = []
     for cand in candidates:
@@ -186,7 +188,8 @@ async def _run_one(site: dict, query: str, fetcher, index) -> list:
             int(m.get("max_results", 40)) for m in site["methods"]
             if m.get("type") in ("sitemap", "rss")
         )
-        candidates = index.query([site["id"]], query, max_results=max_results)
+        candidates = index.query([site["id"]], query, max_results=max_results,
+                                 max_age_days={site["id"]: site.get("index_max_age_days", 0)})
         return [AdapterOutcome(site["id"], "index",
                                "ok" if candidates else "no-results",
                                candidates, 0, 0.0)]

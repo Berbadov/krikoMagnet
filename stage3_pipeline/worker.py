@@ -34,7 +34,7 @@ async def fetch_one(fetcher, url):
     }
 
 
-async def fetch_many(urls, concurrency=4, stats=None, fetcher=None, budget_ms=0):
+async def fetch_many(urls, concurrency=4, stats=None, fetcher=None, budget_ms=0, min_one=False):
     owns_fetcher = fetcher is None
     if fetcher is None:
         fetcher = Fetcher(concurrency=concurrency)
@@ -56,6 +56,10 @@ async def fetch_many(urls, concurrency=4, stats=None, fetcher=None, budget_ms=0)
     try:
         if budget_ms and budget_ms > 0:
             done, pending = await asyncio.wait(tasks, timeout=budget_ms / 1000.0)
+            if min_one and not results and pending:
+                await asyncio.wait(pending, timeout=1.5,
+                                   return_when=asyncio.FIRST_COMPLETED)
+                pending = {t for t in pending if not t.done()}
             for task in pending:
                 task.cancel()
             if pending:

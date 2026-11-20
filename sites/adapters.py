@@ -13,7 +13,10 @@ from urllib.parse import quote_plus, urljoin, urlparse
 
 from selectolax.lexbor import LexborHTMLParser as HTMLParser
 
+from .log import get_logger
 from .text import fold, iso_date, match_tokens, query_terms, slugify, stem_token, unslug
+
+log = get_logger("sites.adapters")
 
 ASSET_EXT = re.compile(r"\.(?:jpe?g|png|gif|webp|svg|ico|css|js|woff2?|ttf|zip|gz|mp4|mp3|pdf)(?:$|\?)", re.I)
 MODEL_TOKEN = re.compile(r"^(?=.*[a-z])(?=.*\d)[a-z0-9]{2,8}$")
@@ -217,17 +220,20 @@ def score_candidates(query: str, candidates: list[Candidate], max_results: int =
         if numeric_terms and any(t in toks for t in numeric_terms):
             score += 0.10
         cand.score = round(score, 4)
-        scored.append((cand, cand.score, len(specific_matched)))
+        scored.append((cand, cand.score, len(specific_matched),
+                       any(MODEL_TOKEN.match(t) for t in specific_matched)))
 
     strict = [x for x in scored if x[2] >= min_specific]
     if strict:
         chosen = strict
+    elif any(x[3] for x in scored):
+        chosen = scored  # a model code is the only specific evidence
     elif any(MODEL_TOKEN.match(t) and weights[t] == 0 for t in specific_terms):
         chosen = scored  # a model code was absent; allow one-term evidence
     else:
         chosen = []
     chosen.sort(key=lambda x: (x[1], x[2], x[0].published or ""), reverse=True)
-    return [cand for cand, _, _ in chosen[:max_results]]
+    return [cand for cand, *_ in chosen[:max_results]]
 
 
 def enforce_model_terms(query: str, candidates: list[Candidate]) -> list[Candidate]:
@@ -527,6 +533,8 @@ async def run_api(site: dict, method: dict, query: str, fetcher) -> AdapterOutco
         res = await fetcher.get(url)
         fetched += 1
         if res.robots_skipped or not res.ok:
+            log.warning("api probe failed", extra={"site": site["id"], "status": res.status,
+                                                   "error": res.error or ""})
             continue
         try:
             data = json.loads(res.text)

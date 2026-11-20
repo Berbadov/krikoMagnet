@@ -71,11 +71,32 @@ def slugify(text: str) -> str:
 
 
 def stem_token(token: str) -> str:
-    """Very small English/Turkish suffix stripper for lexical matching."""
+    """Very small English/Turkish suffix stripper for lexical matching.
+
+    Applied up to three times so "dishwashers" -> "dishwasher" -> "dishwash"
+    lands on the same stem as the singular query term.
+    """
+    for _ in range(3):
+        stripped = _stem_once(token)
+        if stripped == token:
+            break
+        token = stripped
+    return token
+
+
+def _stem_once(token: str) -> str:
     if len(token) <= 3 or token.isdigit():
         return token
     if token.endswith("leri") or token.endswith("ları"):
         return token[:-4]
+    if token.endswith(("miyor", "mıyor", "muyor", "müyor")) and len(token) > 6:
+        return token[:-5]
+    if token.endswith(("uyor", "üyor", "ıyor", "iyor")) and len(token) > 6:
+        return token[:-4]
+    if token.endswith(("maz", "mez")) and len(token) > 5:
+        return token[:-3]
+    if token.endswith(("er", "ar")) and len(token) >= 5:
+        return token[:-2]
     if token.endswith("ment") and len(token) > 6:
         return token[:-4]
     if token.endswith("ies") and len(token) > 4:
@@ -91,6 +112,10 @@ def stem_token(token: str) -> str:
     if token.endswith("s") and not token.endswith("ss") and len(token) > 3:
         return token[:-1]
     if token.endswith("si") and len(token) > 5:
+        return token[:-2]
+    if token.endswith(("yu", "yü")) and len(token) > 4:
+        return token[:-2]
+    if token.endswith(("ma", "me")) and len(token) > 5:
         return token[:-2]
     if token[-1] in "iıuü" and len(token) > 5:
         return token[:-1]
@@ -116,6 +141,16 @@ PRODUCT_GROUPS = [
     {"batarya", "battery"},
     {"klima", "air conditioner"},
     {"termosifon", "water heater"},
+    # cross-language intent synonyms (used for lexical matching only)
+    {"recall", "recalled", "cagirma", "toplatma"},
+    {"complaint", "complaints", "sikayet", "sorun"},
+    {"review", "inceleme", "yorum"},
+    {"price", "fiyat"},
+    {"repair", "tamir", "onarim"},
+    {"fault", "ariza", "hata", "error"},
+    {"pressure", "basinc"},
+    {"leak", "akitiyor", "akma"},
+    {"drain", "tahliye", "bosaltma"},
 ]
 
 
@@ -140,6 +175,16 @@ def product_aliases(term: str) -> set[str]:
 def ranker_text(text: str) -> str:
     """Fold + stem text so the Rust tokenizer sees comparable word forms."""
     return " ".join(stem_token(t) for t in tokenize(text))
+
+
+def ranker_query(text: str) -> str:
+    """Ranker query text plus product aliases (kombi -> boiler, ...)."""
+    terms = query_terms(text)
+    aliases: set[str] = set()
+    for term in terms:
+        aliases |= product_aliases(term)
+    extra = sorted(aliases - set(terms))
+    return ranker_text(f"{text} {' '.join(extra)}")
 
 
 def unslug(url: str) -> str:

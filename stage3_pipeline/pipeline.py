@@ -25,10 +25,11 @@ class Searcher:
     def __init__(self, cache=None, top_k=TOP_K_DEFAULT, stats=None,
                  discovery="registry", registry=None, max_sites=6, fetcher=None,
                  index=None, use_index=True, index_path=None, ranker=None,
-                 page_budget_ms=0):
+                 page_budget_ms=0, per_domain_limit=2):
         self.cache = cache or Cache()
         self.top_k = top_k
         self.page_budget_ms = page_budget_ms
+        self.per_domain_limit = per_domain_limit
         self.stats = stats or {"bytes": 0, "fetches": 0, "robots_skips": 0}
         self.discovery = discovery
         self.registry = registry
@@ -87,9 +88,49 @@ class Searcher:
         ranked = self._get_ranker().rank(corpus_recs, query_text)
         return ranked or []
 
+    def _diversify(self, ranked, orig, k, base_domain):
+        """Keep source runs short so one site cannot fill the whole top-k.
+
+        At most ``per_domain_limit`` results per domain and at most two in a
+        row; zero-match docs never pad the list.
+        """
+        chosen = []
+        counts: dict[str, int] = {}
+        last_domain = None
+        run = 0
+        for item in ranked:
+            if item.get("score", 0) <= 0:
+                continue
+            cand = orig.get(item["id"])
+            if cand is None:
+                continue
+            domain = base_domain(cand.url)
+            if counts.get(domain, 0) >= self.per_domain_limit:
+                continue
+            if domain == last_domain and run >= 2:
+                continue
+            chosen.append(item)
+            counts[domain] = counts.get(domain, 0) + 1
+            if domain == last_domain:
+                run += 1
+            else:
+                last_domain = domain
+                run = 1
+            if len(chosen) >= k:
+                break
+        if len(chosen) < k:
+            picked = {item["id"] for item in chosen}
+            for item in ranked:
+                if len(chosen) >= k:
+                    break
+                if item["id"] in picked or item.get("score", 0) <= 0:
+                    continue
+                chosen.append(item)
+        return chosen
+
     async def _rank_registry(self, query_text, k):
-        from sites import discover, to_corpus
-        from sites.text import ranker_text
+        from sites import base_domain, discover, to_corpus
+        from sites.text import ranker_query
 
         fetcher = await self._get_fetcher()
         before = dict(fetcher.stats)
@@ -100,11 +141,12 @@ class Searcher:
             return disc, [], {}
 
         corpus_recs = to_corpus(candidates)
-        ranked = self._rank_rust(corpus_recs, ranker_text(query_text))
+        ranked = self._rank_rust(corpus_recs, ranker_query(query_text))
 
         by_id = {rec["id"]: rec for rec in corpus_recs}
         orig = {f"c{i:04d}": c for i, c in enumerate(candidates)}
-        ranked = [x for x in ranked if x["id"] in by_id][:k]
+        ranked = [x for x in ranked if x["id"] in by_id]
+        ranked = self._diversify(ranked, orig, k, base_domain)
         disc["fetches"] = fetcher.stats["requests"] - before["requests"]
         disc["bytes"] = fetcher.stats["bytes"] - before["bytes"]
         disc["robots_skips"] = fetcher.stats["robots_skips"] - before["robots_skips"]
@@ -150,8 +192,12 @@ class Searcher:
 
         if to_fetch:
             fetcher = await self._get_fetcher()
+            remaining = 0
+            if self.page_budget_ms:
+                remaining = max(400, self.page_budget_ms - int((time.perf_counter() - t0) * 1000))
             fetched = await fetch_many(to_fetch, concurrency=max(4, k), stats=self.stats,
-                                       fetcher=fetcher, budget_ms=self.page_budget_ms)
+                                       fetcher=fetcher, budget_ms=remaining,
+                                       min_one=bool(self.page_budget_ms))
             for url, fr in fetched.items():
                 cand, score, cid = pending[url]
                 uh = sha16(url)

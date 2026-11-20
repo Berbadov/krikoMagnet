@@ -128,7 +128,12 @@ def _term_in(term: str, site_terms: set[str]) -> bool:
         return True
     if len(term) < 4:
         return False
-    return any(t.startswith(term) or term.startswith(t) for t in site_terms if len(t) >= 4)
+    # Prefix matching only for reasonably long stems: "oyun" must not make
+    # "oyuncak" (toy) look like a computing term.
+    return any(
+        (len(t) >= 5 and t.startswith(term)) or (len(term) >= 5 and term.startswith(t))
+        for t in site_terms if len(t) >= 5
+    )
 
 
 def _domain_tokens(domain: str) -> set[str]:
@@ -147,7 +152,12 @@ def plan_sites(query: str, registry: dict, tranco_ranks: dict[str, int] | None =
     lang = plan["language"]
     terms = plan["terms"]
     scored = []
+    recall_query = "recalls" in topics or any(
+        term in {"recall", "recalls", "recalled", "guvensiz", "toplatma", "cagirma"}
+        for term in terms)
     for site in registry["sites"]:
+        if site["id"] in ("cpsc", "guvensizurun") and not recall_query:
+            continue
         site_topics = set(site["topics"])
         overlap = site_topics & topics
         site_terms = set()

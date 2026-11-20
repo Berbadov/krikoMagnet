@@ -55,3 +55,11 @@ def test_turkish_fault_query_prefers_turkish_vaillant():
 def test_generic_dishwasher_query_includes_bosch_home():
     plan = plan_sites("bulaşık makinesi su almıyor", REG, RANKS, max_sites=6)
     assert "boschhome" in plan["sites"]
+
+
+def test_recall_sources_only_join_recall_queries():
+    plan = plan_sites("iphone battery draining after update", REG, RANKS, max_sites=6)
+    assert "cpsc" not in plan["sites"]
+    assert "guvensizurun" not in plan["sites"]
+    recall = plan_sites("anker power bank recall", REG, RANKS, max_sites=6)
+    assert "cpsc" in recall["sites"]

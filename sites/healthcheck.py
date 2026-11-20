@@ -21,7 +21,7 @@ HEALTH_QUERIES = {
     "donanimhaber": "iphone 15",
     "cpsc": "anker",
     "ifixit": "iphone screen replacement",
-    "vaillant": "ecotec fault code",
+    "vaillant": "f28 fault code",
     "vaillanttr": "kombi arıza",
     "consumeraffairs": "samsung refrigerator",
     "whathifi": "lg oled",
@@ -30,20 +30,37 @@ HEALTH_QUERIES = {
     "caranddriver": "honda cr-v",
     "webtekno": "iphone 15",
     "chip": "iphone 15",
-    "guvensizurun": "camasir",
+    "guvensizurun": "güvensiz ürün",
     "boschhome": "bulaşık makinesi",
-    "eca": "kombi arıza",
+    "eca": "kombi basıncı",
     "baymak": "kombi arıza",
-    "donanimarsivi": "iphone inceleme",
+    "donanimarsivi": "iphone 17",
     "shiftdelete": "iphone inceleme",
     "tamindir": "iphone",
 }
 
 
-async def check_site(site: dict, query: str, fetcher, test_extract: bool = True) -> dict:
+async def check_site(site: dict, query: str, fetcher, test_extract: bool = True,
+                     index=None) -> dict:
+    from .discovery import _indexable
+
     t0 = time.perf_counter()
-    outcomes = await run_site(site, query, fetcher)
-    links = [c for o in outcomes for c in o.candidates]
+    method = "?"
+    if _indexable(site, index):
+        max_results = max(int(m.get("max_results", 40)) for m in site["methods"]
+                          if m.get("type") in ("sitemap", "rss"))
+        links = index.query([site["id"]], query, max_results=max_results,
+                            max_age_days={site["id"]: site.get("index_max_age_days", 0)})
+        method = "index"
+        status = "ok" if links else "no-results"
+        fetched = 0
+        outcomes = []
+    else:
+        outcomes = await run_site(site, query, fetcher)
+        links = [c for o in outcomes for c in o.candidates]
+        method = outcomes[0].method if outcomes else "?"
+        status = outcomes[-1].status if outcomes else "no-method"
+        fetched = sum(o.fetched for o in outcomes)
     top = links[0] if links else None
     extracted_chars = 0
     extract_status = ""
@@ -60,29 +77,35 @@ async def check_site(site: dict, query: str, fetcher, test_extract: bool = True)
     return {
         "site": site["id"],
         "domain": site["domain"],
-        "method": outcomes[0].method if outcomes else "?",
-        "status": outcomes[-1].status if outcomes else "no-method",
+        "method": method,
+        "status": status,
         "links": len(links),
         "top_url": top.url if top else "",
         "top_title": top.title[:90] if top else "",
         "extract": extract_status,
         "chars": extracted_chars,
-        "fetched": sum(o.fetched for o in outcomes),
+        "fetched": fetched,
         "secs": round(time.perf_counter() - t0, 1),
     }
 
 
-async def run(site_ids=None, test_extract=True, breaker=None):
+async def run(site_ids=None, test_extract=True, breaker=None, index_path=None):
     registry = load_registry()
     sites = [s for s in registry["sites"] if not site_ids or s["id"] in site_ids]
     fetcher = Fetcher(concurrency=8)
+    index = None
+    if index_path:
+        from .index import SiteIndex
+        index = SiteIndex(index_path)
     try:
         results = await asyncio.gather(*[
-            check_site(s, HEALTH_QUERIES.get(s["id"], "review"), fetcher, test_extract)
+            check_site(s, HEALTH_QUERIES.get(s["id"], "review"), fetcher, test_extract, index)
             for s in sites
         ])
     finally:
         await fetcher.close()
+        if index is not None:
+            index.close()
     breaker = breaker or BREAKER
     for row in results:
         state = breaker.state(row["site"])
@@ -111,8 +134,11 @@ def main():
     ap.add_argument("--no-extract", action="store_true", help="skip extraction test")
     ap.add_argument("--json", action="store_true")
     ap.add_argument("--index", default=os.path.join(os.path.dirname(__file__), "..", "data", "site_index.sqlite"))
+    ap.add_argument("--live", action="store_true",
+                    help="test live adapters instead of the local index")
     args = ap.parse_args()
-    results = asyncio.run(run(set(args.site) if args.site else None, not args.no_extract))
+    results = asyncio.run(run(set(args.site) if args.site else None, not args.no_extract,
+                               index_path=None if args.live else args.index))
     index = index_report(args.index)
     ok = 0
     for r in results:
