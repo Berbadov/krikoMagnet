@@ -1,0 +1,6982 @@
+{
+ "cold": [
+  {
+   "id": "q01",
+   "query": "lg c1 burn in",
+   "language": "en",
+   "judged": true,
+   "topics": [
+    "tv-audio",
+    "appliances",
+    "phones"
+   ],
+   "sites": [
+    "rtings",
+    "whathifi",
+    "ifixit",
+    "cpsc",
+    "consumeraffairs",
+    "gsmarena"
+   ],
+   "sources_with_results": 1,
+   "result_domains": 1,
+   "k": 5,
+   "results": 3,
+   "relevant": [
+    "https://rtings.com/tv/reviews/lg/c1-oled",
+    "https://rtings.com/tv/reviews/lg/c1-oled/settings"
+   ],
+   "top_urls": [
+    "https://www.rtings.com/tv/reviews/lg/c1-oled",
+    "https://www.rtings.com/tv/reviews/lg/c1-oled/settings",
+    "https://www.rtings.com/monitor/reviews/lg/48-c1-oled"
+   ],
+   "flags": [
+    1,
+    1,
+    0
+   ],
+   "hit": 1,
+   "precision": 0.4,
+   "ndcg": 1.0,
+   "elapsed_ms": 13470.769300000029,
+   "payload_ms": 13460.252,
+   "fetches": 28,
+   "bytes": 19439620,
+   "robots_skips": 0,
+   "blocks": 0,
+   "short_extractions": 0,
+   "statuses": [
+    200,
+    200,
+    200
+   ],
+   "notes": "RTINGS C1 review includes the OLED burn-in test; settings page covers OLED care."
+  },
+  {
+   "id": "q02",
+   "query": "lg c1 best settings",
+   "language": "en",
+   "judged": true,
+   "topics": [
+    "tv-audio",
+    "appliances",
+    "phones",
+    "reviews"
+   ],
+   "sites": [
+    "rtings",
+    "whathifi",
+    "gsmarena",
+    "tomshardware",
+    "ifixit",
+    "cpsc"
+   ],
+   "sources_with_results": 1,
+   "result_domains": 1,
+   "k": 5,
+   "results": 3,
+   "relevant": [
+    "https://rtings.com/tv/reviews/lg/c1-oled/settings"
+   ],
+   "top_urls": [
+    "https://www.rtings.com/tv/reviews/lg/c1-oled/settings",
+    "https://www.rtings.com/tv/reviews/lg/c1-oled",
+    "https://www.rtings.com/monitor/reviews/lg/48-c1-oled"
+   ],
+   "flags": [
+    1,
+    0,
+    0
+   ],
+   "hit": 1,
+   "precision": 0.2,
+   "ndcg": 1.0,
+   "elapsed_ms": 7968.726600000082,
+   "payload_ms": 7954.891,
+   "fetches": 10,
+   "bytes": 2700801,
+   "robots_skips": 0,
+   "blocks": 0,
+   "short_extractions": 0,
+   "statuses": [
+    200,
+    200,
+    200
+   ],
+   "notes": "Exact settings page."
+  },
+  {
+   "id": "q03",
+   "query": "samsung qn90b review",
+   "language": "en",
+   "judged": true,
+   "topics": [
+    "appliances",
+    "phones",
+    "reviews",
+    "tv-audio"
+   ],
+   "sites": [
+    "rtings",
+    "gsmarena",
+    "tomshardware",
+    "ifixit",
+    "cpsc",
+    "consumeraffairs"
+   ],
+   "sources_with_results": 1,
+   "result_domains": 1,
+   "k": 5,
+   "results": 3,
+   "relevant": [
+    "https://rtings.com/tv/reviews/samsung/qn90b-qled"
+   ],
+   "top_urls": [
+    "https://www.rtings.com/tv/reviews/samsung/qn90b-qled",
+    "https://www.rtings.com/tv/reviews/samsung/qn90b-qled/settings",
+    "https://www.rtings.com/monitor/reviews/samsung/43-qn90b-qled"
+   ],
+   "flags": [
+    1,
+    0,
+    0
+   ],
+   "hit": 1,
+   "precision": 0.2,
+   "ndcg": 1.0,
+   "elapsed_ms": 6260.145299999749,
+   "payload_ms": 6247.572,
+   "fetches": 6,
+   "bytes": 477764,
+   "robots_skips": 0,
+   "blocks": 0,
+   "short_extractions": 0,
+   "statuses": [
+    200,
+    200,
+    200
+   ],
+   "notes": "Exact review."
+  },
+  {
+   "id": "q04",
+   "query": "sony wh-1000xm5 review",
+   "language": "en",
+   "judged": true,
+   "topics": [
+    "reviews",
+    "tv-audio"
+   ],
+   "sites": [
+    "rtings",
+    "whathifi",
+    "gsmarena",
+    "tomshardware",
+    "caranddriver",
+    "donanimhaber"
+   ],
+   "sources_with_results": 1,
+   "result_domains": 1,
+   "k": 5,
+   "results": 2,
+   "relevant": [
+    "https://rtings.com/headphones/reviews/sony/wh-1000xm5-wireless"
+   ],
+   "top_urls": [
+    "https://www.rtings.com/headphones/reviews/sony/wh-1000xm5-wireless",
+    "https://www.rtings.com/headphones/reviews/sony/wf-1000xm5-truly-wireless"
+   ],
+   "flags": [
+    1,
+    0
+   ],
+   "hit": 1,
+   "precision": 0.2,
+   "ndcg": 1.0,
+   "elapsed_ms": 9506.92489999983,
+   "payload_ms": 9493.671,
+   "fetches": 11,
+   "bytes": 2485265,
+   "robots_skips": 0,
+   "blocks": 0,
+   "short_extractions": 0,
+   "statuses": [
+    200,
+    200
+   ],
+   "notes": "Exact review."
+  },
+  {
+   "id": "q05",
+   "query": "best oled tv for movies",
+   "language": "en",
+   "judged": true,
+   "topics": [
+    "tv-audio",
+    "reviews"
+   ],
+   "sites": [
+    "rtings",
+    "whathifi",
+    "gsmarena",
+    "tomshardware",
+    "caranddriver",
+    "donanimhaber"
+   ],
+   "sources_with_results": 3,
+   "result_domains": 2,
+   "k": 5,
+   "results": 5,
+   "relevant": [
+    "https://rtings.com/tv/reviews/best/by-usage/movies",
+    "https://whathifi.com/tv-home-cinema/televisions/prime-days-burned-through-stock-of-our-recommended-cheap-oled-tv-this-is-my-advice-for-bargain-hunting-movie-fans"
+   ],
+   "top_urls": [
+    "https://www.rtings.com/tv/reviews/best/by-type/oled",
+    "https://www.whathifi.com/tv-home-cinema/televisions/after-nearly-half-a-decade-the-small-next-gen-oled-tvs-ive-been-waiting-for-are-finally-here",
+    "https://www.whathifi.com/tv-home-cinema/televisions/prime-days-burned-through-stock-of-our-recommended-cheap-oled-tv-this-is-my-advice-for-bargain-hunting-movie-fans",
+    "https://www.whathifi.com/tv-home-cinema/televisions/ive-found-the-perfect-oled-tv-for-a-gta-vi-marathon-and-its-gbp400-off-in-the-black-friday-sales",
+    "https://www.whathifi.com/tv-home-cinema/televisions/upgrading-to-oled-on-a-budget-this-samsung-model-is-one-of-the-best-entry-level-models-we-have-tested"
+   ],
+   "flags": [
+    0,
+    0,
+    1,
+    0,
+    0
+   ],
+   "hit": 1,
+   "precision": 0.2,
+   "ndcg": 0.3065735963827292,
+   "elapsed_ms": 4361.925700000029,
+   "payload_ms": 4343.871,
+   "fetches": 5,
+   "bytes": 7121388,
+   "robots_skips": 0,
+   "blocks": 0,
+   "short_extractions": 0,
+   "statuses": [
+    200,
+    200,
+    200,
+    200,
+    200
+   ],
+   "notes": "RTINGS best-by-usage list plus a What Hi-Fi OLED buying article."
+  },
+  {
+   "id": "q06",
+   "query": "iphone 15 pro max battery life review",
+   "language": "en",
+   "judged": true,
+   "topics": [
+    "phones",
+    "apple",
+    "reviews"
+   ],
+   "sites": [
+    "gsmarena",
+    "tomshardware",
+    "macrumors",
+    "ifixit",
+    "cpsc",
+    "consumeraffairs"
+   ],
+   "sources_with_results": 2,
+   "result_domains": 2,
+   "k": 5,
+   "results": 5,
+   "relevant": [
+    "https://gsmarena.com/apple_iphone_15_pro_max-review-2618.php",
+    "https://macrumors.com/guide/iphone-15-battery-tips"
+   ],
+   "top_urls": [
+    "https://www.gsmarena.com/apple_iphone_15_pro_max-review-2618.php",
+    "https://www.gsmarena.com/apple_iphone_11_pro_max-review-1991.php",
+    "https://www.macrumors.com/review/iphone-12-pro-max/",
+    "https://www.gsmarena.com/apple_iphone_15_pro-review-2620.php",
+    "https://www.gsmarena.com/apple_iphone_15_pro_long_term-review-2692.php"
+   ],
+   "flags": [
+    1,
+    0,
+    0,
+    0,
+    0
+   ],
+   "hit": 1,
+   "precision": 0.2,
+   "ndcg": 0.6131471927654584,
+   "elapsed_ms": 7622.229300000072,
+   "payload_ms": 7615.265,
+   "fetches": 13,
+   "bytes": 2663345,
+   "robots_skips": 0,
+   "blocks": 0,
+   "short_extractions": 0,
+   "statuses": [
+    200,
+    200,
+    200,
+    200,
+    200
+   ],
+   "notes": "GSMArena review has battery tests; MacRumors guide is iPhone 15-specific."
+  },
+  {
+   "id": "q07",
+   "query": "samsung galaxy s24 ultra camera review",
+   "language": "en",
+   "judged": true,
+   "topics": [
+    "phones",
+    "appliances",
+    "reviews"
+   ],
+   "sites": [
+    "gsmarena",
+    "tomshardware",
+    "ifixit",
+    "cpsc",
+    "consumeraffairs",
+    "macrumors"
+   ],
+   "sources_with_results": 1,
+   "result_domains": 1,
+   "k": 5,
+   "results": 5,
+   "relevant": [
+    "https://gsmarena.com/samsung_galaxy_s24_ultra-review-2670.php",
+    "https://gsmarena.com/samsung_galaxy_s24_ultra_s24_plus_s24_handson-review-2656.php"
+   ],
+   "top_urls": [
+    "https://www.gsmarena.com/samsung_galaxy_s24_ultra-review-2670.php",
+    "https://www.gsmarena.com/samsung_galaxy_s24_ultra_s24_plus_s24_handson-review-2656.php",
+    "https://www.gsmarena.com/samsung_galaxy_s24-review-2663.php",
+    "https://www.gsmarena.com/samsung_galaxy_s24_fe-review-2755.php",
+    "https://www.gsmarena.com/samsung_galaxy_s24_plus-review-2664.php"
+   ],
+   "flags": [
+    1,
+    1,
+    0,
+    0,
+    0
+   ],
+   "hit": 1,
+   "precision": 0.4,
+   "ndcg": 1.0,
+   "elapsed_ms": 8688.091899999563,
+   "payload_ms": 8681.023,
+   "fetches": 8,
+   "bytes": 202851,
+   "robots_skips": 0,
+   "blocks": 0,
+   "short_extractions": 0,
+   "statuses": [
+    200,
+    200,
+    200,
+    200,
+    200
+   ],
+   "notes": "Full review and hands-on both cover the cameras."
+  },
+  {
+   "id": "q08",
+   "query": "google pixel 8 pro overheating review",
+   "language": "en",
+   "judged": true,
+   "topics": [
+    "phones",
+    "reviews"
+   ],
+   "sites": [
+    "gsmarena",
+    "tomshardware",
+    "macrumors",
+    "ifixit",
+    "cpsc",
+    "consumeraffairs"
+   ],
+   "sources_with_results": 1,
+   "result_domains": 1,
+   "k": 5,
+   "results": 5,
+   "relevant": [
+    "https://gsmarena.com/google_pixel_8_pro-review-2629.php"
+   ],
+   "top_urls": [
+    "https://www.gsmarena.com/google_pixel_8_and_8_pro_hands_on-review-2624.php",
+    "https://www.gsmarena.com/google_pixel_8_pro-review-2629.php",
+    "https://www.gsmarena.com/google_pixel_8-review-2628.php",
+    "https://www.gsmarena.com/google_pixel_7_pro-review-2494.php",
+    "https://www.gsmarena.com/google_pixel_6_pro-review-2343.php"
+   ],
+   "flags": [
+    0,
+    1,
+    0,
+    0,
+    0
+   ],
+   "hit": 1,
+   "precision": 0.2,
+   "ndcg": 0.6309297535714575,
+   "elapsed_ms": 8409.973900000296,
+   "payload_ms": 8397.551,
+   "fetches": 9,
+   "bytes": 729461,
+   "robots_skips": 0,
+   "blocks": 0,
+   "short_extractions": 0,
+   "statuses": [
+    200,
+    200,
+    200,
+    200,
+    200
+   ],
+   "notes": "Review covers thermals and sustained performance."
+  },
+  {
+   "id": "q09",
+   "query": "iphone 15 screen replacement",
+   "language": "en",
+   "judged": true,
+   "topics": [
+    "repair",
+    "phones",
+    "apple"
+   ],
+   "sites": [
+    "macrumors",
+    "ifixit",
+    "gsmarena",
+    "tomshardware",
+    "cpsc",
+    "consumeraffairs"
+   ],
+   "sources_with_results": 3,
+   "result_domains": 1,
+   "k": 5,
+   "results": 5,
+   "relevant": [
+    "https://ifixit.com/Guide/iPhone+15+Pro+Max+Screen+Replacement/166233",
+    "https://ifixit.com/Guide/iPhone+15+Screen+Replacement/165669"
+   ],
+   "top_urls": [
+    "https://www.ifixit.com/Guide/iPhone+15+Screen+Replacement/165669",
+    "https://www.ifixit.com/Guide/iPhone+15+Plus+Screen+Replacement/166783",
+    "https://www.ifixit.com/Guide/iPhone+15+Pro+Screen+Replacement/166303",
+    "https://www.ifixit.com/Guide/iPhone+15+Pro+Max+Screen+Replacement/166233",
+    "https://www.ifixit.com/Guide/iPhone+15+Microphone+Replacement/165725"
+   ],
+   "flags": [
+    1,
+    0,
+    0,
+    1,
+    0
+   ],
+   "hit": 1,
+   "precision": 0.4,
+   "ndcg": 0.8772153153380493,
+   "elapsed_ms": 8390.363399999842,
+   "payload_ms": 8379.127,
+   "fetches": 7,
+   "bytes": 4864146,
+   "robots_skips": 0,
+   "blocks": 0,
+   "short_extractions": 0,
+   "statuses": [
+    200,
+    200,
+    200,
+    200,
+    200
+   ],
+   "notes": "Exact iFixit guides."
+  },
+  {
+   "id": "q10",
+   "query": "airpods pro 2 crackling noise",
+   "language": "en",
+   "judged": true,
+   "topics": [
+    "apple",
+    "phones",
+    "tv-audio"
+   ],
+   "sites": [
+    "macrumors",
+    "gsmarena",
+    "tomshardware",
+    "ifixit",
+    "cpsc",
+    "consumeraffairs"
+   ],
+   "sources_with_results": 2,
+   "result_domains": 1,
+   "k": 5,
+   "results": 5,
+   "relevant": [
+    "https://macrumors.com/guide/airpods-pro-crackling-popping"
+   ],
+   "top_urls": [
+    "https://www.macrumors.com/guide/airpods-pro-crackling-popping/",
+    "https://www.macrumors.com/guide/airpods-pro-noise-cancellation/",
+    "https://www.macrumors.com/how-to/control-noise-cancellation-airpods-pro/",
+    "https://www.macrumors.com/how-to/customize-noise-control-button-airpods-max/",
+    "https://www.macrumors.com/how-to/control-active-noise-cancellation-airpods-max/"
+   ],
+   "flags": [
+    1,
+    0,
+    0,
+    0,
+    0
+   ],
+   "hit": 1,
+   "precision": 0.2,
+   "ndcg": 1.0,
+   "elapsed_ms": 7851.216799999747,
+   "payload_ms": 7842.841,
+   "fetches": 8,
+   "bytes": 2871933,
+   "robots_skips": 0,
+   "blocks": 0,
+   "short_extractions": 0,
+   "statuses": [
+    200,
+    200,
+    200,
+    200,
+    200
+   ],
+   "notes": "MacRumors guide on AirPods Pro crackling/popping."
+  },
+  {
+   "id": "q11",
+   "query": "iphone battery draining after update",
+   "language": "en",
+   "judged": true,
+   "topics": [
+    "phones",
+    "apple"
+   ],
+   "sites": [
+    "macrumors",
+    "gsmarena",
+    "tomshardware",
+    "ifixit",
+    "cpsc",
+    "consumeraffairs"
+   ],
+   "sources_with_results": 3,
+   "result_domains": 2,
+   "k": 5,
+   "results": 5,
+   "relevant": [
+    "https://ifixit.com/Guide/Repair+iPhone+X+Battery+that+Drains+Fast/144596",
+    "https://macrumors.com/guide/iphone-15-battery-tips",
+    "https://macrumors.com/guide/iphone-battery-life-10-tips"
+   ],
+   "top_urls": [
+    "https://www.ifixit.com/Guide/Repair+iPhone+X+Battery+that+Drains+Fast/144596",
+    "https://www.macrumors.com/guide/iphone-15-battery-tips/",
+    "https://www.macrumors.com/how-to/show-battery-percentage-iphone/",
+    "https://www.macrumors.com/guide/iphone-16-battery-saving-tips/",
+    "https://www.macrumors.com/guide/iphone-battery-life-10-tips/"
+   ],
+   "flags": [
+    1,
+    1,
+    0,
+    0,
+    1
+   ],
+   "hit": 1,
+   "precision": 0.6,
+   "ndcg": 0.9469024295259745,
+   "elapsed_ms": 6461.949800000184,
+   "payload_ms": 6446.856,
+   "fetches": 8,
+   "bytes": 1485331,
+   "robots_skips": 0,
+   "blocks": 0,
+   "short_extractions": 0,
+   "statuses": [
+    200,
+    200,
+    200,
+    200,
+    200
+   ],
+   "notes": "Battery-drain tips plus iFixit's drain-repair guide (the top result)."
+  },
+  {
+   "id": "q12",
+   "query": "macbook air m2 battery replacement",
+   "language": "en",
+   "judged": true,
+   "topics": [
+    "repair",
+    "apple",
+    "computing",
+    "phones"
+   ],
+   "sites": [
+    "macrumors",
+    "ifixit",
+    "tomshardware",
+    "cpsc",
+    "vaillant",
+    "donanimhaber"
+   ],
+   "sources_with_results": 3,
+   "result_domains": 1,
+   "k": 5,
+   "results": 5,
+   "relevant": [
+    "https://ifixit.com/Guide/MacBook+Air+2022+(M2)+Battery+Replacement/156332"
+   ],
+   "top_urls": [
+    "https://www.ifixit.com/Guide/MacBook+Air+2022+(M2)+Battery+Replacement/156332",
+    "https://www.ifixit.com/Guide/MacBook+Pro+13-Inch+2022+(M2)+Battery+Replacement/156551",
+    "https://www.ifixit.com/Guide/MacBook+Air+2022+(M2)+Trackpad+Replacement/156263",
+    "https://www.ifixit.com/Guide/MacBook+Air+2022+(M2)+Screen+Replacement/156358",
+    "https://www.ifixit.com/Guide/MacBook+Air+2022+(M2)+Right+Speaker+Replacement/157931"
+   ],
+   "flags": [
+    1,
+    0,
+    0,
+    0,
+    0
+   ],
+   "hit": 1,
+   "precision": 0.2,
+   "ndcg": 1.0,
+   "elapsed_ms": 9924.645199999759,
+   "payload_ms": 9914.604,
+   "fetches": 11,
+   "bytes": 5022666,
+   "robots_skips": 0,
+   "blocks": 0,
+   "short_extractions": 0,
+   "statuses": [
+    200,
+    200,
+    200,
+    200,
+    200
+   ],
+   "notes": "Exact iFixit guide."
+  },
+  {
+   "id": "q13",
+   "query": "steam deck ssd upgrade",
+   "language": "en",
+   "judged": true,
+   "topics": [
+    "computing"
+   ],
+   "sites": [
+    "tomshardware",
+    "macrumors",
+    "ifixit",
+    "cpsc",
+    "rtings",
+    "donanimhaber"
+   ],
+   "sources_with_results": 3,
+   "result_domains": 2,
+   "k": 5,
+   "results": 5,
+   "relevant": [
+    "https://ifixit.com/Guide/Steam+Deck+OLED+SSD+Replacement/168255",
+    "https://ifixit.com/Guide/Steam+Deck+SSD+Replacement/148989"
+   ],
+   "top_urls": [
+    "https://www.ifixit.com/Guide/Steam+Deck+SSD+Replacement/148989",
+    "https://www.ifixit.com/Guide/Steam+Deck+OLED+SSD+Replacement/168255",
+    "https://www.ifixit.com/Guide/Steam+Machine+(2026)+SSD+Replacement/225213",
+    "https://www.ifixit.com/Guide/Steam+Machine+(2026)+SSD+Board+Replacement/225218",
+    "https://www.tomshardware.com/pc-components/ssds/elevate-your-steam-deck-and-rog-allys-ssd-storage-for-just-usd0-13-per-gb-rare-discount-brings-wd-black-sn770m-2tb-back-to-near-launch-price"
+   ],
+   "flags": [
+    1,
+    1,
+    0,
+    0,
+    0
+   ],
+   "hit": 1,
+   "precision": 0.4,
+   "ndcg": 1.0,
+   "elapsed_ms": 7139.115500000116,
+   "payload_ms": 7132.078,
+   "fetches": 9,
+   "bytes": 3760946,
+   "robots_skips": 0,
+   "blocks": 0,
+   "short_extractions": 0,
+   "statuses": [
+    200,
+    200,
+    200,
+    200,
+    200
+   ],
+   "notes": "Exact iFixit guides for both Deck models."
+  },
+  {
+   "id": "q14",
+   "query": "anker power bank recall",
+   "language": "en",
+   "judged": true,
+   "topics": [
+    "cars",
+    "computing",
+    "phones",
+    "recalls"
+   ],
+   "sites": [
+    "cpsc",
+    "consumeraffairs",
+    "donanimhaber",
+    "tomshardware",
+    "macrumors",
+    "ifixit"
+   ],
+   "sources_with_results": 1,
+   "result_domains": 1,
+   "k": 5,
+   "results": 4,
+   "relevant": [
+    "https://cpsc.gov/Recalls/2025/Anker-Power-Banks-Recalled-Due-to-Fire-and-Burn-Hazards-Manufactured-by-Anker-Innovations",
+    "https://cpsc.gov/Recalls/2025/More-than-One-Million-Anker-Power-Banks-Recalled-Due-to-Fire-and-Burn-Hazards-Manufactured-by-Anker-Innovations"
+   ],
+   "top_urls": [
+    "https://www.cpsc.gov/Recalls/2025/Anker-Power-Banks-Recalled-Due-to-Fire-and-Burn-Hazards-Manufactured-by-Anker-Innovations",
+    "https://www.cpsc.gov/Recalls/2025/More-than-One-Million-Anker-Power-Banks-Recalled-Due-to-Fire-and-Burn-Hazards-Manufactured-by-Anker-Innovations",
+    "https://www.cpsc.gov/Recalls/2025/Anker-Soundcore-Lithium-Ion-Battery-Powered-Bluetooth-Speakers-Recalled-Due-to-Fire-Hazard-Sold-Exclusively-on-Amazon-com-by-Anker-Innovations",
+    "https://www.cpsc.gov/Recalls/2024/Anker-EverFrost-Lithium-Ion-Battery-Powered-Coolers-Recalled-Due-to-Battery-Fire-Hazard-Manufactured-by-Anker-Innovations"
+   ],
+   "flags": [
+    1,
+    1,
+    0,
+    0
+   ],
+   "hit": 1,
+   "precision": 0.4,
+   "ndcg": 1.0,
+   "elapsed_ms": 8085.657799999353,
+   "payload_ms": 8078.892,
+   "fetches": 8,
+   "bytes": 1425873,
+   "robots_skips": 0,
+   "blocks": 0,
+   "short_extractions": 0,
+   "statuses": [
+    200,
+    200,
+    200,
+    200
+   ],
+   "notes": "Both official CPSC Anker power-bank recalls."
+  },
+  {
+   "id": "q15",
+   "query": "anker a1257 recall",
+   "language": "en",
+   "judged": false,
+   "topics": [
+    "cars",
+    "computing",
+    "phones",
+    "recalls"
+   ],
+   "sites": [
+    "cpsc",
+    "consumeraffairs",
+    "donanimhaber",
+    "tomshardware",
+    "macrumors",
+    "ifixit"
+   ],
+   "sources_with_results": 1,
+   "result_domains": 1,
+   "k": 5,
+   "results": 3,
+   "relevant": [],
+   "top_urls": [
+    "https://www.cpsc.gov/Recalls/2025/Anker-Soundcore-Lithium-Ion-Battery-Powered-Bluetooth-Speakers-Recalled-Due-to-Fire-Hazard-Sold-Exclusively-on-Amazon-com-by-Anker-Innovations",
+    "https://www.cpsc.gov/Recalls/2025/More-than-One-Million-Anker-Power-Banks-Recalled-Due-to-Fire-and-Burn-Hazards-Manufactured-by-Anker-Innovations",
+    "https://www.cpsc.gov/Recalls/2025/Anker-Power-Banks-Recalled-Due-to-Fire-and-Burn-Hazards-Manufactured-by-Anker-Innovations"
+   ],
+   "flags": [
+    0,
+    0,
+    0
+   ],
+   "hit": 0,
+   "precision": 0.0,
+   "ndcg": 0.0,
+   "elapsed_ms": 1777.307500000461,
+   "payload_ms": 1767.447,
+   "fetches": 2,
+   "bytes": 4,
+   "robots_skips": 0,
+   "blocks": 0,
+   "short_extractions": 0,
+   "statuses": [
+    200,
+    200,
+    200
+   ],
+   "notes": "Coverage gap: CPSC has Anker A1263/A1642/A1647/A1652 recalls but no A1257 recall; the API returns zero rows for the model. Reported separately, not scored."
+  },
+  {
+   "id": "q16",
+   "query": "samsung galaxy note 7 recall",
+   "language": "en",
+   "judged": true,
+   "topics": [
+    "phones",
+    "appliances",
+    "cars",
+    "recalls"
+   ],
+   "sites": [
+    "cpsc",
+    "donanimhaber",
+    "consumeraffairs",
+    "ifixit",
+    "tomshardware",
+    "macrumors"
+   ],
+   "sources_with_results": 2,
+   "result_domains": 2,
+   "k": 5,
+   "results": 4,
+   "relevant": [
+    "https://cpsc.gov/Recalls/2016/Samsung-Recalls-Galaxy-Note7-Smartphones",
+    "https://cpsc.gov/Recalls/2017/Samsung-Expands-Recall-of-Galaxy-Note7-Smartphones-Based-on-Additional-Incidents-with-Replacement-Phones"
+   ],
+   "top_urls": [
+    "https://www.cpsc.gov/Recalls/2017/Samsung-Expands-Recall-of-Galaxy-Note7-Smartphones-Based-on-Additional-Incidents-with-Replacement-Phones",
+    "https://www.cpsc.gov/Recalls/2016/Samsung-Recalls-Galaxy-Note7-Smartphones",
+    "https://www.ifixit.com/Teardown/Samsung+Galaxy+Note7+Teardown/66389",
+    "https://www.ifixit.com/Guide/Samsung+Galaxy+Note7+Screen+Assembly+Replacement/197808"
+   ],
+   "flags": [
+    1,
+    1,
+    0,
+    0
+   ],
+   "hit": 1,
+   "precision": 0.4,
+   "ndcg": 1.0,
+   "elapsed_ms": 3825.3758000000744,
+   "payload_ms": 3818.629,
+   "fetches": 6,
+   "bytes": 1122091,
+   "robots_skips": 0,
+   "blocks": 0,
+   "short_extractions": 0,
+   "statuses": [
+    200,
+    200,
+    200,
+    200
+   ],
+   "notes": "Official CPSC Note7 recalls."
+  },
+  {
+   "id": "q17",
+   "query": "peloton treadmill recall",
+   "language": "en",
+   "judged": true,
+   "topics": [
+    "cars",
+    "recalls"
+   ],
+   "sites": [
+    "cpsc",
+    "consumeraffairs",
+    "caranddriver",
+    "donanimhaber",
+    "guvensizurun"
+   ],
+   "sources_with_results": 1,
+   "result_domains": 1,
+   "k": 5,
+   "results": 2,
+   "relevant": [
+    "https://cpsc.gov/Recalls/2021/Peloton-Recalls-Tread-Plus-Treadmills-After-One-Child-Died-and-More-than-70-Incidents-Reported",
+    "https://cpsc.gov/Recalls/2021/Peloton-Recalls-Tread-Treadmills-Due-to-Risk-of-Injury"
+   ],
+   "top_urls": [
+    "https://www.cpsc.gov/Recalls/2021/Peloton-Recalls-Tread-Plus-Treadmills-After-One-Child-Died-and-More-than-70-Incidents-Reported",
+    "https://www.cpsc.gov/Recalls/2021/Peloton-Recalls-Tread-Treadmills-Due-to-Risk-of-Injury"
+   ],
+   "flags": [
+    1,
+    1
+   ],
+   "hit": 1,
+   "precision": 0.4,
+   "ndcg": 1.0,
+   "elapsed_ms": 5998.025599999892,
+   "payload_ms": 5990.651,
+   "fetches": 8,
+   "bytes": 757983,
+   "robots_skips": 0,
+   "blocks": 0,
+   "short_extractions": 0,
+   "statuses": [
+    200,
+    200
+   ],
+   "notes": "CPSC Tread+ and Tread recalls."
+  },
+  {
+   "id": "q18",
+   "query": "samsung refrigerator ice maker problem",
+   "language": "en",
+   "judged": true,
+   "topics": [
+    "appliances",
+    "complaints",
+    "phones"
+   ],
+   "sites": [
+    "consumeraffairs",
+    "guvensizurun",
+    "ifixit",
+    "cpsc",
+    "rtings",
+    "donanimhaber"
+   ],
+   "sources_with_results": 3,
+   "result_domains": 1,
+   "k": 5,
+   "results": 5,
+   "relevant": [
+    "https://consumeraffairs.com/homeowners/samsung_refrigerator.html",
+    "https://ifixit.com/Guide/How+to+Force+Defrost+and+Remove+a+Frozen+Ice+Maker+in+a+Samsung+Refrigerator/207473",
+    "https://ifixit.com/Guide/Removing+the+Samsung+refrigerator+ice+maker/235133",
+    "https://ifixit.com/Guide/Samsung+RF4287HABP+Ice+Maker+Repair/146528",
+    "https://ifixit.com/Guide/Samsung+Refrigerator+Ice+Maker+Troubleshooting+and+Repair/207482"
+   ],
+   "top_urls": [
+    "https://www.ifixit.com/Guide/Removing+the+Samsung+refrigerator+ice+maker/235133",
+    "https://www.ifixit.com/Guide/Samsung+Refrigerator+Ice+Maker+Troubleshooting+and+Repair/207482",
+    "https://www.ifixit.com/Guide/Samsung+Refrigerator+Ice+Maker+Troubleshooting+and+Repair/210414",
+    "https://www.ifixit.com/Guide/How+to+Install+a+Secondary+Heater+in+a+Samsung+Refrigerator+Ice+Maker/207479",
+    "https://www.ifixit.com/Guide/How+to+Force+Defrost+and+Remove+a+Frozen+Ice+Maker+in+a+Samsung+Refrigerator/207473"
+   ],
+   "flags": [
+    1,
+    1,
+    0,
+    0,
+    1
+   ],
+   "hit": 1,
+   "precision": 0.6,
+   "ndcg": 0.6843515475204855,
+   "elapsed_ms": 7646.315500000128,
+   "payload_ms": 7636.704,
+   "fetches": 8,
+   "bytes": 2681901,
+   "robots_skips": 0,
+   "blocks": 0,
+   "short_extractions": 0,
+   "statuses": [
+    200,
+    200,
+    200,
+    200,
+    200
+   ],
+   "notes": "iFixit Samsung ice-maker troubleshooting/repair guides plus the ConsumerAffairs brand hub."
+  },
+  {
+   "id": "q19",
+   "query": "whirlpool dishwasher not draining",
+   "language": "en",
+   "judged": true,
+   "topics": [
+    "appliances"
+   ],
+   "sites": [
+    "ifixit",
+    "cpsc",
+    "consumeraffairs",
+    "rtings",
+    "guvensizurun"
+   ],
+   "sources_with_results": 3,
+   "result_domains": 2,
+   "k": 5,
+   "results": 5,
+   "relevant": [
+    "https://consumeraffairs.com/homeowners/whirlpool_dishwashers.html"
+   ],
+   "top_urls": [
+    "https://www.consumeraffairs.com/homeowners/whirlpool_dishwashers.html",
+    "https://www.ifixit.com/Guide/Whirlpool+Dishwasher+Control+Touch+Panel+Replacement/221224",
+    "https://www.consumeraffairs.com/homeowners/whirlpool-dishwasher-warranty.html",
+    "https://www.ifixit.com/Guide/Remove+and+clean+the+Whirlpool+dishwasher+spray+arm/157559",
+    "https://www.ifixit.com/Guide/Whirlpool+980+Series+Dishwasher+%E2%80%94+Basic+Disassembly+&+Maintenance+Guide/202124"
+   ],
+   "flags": [
+    1,
+    0,
+    0,
+    0,
+    0
+   ],
+   "hit": 1,
+   "precision": 0.2,
+   "ndcg": 1.0,
+   "elapsed_ms": 5475.671300000613,
+   "payload_ms": 5467.2,
+   "fetches": 8,
+   "bytes": 2267482,
+   "robots_skips": 0,
+   "blocks": 0,
+   "short_extractions": 0,
+   "statuses": [
+    200,
+    200,
+    200,
+    200,
+    200
+   ],
+   "notes": "ConsumerAffairs Whirlpool dishwasher complaint/repair hub."
+  },
+  {
+   "id": "q20",
+   "query": "dyson v8 battery replacement",
+   "language": "en",
+   "judged": true,
+   "topics": [
+    "repair",
+    "appliances",
+    "phones"
+   ],
+   "sites": [
+    "ifixit",
+    "macrumors",
+    "cpsc",
+    "consumeraffairs",
+    "vaillant",
+    "gsmarena"
+   ],
+   "sources_with_results": 1,
+   "result_domains": 1,
+   "k": 5,
+   "results": 5,
+   "relevant": [
+    "https://ifixit.com/Guide/Dyson+V8+Animal+Battery+Replacement/130540",
+    "https://ifixit.com/Guide/Dyson+V8+Battery+Replacement/224767"
+   ],
+   "top_urls": [
+    "https://www.ifixit.com/Guide/Dyson+V8+Battery+Replacement/224767",
+    "https://www.ifixit.com/Guide/Dyson+V8+Absolute+Battery+Replacement/100091",
+    "https://www.ifixit.com/Guide/Dyson+V8+Animal+Battery+Replacement/130540",
+    "https://www.ifixit.com/Guide/Dyson+V8+Absolute+Cyclone+Replacement/100041",
+    "https://www.ifixit.com/Guide/Dyson+V8+Absolute+Bin+Replacement/99954"
+   ],
+   "flags": [
+    1,
+    0,
+    1,
+    0,
+    0
+   ],
+   "hit": 1,
+   "precision": 0.4,
+   "ndcg": 0.9197207891481876,
+   "elapsed_ms": 7559.951999999612,
+   "payload_ms": 7543.969,
+   "fetches": 8,
+   "bytes": 1439415,
+   "robots_skips": 0,
+   "blocks": 0,
+   "short_extractions": 0,
+   "statuses": [
+    200,
+    200,
+    200,
+    200,
+    200
+   ],
+   "notes": "Exact iFixit Dyson V8 battery guides."
+  },
+  {
+   "id": "q21",
+   "query": "lg washing machine error code",
+   "language": "en",
+   "judged": true,
+   "topics": [
+    "appliances",
+    "boilers",
+    "phones",
+    "tv-audio"
+   ],
+   "sites": [
+    "ifixit",
+    "cpsc",
+    "consumeraffairs",
+    "rtings",
+    "guvensizurun",
+    "gsmarena"
+   ],
+   "sources_with_results": 3,
+   "result_domains": 1,
+   "k": 5,
+   "results": 5,
+   "relevant": [
+    "https://consumeraffairs.com/homeowners/lg_washing_machine.html",
+    "https://ifixit.com/Guide/How+to+Fix+the+LG+Washing+Machine+LE+Error+Code/207393"
+   ],
+   "top_urls": [
+    "https://www.ifixit.com/Guide/How+to+Fix+the+LG+Washing+Machine+LE+Error+Code/207393",
+    "https://www.ifixit.com/Guide/LG+Washing+Machine+Dispenser+Drawer+Maintenance/218506",
+    "https://www.ifixit.com/Guide/LG+Washing+Machine+Pulsator-Agitating+Plate+Replacement/244307",
+    "https://www.ifixit.com/Guide/LG+Front+Load+Washing+Machine+Pump+Assembly+Replacement/159018",
+    "https://www.ifixit.com/Guide/LG+Front+Load+Washing+Machine+Drain+Hose+Replacement/159937"
+   ],
+   "flags": [
+    1,
+    0,
+    0,
+    0,
+    0
+   ],
+   "hit": 1,
+   "precision": 0.2,
+   "ndcg": 0.6131471927654584,
+   "elapsed_ms": 7565.536199999769,
+   "payload_ms": 7552.277,
+   "fetches": 8,
+   "bytes": 2471135,
+   "robots_skips": 0,
+   "blocks": 0,
+   "short_extractions": 0,
+   "statuses": [
+    200,
+    200,
+    200,
+    200,
+    200
+   ],
+   "notes": "LG washing-machine complaint hub plus the exact iFixit LE error-code guide."
+  },
+  {
+   "id": "q22",
+   "query": "rtx 4070 super review",
+   "language": "en",
+   "judged": true,
+   "topics": [
+    "computing",
+    "reviews"
+   ],
+   "sites": [
+    "tomshardware",
+    "rtings",
+    "macrumors",
+    "ifixit",
+    "cpsc",
+    "donanimhaber"
+   ],
+   "sources_with_results": 3,
+   "result_domains": 3,
+   "k": 5,
+   "results": 5,
+   "relevant": [
+    "https://tomshardware.com/pc-components/gpus/nvidia-geforce-rtx-4070-super-review-boosted-clocks-and-core-counts-for-the-same-dollar599-as-the-vanilla-4070"
+   ],
+   "top_urls": [
+    "https://www.tomshardware.com/pc-components/gpus/nvidia-is-reportedly-still-planning-fabled-rtx-50-super-series-for-2026-leak-claims-lineup-could-now-include-a-potential-rtx-5060-super-with-12gb-of-vram",
+    "https://www.ifixit.com/Guide/EVGA+GeForce+RTX+2060+SUPER+SC+ULTRA+Thermal+Paste+Replacement/209748",
+    "https://www.ifixit.com/Guide/Gigabyte+GeForce+RTX+2070+Super+Thermal+Pads+and+Paste+Replacement/167996",
+    "https://www.ifixit.com/Guide/Nvidia+RTX+2070+Super+Founders+Edition.+Thermal+Paste+and+Thermal+Pad+Replacement/164766",
+    "https://www.donanimhaber.com/rafa-kaldirilan-geforce-rtx-3060-super-ortaya-cikti--162825"
+   ],
+   "flags": [
+    0,
+    0,
+    0,
+    0,
+    0
+   ],
+   "hit": 0,
+   "precision": 0.0,
+   "ndcg": 0.0,
+   "elapsed_ms": 5974.530800000139,
+   "payload_ms": 5954.364,
+   "fetches": 9,
+   "bytes": 3374520,
+   "robots_skips": 0,
+   "blocks": 0,
+   "short_extractions": 0,
+   "statuses": [
+    200,
+    200,
+    200,
+    200,
+    200
+   ],
+   "notes": "Exact Tom's Hardware review (2024)."
+  },
+  {
+   "id": "q23",
+   "query": "ryzen 7 7800x3d review",
+   "language": "en",
+   "judged": true,
+   "topics": [
+    "computing",
+    "reviews"
+   ],
+   "sites": [
+    "tomshardware",
+    "rtings",
+    "macrumors",
+    "ifixit",
+    "cpsc",
+    "donanimhaber"
+   ],
+   "sources_with_results": 1,
+   "result_domains": 1,
+   "k": 5,
+   "results": 1,
+   "relevant": [
+    "https://tomshardware.com/pc-components/cpus/amd-ryzen-7-7700x3d-vs-ryzen-7-7800x3d-faceoff"
+   ],
+   "top_urls": [
+    "https://www.tomshardware.com/pc-components/cpus/amd-ryzen-7-7700x3d-vs-ryzen-7-7800x3d-faceoff"
+   ],
+   "flags": [
+    1
+   ],
+   "hit": 1,
+   "precision": 0.2,
+   "ndcg": 1.0,
+   "elapsed_ms": 4669.503099999929,
+   "payload_ms": 4654.682,
+   "fetches": 5,
+   "bytes": 2802677,
+   "robots_skips": 0,
+   "blocks": 0,
+   "short_extractions": 0,
+   "statuses": [
+    200
+   ],
+   "notes": "Tom's faceoff with the 7800X3D."
+  },
+  {
+   "id": "q24",
+   "query": "best budget monitor for ps5",
+   "language": "en",
+   "judged": true,
+   "topics": [
+    "computing",
+    "reviews",
+    "tv-audio"
+   ],
+   "sites": [
+    "rtings",
+    "tomshardware",
+    "whathifi",
+    "macrumors",
+    "ifixit",
+    "cpsc"
+   ],
+   "sources_with_results": 1,
+   "result_domains": 1,
+   "k": 5,
+   "results": 1,
+   "relevant": [
+    "https://rtings.com/monitor/reviews/best/ps5"
+   ],
+   "top_urls": [
+    "https://www.rtings.com/monitor/reviews/best/ps5"
+   ],
+   "flags": [
+    1
+   ],
+   "hit": 1,
+   "precision": 0.2,
+   "ndcg": 1.0,
+   "elapsed_ms": 4838.865199999418,
+   "payload_ms": 4813.83,
+   "fetches": 5,
+   "bytes": 350301,
+   "robots_skips": 0,
+   "blocks": 0,
+   "short_extractions": 0,
+   "statuses": [
+    200
+   ],
+   "notes": "RTINGS best PS5 monitor list."
+  },
+  {
+   "id": "q25",
+   "query": "honda cr-v review",
+   "language": "en",
+   "judged": true,
+   "topics": [
+    "cars",
+    "reviews"
+   ],
+   "sites": [
+    "caranddriver",
+    "cpsc",
+    "consumeraffairs",
+    "donanimhaber",
+    "gsmarena",
+    "tomshardware"
+   ],
+   "sources_with_results": 1,
+   "result_domains": 1,
+   "k": 5,
+   "results": 2,
+   "relevant": [
+    "https://caranddriver.com/reviews/a65228963/2026-honda-crv-trailsport-drive",
+    "https://caranddriver.com/reviews/in-depth-review/a15080908/2018-honda-crv-fuel-economy"
+   ],
+   "top_urls": [
+    "https://www.caranddriver.com/reviews/comparison-test/a73218206/2026-honda-cr-v-ex-l-vs-2026-mazda-cx-5-premium-plus-comparison-test/",
+    "https://www.caranddriver.com/reviews/a65228963/2026-honda-crv-trailsport-drive/"
+   ],
+   "flags": [
+    0,
+    1
+   ],
+   "hit": 1,
+   "precision": 0.2,
+   "ndcg": 0.38685280723454163,
+   "elapsed_ms": 5055.127499999799,
+   "payload_ms": 5034.603,
+   "fetches": 6,
+   "bytes": 3474261,
+   "robots_skips": 0,
+   "blocks": 0,
+   "short_extractions": 0,
+   "statuses": [
+    200,
+    200
+   ],
+   "notes": "Current 2026 CR-V drive and an older in-depth review."
+  },
+  {
+   "id": "q26",
+   "query": "toyota rav4 hybrid review",
+   "language": "en",
+   "judged": true,
+   "topics": [
+    "cars",
+    "reviews"
+   ],
+   "sites": [
+    "caranddriver",
+    "cpsc",
+    "consumeraffairs",
+    "donanimhaber",
+    "gsmarena",
+    "tomshardware"
+   ],
+   "sources_with_results": 1,
+   "result_domains": 1,
+   "k": 5,
+   "results": 3,
+   "relevant": [
+    "https://caranddriver.com/reviews/a68881619/2026-toyota-rav4-hybrid-test",
+    "https://caranddriver.com/reviews/comparison-test/a29878756/2020-ford-escape-hybrid-vs-2019-toyota-rav4-hybrid"
+   ],
+   "top_urls": [
+    "https://www.caranddriver.com/reviews/a68881619/2026-toyota-rav4-hybrid-test/",
+    "https://www.caranddriver.com/reviews/a73347571/2026-toyota-rav4-gr-sport-plug-in-hybrid-test/",
+    "https://www.caranddriver.com/reviews/a72089618/2026-toyota-rav4-woodland-phev-test/"
+   ],
+   "flags": [
+    1,
+    0,
+    0
+   ],
+   "hit": 1,
+   "precision": 0.2,
+   "ndcg": 0.6131471927654584,
+   "elapsed_ms": 5947.595499999807,
+   "payload_ms": 5916.622,
+   "fetches": 7,
+   "bytes": 1852433,
+   "robots_skips": 0,
+   "blocks": 0,
+   "short_extractions": 0,
+   "statuses": [
+    200,
+    200,
+    200
+   ],
+   "notes": "2026 RAV4 Hybrid test plus a RAV4 Hybrid comparison."
+  },
+  {
+   "id": "q27",
+   "query": "vaillant ecotec fault code f28",
+   "language": "en",
+   "judged": true,
+   "topics": [
+    "boilers"
+   ],
+   "sites": [
+    "vaillant",
+    "consumeraffairs",
+    "donanimhaber",
+    "webtekno",
+    "chip",
+    "guvensizurun"
+   ],
+   "sources_with_results": 1,
+   "result_domains": 1,
+   "k": 5,
+   "results": 1,
+   "relevant": [
+    "https://vaillant.co.uk/advice/understanding-heating-technology/boilers/understanding-an-f28-fault-code-on-a-vaillant-boiler",
+    "https://vaillant.co.uk/service/boiler-fault-codes"
+   ],
+   "top_urls": [
+    "https://www.vaillant.co.uk/advice/understanding-heating-technology/boilers/understanding-an-f28-fault-code-on-a-vaillant-boiler/"
+   ],
+   "flags": [
+    1
+   ],
+   "hit": 1,
+   "precision": 0.2,
+   "ndcg": 0.6131471927654584,
+   "elapsed_ms": 7519.9665999998615,
+   "payload_ms": 7499.118,
+   "fetches": 13,
+   "bytes": 1687337,
+   "robots_skips": 0,
+   "blocks": 0,
+   "short_extractions": 0,
+   "statuses": [
+    200
+   ],
+   "notes": "Exact F28 explainer and the fault-code hub."
+  },
+  {
+   "id": "q28",
+   "query": "vaillant boiler pressure too low",
+   "language": "en",
+   "judged": true,
+   "topics": [
+    "boilers"
+   ],
+   "sites": [
+    "vaillant"
+   ],
+   "sources_with_results": 1,
+   "result_domains": 1,
+   "k": 5,
+   "results": 5,
+   "relevant": [
+    "https://vaillant.co.uk/advice/understanding-heating-technology/boilers/what-do-i-do-if-my-boiler-had-no-pressure",
+    "https://vaillant.co.uk/advice/understanding-heating-technology/boilers/what-pressure-should-my-boiler-be",
+    "https://vaillant.co.uk/advice/understanding-heating-technology/boilers/why-is-my-boiler-losing-pressure"
+   ],
+   "top_urls": [
+    "https://www.vaillant.co.uk/advice/understanding-heating-technology/boilers/why-is-my-boiler-losing-pressure/",
+    "https://www.vaillant.co.uk/advice/understanding-heating-technology/boilers/what-pressure-should-my-boiler-be/",
+    "https://www.vaillant.co.uk/advice/understanding-heating-technology/boilers/what-does-a-pressure-relief-valve-do/",
+    "https://www.vaillant.co.uk/advice/understanding-heating-technology/boilers/what-do-i-do-if-my-boiler-had-no-pressure/",
+    "https://www.vaillant.co.uk/advice/understanding-heating-technology/boilers/how-to-increase-water-pressure-in-a-shower-with-a-combi-boiler/"
+   ],
+   "flags": [
+    1,
+    1,
+    0,
+    1,
+    0
+   ],
+   "hit": 1,
+   "precision": 0.6,
+   "ndcg": 0.9674679834891693,
+   "elapsed_ms": 8395.793900000172,
+   "payload_ms": 8381.127,
+   "fetches": 5,
+   "bytes": 2704271,
+   "robots_skips": 0,
+   "blocks": 0,
+   "short_extractions": 0,
+   "statuses": [
+    200,
+    200,
+    200,
+    200,
+    200
+   ],
+   "notes": "Three official pressure guides."
+  },
+  {
+   "id": "q29",
+   "query": "iphone ekran çizgi",
+   "language": "tr",
+   "judged": true,
+   "topics": [
+    "phones",
+    "apple"
+   ],
+   "sites": [
+    "donanimhaber",
+    "webtekno",
+    "chip",
+    "macrumors",
+    "gsmarena",
+    "tomshardware"
+   ],
+   "sources_with_results": 3,
+   "result_domains": 1,
+   "k": 5,
+   "results": 5,
+   "relevant": [
+    "https://chip.com.tr/guncel/apple-iphone-duo-ekran-catlaklarini-dogruladi_184924.html",
+    "https://chip.com.tr/guncel/iphone-duonun-ekran-sorunu-tedarikciye-uzandi-fine-m-tec-kusur-iddiasini-reddetti_184931.html",
+    "https://donanimhaber.com/iphone-duo-da-ekran-kirilmasi-sikayetleri-gelmeye-basladi--212035",
+    "https://donanimhaber.com/iphone-duo-ekrani-neden-kiriliyor-veya-catliyor--212087",
+    "https://webtekno.com/apple-iphone-duo-ekran-catlamasi-aciklama-h227920.html"
+   ],
+   "top_urls": [
+    "https://www.donanimhaber.com/iphone-duo-nun-ekrani-cep-yakacak--210384",
+    "https://www.donanimhaber.com/iphone-duo-bolunmus-ekran-ozelliginde-sinirlama--210401",
+    "https://www.donanimhaber.com/iphone-duo-ekrani-neden-kiriliyor-veya-catliyor--212087",
+    "https://www.donanimhaber.com/apple-yoneticisi-iphone-a-takilan-ekran-koruyuculardan-rahatsiz--210694",
+    "https://www.donanimhaber.com/iphone-duo-da-ekran-kirilmasi-sikayetleri-gelmeye-basladi--212035"
+   ],
+   "flags": [
+    0,
+    0,
+    1,
+    0,
+    1
+   ],
+   "hit": 1,
+   "precision": 0.4,
+   "ndcg": 0.30078518014914984,
+   "elapsed_ms": 5726.874599999974,
+   "payload_ms": 5711.954,
+   "fetches": 5,
+   "bytes": 1542603,
+   "robots_skips": 0,
+   "blocks": 0,
+   "short_extractions": 0,
+   "statuses": [
+    200,
+    200,
+    200,
+    200,
+    200
+   ],
+   "notes": "Turkish iPhone Duo screen defect/crack coverage."
+  },
+  {
+   "id": "q30",
+   "query": "iphone 17 fiyat",
+   "language": "tr",
+   "judged": true,
+   "topics": [
+    "apple",
+    "phones"
+   ],
+   "sites": [
+    "donanimhaber",
+    "webtekno",
+    "chip",
+    "macrumors",
+    "gsmarena",
+    "tomshardware"
+   ],
+   "sources_with_results": 3,
+   "result_domains": 1,
+   "k": 5,
+   "results": 5,
+   "relevant": [
+    "https://webtekno.com/iphone-17-air-17e-zam-geldi-yeni-fiyatlari-h224032.html",
+    "https://webtekno.com/iphone-17-air-fiyati-ozellikleri-h158035.html",
+    "https://webtekno.com/iphone-17-fiyati-ozellikleri-h158061.html",
+    "https://webtekno.com/iphone-17-pro-ozellikleri-fiyati-h160537.html",
+    "https://webtekno.com/iphone-17-turkiye-fiyati-ne-kadar-olacak-h160258.html"
+   ],
+   "top_urls": [
+    "https://www.webtekno.com/iphone-17-fiyati-ozellikleri-h158061.html",
+    "https://www.webtekno.com/iphone-17-pro-ozellikleri-fiyati-h160537.html",
+    "https://www.webtekno.com/iphone-17-air-fiyati-ozellikleri-h158035.html",
+    "https://www.webtekno.com/iphone-17-pro-max-fiyati-ozellikleri-h158097.html",
+    "https://www.webtekno.com/iphone-17-turkiye-fiyati-ne-kadar-olacak-h160258.html"
+   ],
+   "flags": [
+    1,
+    1,
+    1,
+    0,
+    1
+   ],
+   "hit": 1,
+   "precision": 0.8,
+   "ndcg": 0.8539316501572937,
+   "elapsed_ms": 5981.086200000391,
+   "payload_ms": 5967.041,
+   "fetches": 5,
+   "bytes": 1052086,
+   "robots_skips": 0,
+   "blocks": 0,
+   "short_extractions": 0,
+   "statuses": [
+    200,
+    200,
+    200,
+    200,
+    200
+   ],
+   "notes": "Webtekno's Turkish iPhone 17 price/spec pages."
+  },
+  {
+   "id": "q31",
+   "query": "samsung galaxy s24 ultra inceleme",
+   "language": "tr",
+   "judged": true,
+   "topics": [
+    "phones",
+    "appliances",
+    "reviews"
+   ],
+   "sites": [
+    "donanimhaber",
+    "webtekno",
+    "chip",
+    "gsmarena",
+    "tomshardware",
+    "ifixit"
+   ],
+   "sources_with_results": 2,
+   "result_domains": 2,
+   "k": 5,
+   "results": 5,
+   "relevant": [
+    "https://chip.com.tr/inceleme/samsung-galaxy-s24-ultra-inceleme_169928.html"
+   ],
+   "top_urls": [
+    "https://www.chip.com.tr/inceleme/samsung-galaxy-s24-ultra-inceleme_169928.html",
+    "https://www.gsmarena.com/samsung_galaxy_s24_ultra-review-2670.php",
+    "https://www.gsmarena.com/samsung_galaxy_s24_ultra_s24_plus_s24_handson-review-2656.php",
+    "https://www.gsmarena.com/samsung_galaxy_s24-review-2663.php",
+    "https://www.gsmarena.com/samsung_galaxy_s24_fe-review-2755.php"
+   ],
+   "flags": [
+    1,
+    0,
+    0,
+    0,
+    0
+   ],
+   "hit": 1,
+   "precision": 0.2,
+   "ndcg": 1.0,
+   "elapsed_ms": 2767.7616000000853,
+   "payload_ms": 2753.773,
+   "fetches": 1,
+   "bytes": 174393,
+   "robots_skips": 0,
+   "blocks": 0,
+   "short_extractions": 0,
+   "statuses": [
+    200,
+    200,
+    200,
+    200,
+    200
+   ],
+   "notes": "Chip's Turkish S24 Ultra review."
+  },
+  {
+   "id": "q32",
+   "query": "redmi note 17 pro max inceleme",
+   "language": "tr",
+   "judged": true,
+   "topics": [
+    "phones",
+    "reviews"
+   ],
+   "sites": [
+    "donanimhaber",
+    "webtekno",
+    "chip",
+    "tomshardware",
+    "gsmarena",
+    "macrumors"
+   ],
+   "sources_with_results": 3,
+   "result_domains": 3,
+   "k": 5,
+   "results": 5,
+   "relevant": [
+    "https://chip.com.tr/inceleme/redmi-note-17-pro-max-5g-inceleme_185051.html",
+    "https://donanimhaber.com/redmi-note-17-pro-max-inceleme--211120"
+   ],
+   "top_urls": [
+    "https://www.donanimhaber.com/redmi-note-17-pro-max-inceleme--211120",
+    "https://www.chip.com.tr/inceleme/redmi-note-17-pro-max-5g-inceleme_185051.html",
+    "https://www.chip.com.tr/galeri/redmi-note-17-pro-max-5g-inceleme_184628.html",
+    "https://www.gsmarena.com/xiaomi_redmi_note_10_pro_(max)-review-2232.php",
+    "https://www.gsmarena.com/xiaomi_redmi_note_9_pro_(max)-review-2124.php"
+   ],
+   "flags": [
+    1,
+    1,
+    0,
+    0,
+    0
+   ],
+   "hit": 1,
+   "precision": 0.4,
+   "ndcg": 1.0,
+   "elapsed_ms": 2650.90919999966,
+   "payload_ms": 2622.318,
+   "fetches": 5,
+   "bytes": 873661,
+   "robots_skips": 0,
+   "blocks": 0,
+   "short_extractions": 0,
+   "statuses": [
+    200,
+    200,
+    200,
+    200,
+    200
+   ],
+   "notes": "Exact Turkish reviews."
+  },
+  {
+   "id": "q33",
+   "query": "iphone pil sağlığı gece şarj",
+   "language": "tr",
+   "judged": true,
+   "topics": [
+    "phones",
+    "apple",
+    "computing"
+   ],
+   "sites": [
+    "donanimhaber",
+    "webtekno",
+    "chip",
+    "macrumors",
+    "tomshardware",
+    "ifixit"
+   ],
+   "sources_with_results": 2,
+   "result_domains": 2,
+   "k": 5,
+   "results": 5,
+   "relevant": [
+    "https://chip.com.tr/guncel/iphoneu-gece-sarjda-birakmak-pili-bozuyor-mu-apple-ne-soyluyor_184914.html",
+    "https://donanimhaber.com/iphone-da-bu-ozelligi-kapatin-pili-ve-interneti-somuruyor--211471"
+   ],
+   "top_urls": [
+    "https://www.chip.com.tr/guncel/iphoneu-gece-sarjda-birakmak-pili-bozuyor-mu-apple-ne-soyluyor_184914.html",
+    "https://www.donanimhaber.com/iphone-18-pro-max-ile-sarj-hizi-ve-pil-omrunde-dev-gelisme--210306",
+    "https://www.donanimhaber.com/iphone-18-pro-max-sarj-testi-ne-kadar-hizli-sarj-oluyor--210621",
+    "https://www.donanimhaber.com/iphone-18-pro-max-yeni-pil-ozelligiyle-geliyor--210704",
+    "https://www.donanimhaber.com/baseus-iphone-18-serisi-icin-60w-lik-sarj-adaptorunu-tanitti--212937"
+   ],
+   "flags": [
+    1,
+    0,
+    0,
+    0,
+    0
+   ],
+   "hit": 1,
+   "precision": 0.2,
+   "ndcg": 0.6131471927654584,
+   "elapsed_ms": 5288.032999999814,
+   "payload_ms": 5263.178,
+   "fetches": 5,
+   "bytes": 1315692,
+   "robots_skips": 0,
+   "blocks": 0,
+   "short_extractions": 0,
+   "statuses": [
+    200,
+    200,
+    200,
+    200,
+    200
+   ],
+   "notes": "Turkish iPhone battery-health guidance (night charging and drain)."
+  },
+  {
+   "id": "q34",
+   "query": "çamaşır suyu güvensiz ürün",
+   "language": "tr",
+   "judged": true,
+   "topics": [
+    "appliances",
+    "recalls"
+   ],
+   "sites": [
+    "guvensizurun",
+    "cpsc",
+    "consumeraffairs",
+    "ifixit",
+    "rtings"
+   ],
+   "sources_with_results": 1,
+   "result_domains": 1,
+   "k": 5,
+   "results": 5,
+   "relevant": [
+    "https://guvensizurun.ticaret.gov.tr/Bildirim/Detay?rid=10761",
+    "https://guvensizurun.ticaret.gov.tr/Bildirim/Detay?rid=10762",
+    "https://guvensizurun.ticaret.gov.tr/Bildirim/Detay?rid=10901",
+    "https://guvensizurun.ticaret.gov.tr/Bildirim/Detay?rid=20983"
+   ],
+   "top_urls": [
+    "http://guvensizurun.ticaret.gov.tr/Bildirim/Detay?rid=10901",
+    "http://guvensizurun.ticaret.gov.tr/Bildirim/Detay?rid=20983",
+    "http://guvensizurun.ticaret.gov.tr/Bildirim/Detay?rid=10761",
+    "http://guvensizurun.ticaret.gov.tr/Bildirim/Detay?rid=10762",
+    "http://guvensizurun.ticaret.gov.tr/Bildirim/Detay?rid=20971"
+   ],
+   "flags": [
+    1,
+    1,
+    1,
+    1,
+    0
+   ],
+   "hit": 1,
+   "precision": 0.8,
+   "ndcg": 1.0,
+   "elapsed_ms": 10814.670100000512,
+   "payload_ms": 10789.918,
+   "fetches": 9,
+   "bytes": 144621,
+   "robots_skips": 0,
+   "blocks": 0,
+   "short_extractions": 0,
+   "statuses": [
+    200,
+    200,
+    200,
+    200,
+    200
+   ],
+   "notes": "GUBIS bleach notifications (Carrefour, ABC, Karçiçeği, generic)."
+  },
+  {
+   "id": "q35",
+   "query": "oyuncak güvensiz ürün",
+   "language": "tr",
+   "judged": true,
+   "topics": [
+    "computing",
+    "recalls"
+   ],
+   "sites": [
+    "cpsc",
+    "donanimhaber",
+    "webtekno",
+    "chip",
+    "guvensizurun",
+    "tomshardware"
+   ],
+   "sources_with_results": 1,
+   "result_domains": 1,
+   "k": 5,
+   "results": 5,
+   "relevant": [
+    "https://guvensizurun.ticaret.gov.tr/Bildirim/Detay?rid=10893",
+    "https://guvensizurun.ticaret.gov.tr/Bildirim/Detay?rid=176",
+    "https://guvensizurun.ticaret.gov.tr/Bildirim/Detay?rid=177",
+    "https://guvensizurun.ticaret.gov.tr/Bildirim/Detay?rid=178",
+    "https://guvensizurun.ticaret.gov.tr/Bildirim/Detay?rid=179"
+   ],
+   "top_urls": [
+    "http://guvensizurun.ticaret.gov.tr/Bildirim/Detay?rid=10838",
+    "http://guvensizurun.ticaret.gov.tr/Bildirim/Detay?rid=10735",
+    "http://guvensizurun.ticaret.gov.tr/Bildirim/Detay?rid=10704",
+    "http://guvensizurun.ticaret.gov.tr/Bildirim/Detay?rid=178",
+    "http://guvensizurun.ticaret.gov.tr/Bildirim/Detay?rid=10483"
+   ],
+   "flags": [
+    0,
+    0,
+    0,
+    1,
+    0
+   ],
+   "hit": 1,
+   "precision": 0.2,
+   "ndcg": 0.14606834984270645,
+   "elapsed_ms": 8266.018700000132,
+   "payload_ms": 8254.185,
+   "fetches": 8,
+   "bytes": 144879,
+   "robots_skips": 0,
+   "blocks": 0,
+   "short_extractions": 0,
+   "statuses": [
+    200,
+    200,
+    200,
+    200,
+    200
+   ],
+   "notes": "GUBIS toy notifications (slime, toy pen, truck, squishy toy, soft toy)."
+  },
+  {
+   "id": "q36",
+   "query": "bebek arabası güvensiz ürün",
+   "language": "tr",
+   "judged": true,
+   "topics": [
+    "cars",
+    "recalls"
+   ],
+   "sites": [
+    "cpsc",
+    "consumeraffairs",
+    "donanimhaber",
+    "guvensizurun",
+    "caranddriver"
+   ],
+   "sources_with_results": 1,
+   "result_domains": 1,
+   "k": 5,
+   "results": 5,
+   "relevant": [
+    "https://guvensizurun.ticaret.gov.tr/Bildirim/Detay?rid=175"
+   ],
+   "top_urls": [
+    "http://guvensizurun.ticaret.gov.tr/Bildirim/Detay?rid=10329",
+    "http://guvensizurun.ticaret.gov.tr/Bildirim/Detay?rid=10593",
+    "http://guvensizurun.ticaret.gov.tr/Bildirim/Detay?rid=175",
+    "http://guvensizurun.ticaret.gov.tr/Bildirim/Detay?rid=10183",
+    "http://guvensizurun.ticaret.gov.tr/Bildirim/Detay?rid=10632"
+   ],
+   "flags": [
+    0,
+    0,
+    1,
+    0,
+    0
+   ],
+   "hit": 1,
+   "precision": 0.2,
+   "ndcg": 0.5,
+   "elapsed_ms": 8067.201900000327,
+   "payload_ms": 8052.044,
+   "fetches": 8,
+   "bytes": 143590,
+   "robots_skips": 0,
+   "blocks": 0,
+   "short_extractions": 0,
+   "statuses": [
+    200,
+    200,
+    200,
+    200,
+    200
+   ],
+   "notes": "GUBIS baby stroller notification."
+  },
+  {
+   "id": "q37",
+   "query": "vaillant kombi arıza",
+   "language": "tr",
+   "judged": true,
+   "topics": [
+    "boilers",
+    "complaints"
+   ],
+   "sites": [
+    "vaillant",
+    "donanimhaber",
+    "webtekno",
+    "chip",
+    "guvensizurun",
+    "consumeraffairs"
+   ],
+   "sources_with_results": 0,
+   "result_domains": 0,
+   "k": 5,
+   "results": 0,
+   "relevant": [
+    "https://vaillant.co.uk/service/boiler-fault-codes"
+   ],
+   "top_urls": [],
+   "flags": [],
+   "hit": 0,
+   "precision": 0.0,
+   "ndcg": 0.0,
+   "elapsed_ms": 693.7748999998803,
+   "payload_ms": 484.374,
+   "fetches": 0,
+   "bytes": 0,
+   "robots_skips": 0,
+   "blocks": 0,
+   "short_extractions": 0,
+   "statuses": [],
+   "notes": "Official Vaillant boiler fault-code hub (English; kept as a relevance check across languages)."
+  },
+  {
+   "id": "q38",
+   "query": "samsung buzdolabı sorunu",
+   "language": "tr",
+   "judged": true,
+   "topics": [
+    "appliances",
+    "complaints",
+    "phones"
+   ],
+   "sites": [
+    "guvensizurun",
+    "consumeraffairs",
+    "donanimhaber",
+    "webtekno",
+    "chip",
+    "ifixit"
+   ],
+   "sources_with_results": 0,
+   "result_domains": 0,
+   "k": 5,
+   "results": 0,
+   "relevant": [
+    "https://consumeraffairs.com/homeowners/samsung_refrigerator.html"
+   ],
+   "top_urls": [],
+   "flags": [],
+   "hit": 0,
+   "precision": 0.0,
+   "ndcg": 0.0,
+   "elapsed_ms": 1598.3817999995154,
+   "payload_ms": 1586.321,
+   "fetches": 0,
+   "bytes": 0,
+   "robots_skips": 0,
+   "blocks": 0,
+   "short_extractions": 0,
+   "statuses": [],
+   "notes": "ConsumerAffairs Samsung refrigerator problem hub (English)."
+  },
+  {
+   "id": "q39",
+   "query": "anker power bank geri çağırma",
+   "language": "tr",
+   "judged": true,
+   "topics": [
+    "recalls",
+    "computing",
+    "phones"
+   ],
+   "sites": [
+    "cpsc",
+    "consumeraffairs",
+    "donanimhaber",
+    "webtekno",
+    "chip",
+    "guvensizurun"
+   ],
+   "sources_with_results": 1,
+   "result_domains": 1,
+   "k": 5,
+   "results": 5,
+   "relevant": [
+    "https://cpsc.gov/Recalls/2025/Anker-Power-Banks-Recalled-Due-to-Fire-and-Burn-Hazards-Manufactured-by-Anker-Innovations",
+    "https://cpsc.gov/Recalls/2025/More-than-One-Million-Anker-Power-Banks-Recalled-Due-to-Fire-and-Burn-Hazards-Manufactured-by-Anker-Innovations"
+   ],
+   "top_urls": [
+    "https://www.cpsc.gov/Recalls/2023/Fantasia-Trading-Recalls-Anker-Power-Banks-Due-to-Fire-Hazard",
+    "https://www.cpsc.gov/Recalls/2025/Anker-Power-Banks-Recalled-Due-to-Fire-and-Burn-Hazards-Manufactured-by-Anker-Innovations",
+    "https://www.cpsc.gov/Recalls/2025/More-than-One-Million-Anker-Power-Banks-Recalled-Due-to-Fire-and-Burn-Hazards-Manufactured-by-Anker-Innovations",
+    "https://www.cpsc.gov/Recalls/2024/Anker-EverFrost-Lithium-Ion-Battery-Powered-Coolers-Recalled-Due-to-Battery-Fire-Hazard-Manufactured-by-Anker-Innovations",
+    "https://www.cpsc.gov/Recalls/2025/Anker-Soundcore-Lithium-Ion-Battery-Powered-Bluetooth-Speakers-Recalled-Due-to-Fire-Hazard-Sold-Exclusively-on-Amazon-com-by-Anker-Innovations"
+   ],
+   "flags": [
+    0,
+    1,
+    1,
+    0,
+    0
+   ],
+   "hit": 1,
+   "precision": 0.4,
+   "ndcg": 0.6934264036172708,
+   "elapsed_ms": 2146.7872999992323,
+   "payload_ms": 2132.746,
+   "fetches": 2,
+   "bytes": 78184,
+   "robots_skips": 0,
+   "blocks": 0,
+   "short_extractions": 0,
+   "statuses": [
+    200,
+    200,
+    200,
+    200,
+    200
+   ],
+   "notes": "Official CPSC Anker recalls (English)."
+  },
+  {
+   "id": "q40",
+   "query": "iphone ekran değişimi",
+   "language": "tr",
+   "judged": true,
+   "topics": [
+    "phones",
+    "apple",
+    "repair"
+   ],
+   "sites": [
+    "macrumors",
+    "ifixit",
+    "donanimhaber",
+    "webtekno",
+    "chip",
+    "gsmarena"
+   ],
+   "sources_with_results": 3,
+   "result_domains": 1,
+   "k": 5,
+   "results": 5,
+   "relevant": [
+    "https://donanimhaber.com/iphone-18-pro-max-ekran-batarya-cam-degisimi-fiyati-belli-oldu--210545"
+   ],
+   "top_urls": [
+    "https://www.donanimhaber.com/iphone-18-pro-max-ekran-batarya-cam-degisimi-fiyati-belli-oldu--210545",
+    "https://www.donanimhaber.com/iphone-duo-nun-ekrani-cep-yakacak--210384",
+    "https://www.donanimhaber.com/iphone-duo-bolunmus-ekran-ozelliginde-sinirlama--210401",
+    "https://www.donanimhaber.com/iphone-duo-ekrani-neden-kiriliyor-veya-catliyor--212087",
+    "https://www.donanimhaber.com/apple-yoneticisi-iphone-a-takilan-ekran-koruyuculardan-rahatsiz--210694"
+   ],
+   "flags": [
+    1,
+    0,
+    0,
+    0,
+    0
+   ],
+   "hit": 1,
+   "precision": 0.2,
+   "ndcg": 1.0,
+   "elapsed_ms": 2540.3239999996003,
+   "payload_ms": 2528.312,
+   "fetches": 1,
+   "bytes": 296957,
+   "robots_skips": 0,
+   "blocks": 0,
+   "short_extractions": 0,
+   "statuses": [
+    200,
+    200,
+    200,
+    200,
+    200
+   ],
+   "notes": "Turkish iPhone screen/battery replacement pricing article."
+  },
+  {
+   "id": "q41",
+   "query": "lg c1 yanık",
+   "language": "tr",
+   "judged": true,
+   "topics": [
+    "tv-audio",
+    "appliances",
+    "phones"
+   ],
+   "sites": [
+    "rtings",
+    "whathifi",
+    "donanimhaber",
+    "webtekno",
+    "chip",
+    "guvensizurun"
+   ],
+   "sources_with_results": 1,
+   "result_domains": 1,
+   "k": 5,
+   "results": 3,
+   "relevant": [
+    "https://rtings.com/tv/reviews/lg/c1-oled",
+    "https://rtings.com/tv/reviews/lg/c1-oled/settings"
+   ],
+   "top_urls": [
+    "https://www.rtings.com/tv/reviews/lg/c1-oled",
+    "https://www.rtings.com/tv/reviews/lg/c1-oled/settings",
+    "https://www.rtings.com/monitor/reviews/lg/48-c1-oled"
+   ],
+   "flags": [
+    1,
+    1,
+    0
+   ],
+   "hit": 1,
+   "precision": 0.4,
+   "ndcg": 1.0,
+   "elapsed_ms": 948.2485999997152,
+   "payload_ms": 938.421,
+   "fetches": 0,
+   "bytes": 0,
+   "robots_skips": 0,
+   "blocks": 0,
+   "short_extractions": 0,
+   "statuses": [
+    200,
+    200,
+    200
+   ],
+   "notes": "RTINGS C1 burn-in test and OLED care settings (English)."
+  },
+  {
+   "id": "q42",
+   "query": "saç kurutma makinesi güvensiz ürün",
+   "language": "tr",
+   "judged": true,
+   "topics": [
+    "appliances",
+    "recalls"
+   ],
+   "sites": [
+    "guvensizurun",
+    "cpsc",
+    "consumeraffairs",
+    "ifixit",
+    "rtings"
+   ],
+   "sources_with_results": 1,
+   "result_domains": 1,
+   "k": 5,
+   "results": 5,
+   "relevant": [
+    "https://guvensizurun.ticaret.gov.tr/Bildirim/Detay?rid=70",
+    "https://guvensizurun.ticaret.gov.tr/Bildirim/Detay?rid=71"
+   ],
+   "top_urls": [
+    "http://guvensizurun.ticaret.gov.tr/Bildirim/Detay?rid=70",
+    "http://guvensizurun.ticaret.gov.tr/Bildirim/Detay?rid=71",
+    "http://guvensizurun.ticaret.gov.tr/Bildirim/Detay?rid=73",
+    "http://guvensizurun.ticaret.gov.tr/Bildirim/Detay?rid=10615",
+    "http://guvensizurun.ticaret.gov.tr/Bildirim/Detay?rid=183"
+   ],
+   "flags": [
+    1,
+    1,
+    0,
+    0,
+    0
+   ],
+   "hit": 1,
+   "precision": 0.4,
+   "ndcg": 1.0,
+   "elapsed_ms": 10627.495100000488,
+   "payload_ms": 10606.474,
+   "fetches": 9,
+   "bytes": 170659,
+   "robots_skips": 0,
+   "blocks": 0,
+   "short_extractions": 0,
+   "statuses": [
+    200,
+    200,
+    200,
+    200,
+    200
+   ],
+   "notes": "GUBIS hair-dryer notifications."
+  }
+ ],
+ "warm_fetch": [
+  {
+   "id": "q01",
+   "query": "lg c1 burn in",
+   "language": "en",
+   "judged": true,
+   "topics": [
+    "tv-audio",
+    "appliances",
+    "phones"
+   ],
+   "sites": [
+    "rtings",
+    "whathifi",
+    "ifixit",
+    "cpsc",
+    "consumeraffairs",
+    "gsmarena"
+   ],
+   "sources_with_results": 1,
+   "result_domains": 1,
+   "k": 5,
+   "results": 3,
+   "relevant": [
+    "https://rtings.com/tv/reviews/lg/c1-oled",
+    "https://rtings.com/tv/reviews/lg/c1-oled/settings"
+   ],
+   "top_urls": [
+    "https://www.rtings.com/tv/reviews/lg/c1-oled",
+    "https://www.rtings.com/tv/reviews/lg/c1-oled/settings",
+    "https://www.rtings.com/monitor/reviews/lg/48-c1-oled"
+   ],
+   "flags": [
+    1,
+    1,
+    0
+   ],
+   "hit": 1,
+   "precision": 0.4,
+   "ndcg": 1.0,
+   "elapsed_ms": 802.8069000001778,
+   "payload_ms": 784.988,
+   "fetches": 0,
+   "bytes": 0,
+   "robots_skips": 0,
+   "blocks": 0,
+   "short_extractions": 0,
+   "statuses": [
+    "200",
+    "200",
+    "200"
+   ],
+   "notes": "RTINGS C1 review includes the OLED burn-in test; settings page covers OLED care."
+  },
+  {
+   "id": "q02",
+   "query": "lg c1 best settings",
+   "language": "en",
+   "judged": true,
+   "topics": [
+    "tv-audio",
+    "appliances",
+    "phones",
+    "reviews"
+   ],
+   "sites": [
+    "rtings",
+    "whathifi",
+    "gsmarena",
+    "tomshardware",
+    "ifixit",
+    "cpsc"
+   ],
+   "sources_with_results": 1,
+   "result_domains": 1,
+   "k": 5,
+   "results": 3,
+   "relevant": [
+    "https://rtings.com/tv/reviews/lg/c1-oled/settings"
+   ],
+   "top_urls": [
+    "https://www.rtings.com/tv/reviews/lg/c1-oled/settings",
+    "https://www.rtings.com/tv/reviews/lg/c1-oled",
+    "https://www.rtings.com/monitor/reviews/lg/48-c1-oled"
+   ],
+   "flags": [
+    1,
+    0,
+    0
+   ],
+   "hit": 1,
+   "precision": 0.2,
+   "ndcg": 1.0,
+   "elapsed_ms": 967.8404999995109,
+   "payload_ms": 960.024,
+   "fetches": 0,
+   "bytes": 0,
+   "robots_skips": 0,
+   "blocks": 0,
+   "short_extractions": 0,
+   "statuses": [
+    "200",
+    "200",
+    "200"
+   ],
+   "notes": "Exact settings page."
+  },
+  {
+   "id": "q03",
+   "query": "samsung qn90b review",
+   "language": "en",
+   "judged": true,
+   "topics": [
+    "appliances",
+    "phones",
+    "reviews",
+    "tv-audio"
+   ],
+   "sites": [
+    "rtings",
+    "gsmarena",
+    "tomshardware",
+    "ifixit",
+    "cpsc",
+    "consumeraffairs"
+   ],
+   "sources_with_results": 1,
+   "result_domains": 1,
+   "k": 5,
+   "results": 3,
+   "relevant": [
+    "https://rtings.com/tv/reviews/samsung/qn90b-qled"
+   ],
+   "top_urls": [
+    "https://www.rtings.com/tv/reviews/samsung/qn90b-qled",
+    "https://www.rtings.com/tv/reviews/samsung/qn90b-qled/settings",
+    "https://www.rtings.com/monitor/reviews/samsung/43-qn90b-qled"
+   ],
+   "flags": [
+    1,
+    0,
+    0
+   ],
+   "hit": 1,
+   "precision": 0.2,
+   "ndcg": 1.0,
+   "elapsed_ms": 2766.1552999998094,
+   "payload_ms": 2757.822,
+   "fetches": 0,
+   "bytes": 0,
+   "robots_skips": 0,
+   "blocks": 0,
+   "short_extractions": 0,
+   "statuses": [
+    "200",
+    "200",
+    "200"
+   ],
+   "notes": "Exact review."
+  },
+  {
+   "id": "q04",
+   "query": "sony wh-1000xm5 review",
+   "language": "en",
+   "judged": true,
+   "topics": [
+    "reviews",
+    "tv-audio"
+   ],
+   "sites": [
+    "rtings",
+    "whathifi",
+    "gsmarena",
+    "tomshardware",
+    "caranddriver",
+    "donanimhaber"
+   ],
+   "sources_with_results": 1,
+   "result_domains": 1,
+   "k": 5,
+   "results": 2,
+   "relevant": [
+    "https://rtings.com/headphones/reviews/sony/wh-1000xm5-wireless"
+   ],
+   "top_urls": [
+    "https://www.rtings.com/headphones/reviews/sony/wh-1000xm5-wireless",
+    "https://www.rtings.com/headphones/reviews/sony/wf-1000xm5-truly-wireless"
+   ],
+   "flags": [
+    1,
+    0
+   ],
+   "hit": 1,
+   "precision": 0.2,
+   "ndcg": 1.0,
+   "elapsed_ms": 1134.4072000001688,
+   "payload_ms": 1124.082,
+   "fetches": 0,
+   "bytes": 0,
+   "robots_skips": 0,
+   "blocks": 0,
+   "short_extractions": 0,
+   "statuses": [
+    "200",
+    "200"
+   ],
+   "notes": "Exact review."
+  },
+  {
+   "id": "q05",
+   "query": "best oled tv for movies",
+   "language": "en",
+   "judged": true,
+   "topics": [
+    "tv-audio",
+    "reviews"
+   ],
+   "sites": [
+    "rtings",
+    "whathifi",
+    "gsmarena",
+    "tomshardware",
+    "caranddriver",
+    "donanimhaber"
+   ],
+   "sources_with_results": 3,
+   "result_domains": 2,
+   "k": 5,
+   "results": 5,
+   "relevant": [
+    "https://rtings.com/tv/reviews/best/by-usage/movies",
+    "https://whathifi.com/tv-home-cinema/televisions/prime-days-burned-through-stock-of-our-recommended-cheap-oled-tv-this-is-my-advice-for-bargain-hunting-movie-fans"
+   ],
+   "top_urls": [
+    "https://www.rtings.com/tv/reviews/best/by-type/oled",
+    "https://www.whathifi.com/tv-home-cinema/televisions/after-nearly-half-a-decade-the-small-next-gen-oled-tvs-ive-been-waiting-for-are-finally-here",
+    "https://www.whathifi.com/tv-home-cinema/televisions/prime-days-burned-through-stock-of-our-recommended-cheap-oled-tv-this-is-my-advice-for-bargain-hunting-movie-fans",
+    "https://www.whathifi.com/tv-home-cinema/televisions/ive-found-the-perfect-oled-tv-for-a-gta-vi-marathon-and-its-gbp400-off-in-the-black-friday-sales",
+    "https://www.whathifi.com/tv-home-cinema/televisions/upgrading-to-oled-on-a-budget-this-samsung-model-is-one-of-the-best-entry-level-models-we-have-tested"
+   ],
+   "flags": [
+    0,
+    0,
+    1,
+    0,
+    0
+   ],
+   "hit": 1,
+   "precision": 0.2,
+   "ndcg": 0.3065735963827292,
+   "elapsed_ms": 816.6940999999497,
+   "payload_ms": 809.141,
+   "fetches": 0,
+   "bytes": 0,
+   "robots_skips": 0,
+   "blocks": 0,
+   "short_extractions": 0,
+   "statuses": [
+    "200",
+    "200",
+    "200",
+    "200",
+    "200"
+   ],
+   "notes": "RTINGS best-by-usage list plus a What Hi-Fi OLED buying article."
+  },
+  {
+   "id": "q06",
+   "query": "iphone 15 pro max battery life review",
+   "language": "en",
+   "judged": true,
+   "topics": [
+    "phones",
+    "apple",
+    "reviews"
+   ],
+   "sites": [
+    "gsmarena",
+    "tomshardware",
+    "macrumors",
+    "ifixit",
+    "cpsc",
+    "consumeraffairs"
+   ],
+   "sources_with_results": 2,
+   "result_domains": 2,
+   "k": 5,
+   "results": 5,
+   "relevant": [
+    "https://gsmarena.com/apple_iphone_15_pro_max-review-2618.php",
+    "https://macrumors.com/guide/iphone-15-battery-tips"
+   ],
+   "top_urls": [
+    "https://www.gsmarena.com/apple_iphone_15_pro_max-review-2618.php",
+    "https://www.gsmarena.com/apple_iphone_11_pro_max-review-1991.php",
+    "https://www.macrumors.com/review/iphone-12-pro-max/",
+    "https://www.gsmarena.com/apple_iphone_15_pro-review-2620.php",
+    "https://www.gsmarena.com/apple_iphone_15_pro_long_term-review-2692.php"
+   ],
+   "flags": [
+    1,
+    0,
+    0,
+    0,
+    0
+   ],
+   "hit": 1,
+   "precision": 0.2,
+   "ndcg": 0.6131471927654584,
+   "elapsed_ms": 1919.0641999994114,
+   "payload_ms": 1908.413,
+   "fetches": 0,
+   "bytes": 0,
+   "robots_skips": 0,
+   "blocks": 0,
+   "short_extractions": 0,
+   "statuses": [
+    "200",
+    "200",
+    "200",
+    "200",
+    "200"
+   ],
+   "notes": "GSMArena review has battery tests; MacRumors guide is iPhone 15-specific."
+  },
+  {
+   "id": "q07",
+   "query": "samsung galaxy s24 ultra camera review",
+   "language": "en",
+   "judged": true,
+   "topics": [
+    "phones",
+    "appliances",
+    "reviews"
+   ],
+   "sites": [
+    "gsmarena",
+    "tomshardware",
+    "ifixit",
+    "cpsc",
+    "consumeraffairs",
+    "macrumors"
+   ],
+   "sources_with_results": 1,
+   "result_domains": 1,
+   "k": 5,
+   "results": 5,
+   "relevant": [
+    "https://gsmarena.com/samsung_galaxy_s24_ultra-review-2670.php",
+    "https://gsmarena.com/samsung_galaxy_s24_ultra_s24_plus_s24_handson-review-2656.php"
+   ],
+   "top_urls": [
+    "https://www.gsmarena.com/samsung_galaxy_s24_ultra-review-2670.php",
+    "https://www.gsmarena.com/samsung_galaxy_s24_ultra_s24_plus_s24_handson-review-2656.php",
+    "https://www.gsmarena.com/samsung_galaxy_s24-review-2663.php",
+    "https://www.gsmarena.com/samsung_galaxy_s24_fe-review-2755.php",
+    "https://www.gsmarena.com/samsung_galaxy_s24_plus-review-2664.php"
+   ],
+   "flags": [
+    1,
+    1,
+    0,
+    0,
+    0
+   ],
+   "hit": 1,
+   "precision": 0.4,
+   "ndcg": 1.0,
+   "elapsed_ms": 1895.632700000533,
+   "payload_ms": 1878.931,
+   "fetches": 0,
+   "bytes": 0,
+   "robots_skips": 0,
+   "blocks": 0,
+   "short_extractions": 0,
+   "statuses": [
+    "200",
+    "200",
+    "200",
+    "200",
+    "200"
+   ],
+   "notes": "Full review and hands-on both cover the cameras."
+  },
+  {
+   "id": "q08",
+   "query": "google pixel 8 pro overheating review",
+   "language": "en",
+   "judged": true,
+   "topics": [
+    "phones",
+    "reviews"
+   ],
+   "sites": [
+    "gsmarena",
+    "tomshardware",
+    "macrumors",
+    "ifixit",
+    "cpsc",
+    "consumeraffairs"
+   ],
+   "sources_with_results": 1,
+   "result_domains": 1,
+   "k": 5,
+   "results": 5,
+   "relevant": [
+    "https://gsmarena.com/google_pixel_8_pro-review-2629.php"
+   ],
+   "top_urls": [
+    "https://www.gsmarena.com/google_pixel_8_and_8_pro_hands_on-review-2624.php",
+    "https://www.gsmarena.com/google_pixel_8_pro-review-2629.php",
+    "https://www.gsmarena.com/google_pixel_8-review-2628.php",
+    "https://www.gsmarena.com/google_pixel_7_pro-review-2494.php",
+    "https://www.gsmarena.com/google_pixel_6_pro-review-2343.php"
+   ],
+   "flags": [
+    0,
+    1,
+    0,
+    0,
+    0
+   ],
+   "hit": 1,
+   "precision": 0.2,
+   "ndcg": 0.6309297535714575,
+   "elapsed_ms": 1742.6844000001438,
+   "payload_ms": 1735.356,
+   "fetches": 0,
+   "bytes": 0,
+   "robots_skips": 0,
+   "blocks": 0,
+   "short_extractions": 0,
+   "statuses": [
+    "200",
+    "200",
+    "200",
+    "200",
+    "200"
+   ],
+   "notes": "Review covers thermals and sustained performance."
+  },
+  {
+   "id": "q09",
+   "query": "iphone 15 screen replacement",
+   "language": "en",
+   "judged": true,
+   "topics": [
+    "repair",
+    "phones",
+    "apple"
+   ],
+   "sites": [
+    "macrumors",
+    "ifixit",
+    "gsmarena",
+    "tomshardware",
+    "cpsc",
+    "consumeraffairs"
+   ],
+   "sources_with_results": 3,
+   "result_domains": 1,
+   "k": 5,
+   "results": 5,
+   "relevant": [
+    "https://ifixit.com/Guide/iPhone+15+Pro+Max+Screen+Replacement/166233",
+    "https://ifixit.com/Guide/iPhone+15+Screen+Replacement/165669"
+   ],
+   "top_urls": [
+    "https://www.ifixit.com/Guide/iPhone+15+Screen+Replacement/165669",
+    "https://www.ifixit.com/Guide/iPhone+15+Plus+Screen+Replacement/166783",
+    "https://www.ifixit.com/Guide/iPhone+15+Pro+Screen+Replacement/166303",
+    "https://www.ifixit.com/Guide/iPhone+15+Pro+Max+Screen+Replacement/166233",
+    "https://www.ifixit.com/Guide/iPhone+15+Microphone+Replacement/165725"
+   ],
+   "flags": [
+    1,
+    0,
+    0,
+    1,
+    0
+   ],
+   "hit": 1,
+   "precision": 0.4,
+   "ndcg": 0.8772153153380493,
+   "elapsed_ms": 3659.5993000000817,
+   "payload_ms": 3200.64,
+   "fetches": 0,
+   "bytes": 0,
+   "robots_skips": 0,
+   "blocks": 0,
+   "short_extractions": 0,
+   "statuses": [
+    "200",
+    "200",
+    "200",
+    "200",
+    "200"
+   ],
+   "notes": "Exact iFixit guides."
+  },
+  {
+   "id": "q10",
+   "query": "airpods pro 2 crackling noise",
+   "language": "en",
+   "judged": true,
+   "topics": [
+    "apple",
+    "phones",
+    "tv-audio"
+   ],
+   "sites": [
+    "macrumors",
+    "gsmarena",
+    "tomshardware",
+    "ifixit",
+    "cpsc",
+    "consumeraffairs"
+   ],
+   "sources_with_results": 2,
+   "result_domains": 1,
+   "k": 5,
+   "results": 5,
+   "relevant": [
+    "https://macrumors.com/guide/airpods-pro-crackling-popping"
+   ],
+   "top_urls": [
+    "https://www.macrumors.com/guide/airpods-pro-crackling-popping/",
+    "https://www.macrumors.com/guide/airpods-pro-noise-cancellation/",
+    "https://www.macrumors.com/how-to/control-noise-cancellation-airpods-pro/",
+    "https://www.macrumors.com/how-to/customize-noise-control-button-airpods-max/",
+    "https://www.macrumors.com/how-to/control-active-noise-cancellation-airpods-max/"
+   ],
+   "flags": [
+    1,
+    0,
+    0,
+    0,
+    0
+   ],
+   "hit": 1,
+   "precision": 0.2,
+   "ndcg": 1.0,
+   "elapsed_ms": 2659.2035000003307,
+   "payload_ms": 2649.824,
+   "fetches": 0,
+   "bytes": 0,
+   "robots_skips": 0,
+   "blocks": 0,
+   "short_extractions": 0,
+   "statuses": [
+    "200",
+    "200",
+    "200",
+    "200",
+    "200"
+   ],
+   "notes": "MacRumors guide on AirPods Pro crackling/popping."
+  },
+  {
+   "id": "q11",
+   "query": "iphone battery draining after update",
+   "language": "en",
+   "judged": true,
+   "topics": [
+    "phones",
+    "apple"
+   ],
+   "sites": [
+    "macrumors",
+    "gsmarena",
+    "tomshardware",
+    "ifixit",
+    "cpsc",
+    "consumeraffairs"
+   ],
+   "sources_with_results": 3,
+   "result_domains": 2,
+   "k": 5,
+   "results": 5,
+   "relevant": [
+    "https://ifixit.com/Guide/Repair+iPhone+X+Battery+that+Drains+Fast/144596",
+    "https://macrumors.com/guide/iphone-15-battery-tips",
+    "https://macrumors.com/guide/iphone-battery-life-10-tips"
+   ],
+   "top_urls": [
+    "https://www.ifixit.com/Guide/Repair+iPhone+X+Battery+that+Drains+Fast/144596",
+    "https://www.macrumors.com/guide/iphone-15-battery-tips/",
+    "https://www.macrumors.com/how-to/show-battery-percentage-iphone/",
+    "https://www.macrumors.com/guide/iphone-16-battery-saving-tips/",
+    "https://www.macrumors.com/guide/iphone-battery-life-10-tips/"
+   ],
+   "flags": [
+    1,
+    1,
+    0,
+    0,
+    1
+   ],
+   "hit": 1,
+   "precision": 0.6,
+   "ndcg": 0.9469024295259745,
+   "elapsed_ms": 1411.8691999992734,
+   "payload_ms": 1403.648,
+   "fetches": 0,
+   "bytes": 0,
+   "robots_skips": 0,
+   "blocks": 0,
+   "short_extractions": 0,
+   "statuses": [
+    "200",
+    "200",
+    "200",
+    "200",
+    "200"
+   ],
+   "notes": "Battery-drain tips plus iFixit's drain-repair guide (the top result)."
+  },
+  {
+   "id": "q12",
+   "query": "macbook air m2 battery replacement",
+   "language": "en",
+   "judged": true,
+   "topics": [
+    "repair",
+    "apple",
+    "computing",
+    "phones"
+   ],
+   "sites": [
+    "macrumors",
+    "ifixit",
+    "tomshardware",
+    "cpsc",
+    "vaillant",
+    "donanimhaber"
+   ],
+   "sources_with_results": 3,
+   "result_domains": 1,
+   "k": 5,
+   "results": 5,
+   "relevant": [
+    "https://ifixit.com/Guide/MacBook+Air+2022+(M2)+Battery+Replacement/156332"
+   ],
+   "top_urls": [
+    "https://www.ifixit.com/Guide/MacBook+Air+2022+(M2)+Battery+Replacement/156332",
+    "https://www.ifixit.com/Guide/MacBook+Pro+13-Inch+2022+(M2)+Battery+Replacement/156551",
+    "https://www.ifixit.com/Guide/MacBook+Air+2022+(M2)+Trackpad+Replacement/156263",
+    "https://www.ifixit.com/Guide/MacBook+Air+2022+(M2)+Screen+Replacement/156358",
+    "https://www.ifixit.com/Guide/MacBook+Air+2022+(M2)+Right+Speaker+Replacement/157931"
+   ],
+   "flags": [
+    1,
+    0,
+    0,
+    0,
+    0
+   ],
+   "hit": 1,
+   "precision": 0.2,
+   "ndcg": 1.0,
+   "elapsed_ms": 3077.3748999999953,
+   "payload_ms": 3069.418,
+   "fetches": 0,
+   "bytes": 0,
+   "robots_skips": 0,
+   "blocks": 0,
+   "short_extractions": 0,
+   "statuses": [
+    "200",
+    "200",
+    "200",
+    "200",
+    "200"
+   ],
+   "notes": "Exact iFixit guide."
+  },
+  {
+   "id": "q13",
+   "query": "steam deck ssd upgrade",
+   "language": "en",
+   "judged": true,
+   "topics": [
+    "computing"
+   ],
+   "sites": [
+    "tomshardware",
+    "macrumors",
+    "ifixit",
+    "cpsc",
+    "rtings",
+    "donanimhaber"
+   ],
+   "sources_with_results": 3,
+   "result_domains": 2,
+   "k": 5,
+   "results": 5,
+   "relevant": [
+    "https://ifixit.com/Guide/Steam+Deck+OLED+SSD+Replacement/168255",
+    "https://ifixit.com/Guide/Steam+Deck+SSD+Replacement/148989"
+   ],
+   "top_urls": [
+    "https://www.ifixit.com/Guide/Steam+Deck+SSD+Replacement/148989",
+    "https://www.ifixit.com/Guide/Steam+Deck+OLED+SSD+Replacement/168255",
+    "https://www.ifixit.com/Guide/Steam+Machine+(2026)+SSD+Replacement/225213",
+    "https://www.ifixit.com/Guide/Steam+Machine+(2026)+SSD+Board+Replacement/225218",
+    "https://www.tomshardware.com/pc-components/ssds/elevate-your-steam-deck-and-rog-allys-ssd-storage-for-just-usd0-13-per-gb-rare-discount-brings-wd-black-sn770m-2tb-back-to-near-launch-price"
+   ],
+   "flags": [
+    1,
+    1,
+    0,
+    0,
+    0
+   ],
+   "hit": 1,
+   "precision": 0.4,
+   "ndcg": 1.0,
+   "elapsed_ms": 573.8005000002886,
+   "payload_ms": 565.956,
+   "fetches": 0,
+   "bytes": 0,
+   "robots_skips": 0,
+   "blocks": 0,
+   "short_extractions": 0,
+   "statuses": [
+    "200",
+    "200",
+    "200",
+    "200",
+    "200"
+   ],
+   "notes": "Exact iFixit guides for both Deck models."
+  },
+  {
+   "id": "q14",
+   "query": "anker power bank recall",
+   "language": "en",
+   "judged": true,
+   "topics": [
+    "cars",
+    "computing",
+    "phones",
+    "recalls"
+   ],
+   "sites": [
+    "cpsc",
+    "consumeraffairs",
+    "donanimhaber",
+    "tomshardware",
+    "macrumors",
+    "ifixit"
+   ],
+   "sources_with_results": 1,
+   "result_domains": 1,
+   "k": 5,
+   "results": 4,
+   "relevant": [
+    "https://cpsc.gov/Recalls/2025/Anker-Power-Banks-Recalled-Due-to-Fire-and-Burn-Hazards-Manufactured-by-Anker-Innovations",
+    "https://cpsc.gov/Recalls/2025/More-than-One-Million-Anker-Power-Banks-Recalled-Due-to-Fire-and-Burn-Hazards-Manufactured-by-Anker-Innovations"
+   ],
+   "top_urls": [
+    "https://www.cpsc.gov/Recalls/2025/Anker-Power-Banks-Recalled-Due-to-Fire-and-Burn-Hazards-Manufactured-by-Anker-Innovations",
+    "https://www.cpsc.gov/Recalls/2025/More-than-One-Million-Anker-Power-Banks-Recalled-Due-to-Fire-and-Burn-Hazards-Manufactured-by-Anker-Innovations",
+    "https://www.cpsc.gov/Recalls/2025/Anker-Soundcore-Lithium-Ion-Battery-Powered-Bluetooth-Speakers-Recalled-Due-to-Fire-Hazard-Sold-Exclusively-on-Amazon-com-by-Anker-Innovations",
+    "https://www.cpsc.gov/Recalls/2024/Anker-EverFrost-Lithium-Ion-Battery-Powered-Coolers-Recalled-Due-to-Battery-Fire-Hazard-Manufactured-by-Anker-Innovations"
+   ],
+   "flags": [
+    1,
+    1,
+    0,
+    0
+   ],
+   "hit": 1,
+   "precision": 0.4,
+   "ndcg": 1.0,
+   "elapsed_ms": 602.8417999996236,
+   "payload_ms": 595.677,
+   "fetches": 0,
+   "bytes": 0,
+   "robots_skips": 0,
+   "blocks": 0,
+   "short_extractions": 0,
+   "statuses": [
+    "200",
+    "200",
+    "200",
+    "200"
+   ],
+   "notes": "Both official CPSC Anker power-bank recalls."
+  },
+  {
+   "id": "q15",
+   "query": "anker a1257 recall",
+   "language": "en",
+   "judged": false,
+   "topics": [
+    "cars",
+    "computing",
+    "phones",
+    "recalls"
+   ],
+   "sites": [
+    "cpsc",
+    "consumeraffairs",
+    "donanimhaber",
+    "tomshardware",
+    "macrumors",
+    "ifixit"
+   ],
+   "sources_with_results": 1,
+   "result_domains": 1,
+   "k": 5,
+   "results": 3,
+   "relevant": [],
+   "top_urls": [
+    "https://www.cpsc.gov/Recalls/2025/Anker-Soundcore-Lithium-Ion-Battery-Powered-Bluetooth-Speakers-Recalled-Due-to-Fire-Hazard-Sold-Exclusively-on-Amazon-com-by-Anker-Innovations",
+    "https://www.cpsc.gov/Recalls/2025/More-than-One-Million-Anker-Power-Banks-Recalled-Due-to-Fire-and-Burn-Hazards-Manufactured-by-Anker-Innovations",
+    "https://www.cpsc.gov/Recalls/2025/Anker-Power-Banks-Recalled-Due-to-Fire-and-Burn-Hazards-Manufactured-by-Anker-Innovations"
+   ],
+   "flags": [
+    0,
+    0,
+    0
+   ],
+   "hit": 0,
+   "precision": 0.0,
+   "ndcg": 0.0,
+   "elapsed_ms": 687.3193999999785,
+   "payload_ms": 676.279,
+   "fetches": 0,
+   "bytes": 0,
+   "robots_skips": 0,
+   "blocks": 0,
+   "short_extractions": 0,
+   "statuses": [
+    "200",
+    "200",
+    "200"
+   ],
+   "notes": "Coverage gap: CPSC has Anker A1263/A1642/A1647/A1652 recalls but no A1257 recall; the API returns zero rows for the model. Reported separately, not scored."
+  },
+  {
+   "id": "q16",
+   "query": "samsung galaxy note 7 recall",
+   "language": "en",
+   "judged": true,
+   "topics": [
+    "phones",
+    "appliances",
+    "cars",
+    "recalls"
+   ],
+   "sites": [
+    "cpsc",
+    "donanimhaber",
+    "consumeraffairs",
+    "ifixit",
+    "tomshardware",
+    "macrumors"
+   ],
+   "sources_with_results": 2,
+   "result_domains": 2,
+   "k": 5,
+   "results": 4,
+   "relevant": [
+    "https://cpsc.gov/Recalls/2016/Samsung-Recalls-Galaxy-Note7-Smartphones",
+    "https://cpsc.gov/Recalls/2017/Samsung-Expands-Recall-of-Galaxy-Note7-Smartphones-Based-on-Additional-Incidents-with-Replacement-Phones"
+   ],
+   "top_urls": [
+    "https://www.cpsc.gov/Recalls/2017/Samsung-Expands-Recall-of-Galaxy-Note7-Smartphones-Based-on-Additional-Incidents-with-Replacement-Phones",
+    "https://www.cpsc.gov/Recalls/2016/Samsung-Recalls-Galaxy-Note7-Smartphones",
+    "https://www.ifixit.com/Teardown/Samsung+Galaxy+Note7+Teardown/66389",
+    "https://www.ifixit.com/Guide/Samsung+Galaxy+Note7+Screen+Assembly+Replacement/197808"
+   ],
+   "flags": [
+    1,
+    1,
+    0,
+    0
+   ],
+   "hit": 1,
+   "precision": 0.4,
+   "ndcg": 1.0,
+   "elapsed_ms": 1525.1997000004849,
+   "payload_ms": 1516.276,
+   "fetches": 0,
+   "bytes": 0,
+   "robots_skips": 0,
+   "blocks": 0,
+   "short_extractions": 0,
+   "statuses": [
+    "200",
+    "200",
+    "200",
+    "200"
+   ],
+   "notes": "Official CPSC Note7 recalls."
+  },
+  {
+   "id": "q17",
+   "query": "peloton treadmill recall",
+   "language": "en",
+   "judged": true,
+   "topics": [
+    "cars",
+    "recalls"
+   ],
+   "sites": [
+    "cpsc",
+    "consumeraffairs",
+    "caranddriver",
+    "donanimhaber",
+    "guvensizurun"
+   ],
+   "sources_with_results": 1,
+   "result_domains": 1,
+   "k": 5,
+   "results": 2,
+   "relevant": [
+    "https://cpsc.gov/Recalls/2021/Peloton-Recalls-Tread-Plus-Treadmills-After-One-Child-Died-and-More-than-70-Incidents-Reported",
+    "https://cpsc.gov/Recalls/2021/Peloton-Recalls-Tread-Treadmills-Due-to-Risk-of-Injury"
+   ],
+   "top_urls": [
+    "https://www.cpsc.gov/Recalls/2021/Peloton-Recalls-Tread-Plus-Treadmills-After-One-Child-Died-and-More-than-70-Incidents-Reported",
+    "https://www.cpsc.gov/Recalls/2021/Peloton-Recalls-Tread-Treadmills-Due-to-Risk-of-Injury"
+   ],
+   "flags": [
+    1,
+    1
+   ],
+   "hit": 1,
+   "precision": 0.4,
+   "ndcg": 1.0,
+   "elapsed_ms": 914.9477999999363,
+   "payload_ms": 702.062,
+   "fetches": 0,
+   "bytes": 0,
+   "robots_skips": 0,
+   "blocks": 0,
+   "short_extractions": 0,
+   "statuses": [
+    "200",
+    "200"
+   ],
+   "notes": "CPSC Tread+ and Tread recalls."
+  },
+  {
+   "id": "q18",
+   "query": "samsung refrigerator ice maker problem",
+   "language": "en",
+   "judged": true,
+   "topics": [
+    "appliances",
+    "complaints",
+    "phones"
+   ],
+   "sites": [
+    "consumeraffairs",
+    "guvensizurun",
+    "ifixit",
+    "cpsc",
+    "rtings",
+    "donanimhaber"
+   ],
+   "sources_with_results": 3,
+   "result_domains": 1,
+   "k": 5,
+   "results": 5,
+   "relevant": [
+    "https://consumeraffairs.com/homeowners/samsung_refrigerator.html",
+    "https://ifixit.com/Guide/How+to+Force+Defrost+and+Remove+a+Frozen+Ice+Maker+in+a+Samsung+Refrigerator/207473",
+    "https://ifixit.com/Guide/Removing+the+Samsung+refrigerator+ice+maker/235133",
+    "https://ifixit.com/Guide/Samsung+RF4287HABP+Ice+Maker+Repair/146528",
+    "https://ifixit.com/Guide/Samsung+Refrigerator+Ice+Maker+Troubleshooting+and+Repair/207482"
+   ],
+   "top_urls": [
+    "https://www.ifixit.com/Guide/Removing+the+Samsung+refrigerator+ice+maker/235133",
+    "https://www.ifixit.com/Guide/Samsung+Refrigerator+Ice+Maker+Troubleshooting+and+Repair/207482",
+    "https://www.ifixit.com/Guide/Samsung+Refrigerator+Ice+Maker+Troubleshooting+and+Repair/210414",
+    "https://www.ifixit.com/Guide/How+to+Install+a+Secondary+Heater+in+a+Samsung+Refrigerator+Ice+Maker/207479",
+    "https://www.ifixit.com/Guide/How+to+Force+Defrost+and+Remove+a+Frozen+Ice+Maker+in+a+Samsung+Refrigerator/207473"
+   ],
+   "flags": [
+    1,
+    1,
+    0,
+    0,
+    1
+   ],
+   "hit": 1,
+   "precision": 0.6,
+   "ndcg": 0.6843515475204855,
+   "elapsed_ms": 766.4082999999664,
+   "payload_ms": 756.17,
+   "fetches": 0,
+   "bytes": 0,
+   "robots_skips": 0,
+   "blocks": 0,
+   "short_extractions": 0,
+   "statuses": [
+    "200",
+    "200",
+    "200",
+    "200",
+    "200"
+   ],
+   "notes": "iFixit Samsung ice-maker troubleshooting/repair guides plus the ConsumerAffairs brand hub."
+  },
+  {
+   "id": "q19",
+   "query": "whirlpool dishwasher not draining",
+   "language": "en",
+   "judged": true,
+   "topics": [
+    "appliances"
+   ],
+   "sites": [
+    "ifixit",
+    "cpsc",
+    "consumeraffairs",
+    "rtings",
+    "guvensizurun"
+   ],
+   "sources_with_results": 3,
+   "result_domains": 2,
+   "k": 5,
+   "results": 5,
+   "relevant": [
+    "https://consumeraffairs.com/homeowners/whirlpool_dishwashers.html"
+   ],
+   "top_urls": [
+    "https://www.consumeraffairs.com/homeowners/whirlpool_dishwashers.html",
+    "https://www.ifixit.com/Guide/Whirlpool+Dishwasher+Control+Touch+Panel+Replacement/221224",
+    "https://www.consumeraffairs.com/homeowners/whirlpool-dishwasher-warranty.html",
+    "https://www.ifixit.com/Guide/Remove+and+clean+the+Whirlpool+dishwasher+spray+arm/157559",
+    "https://www.ifixit.com/Guide/Whirlpool+980+Series+Dishwasher+%E2%80%94+Basic+Disassembly+&+Maintenance+Guide/202124"
+   ],
+   "flags": [
+    1,
+    0,
+    0,
+    0,
+    0
+   ],
+   "hit": 1,
+   "precision": 0.2,
+   "ndcg": 1.0,
+   "elapsed_ms": 1069.8247000000265,
+   "payload_ms": 1055.121,
+   "fetches": 0,
+   "bytes": 0,
+   "robots_skips": 0,
+   "blocks": 0,
+   "short_extractions": 0,
+   "statuses": [
+    "200",
+    "200",
+    "200",
+    "200",
+    "200"
+   ],
+   "notes": "ConsumerAffairs Whirlpool dishwasher complaint/repair hub."
+  },
+  {
+   "id": "q20",
+   "query": "dyson v8 battery replacement",
+   "language": "en",
+   "judged": true,
+   "topics": [
+    "repair",
+    "appliances",
+    "phones"
+   ],
+   "sites": [
+    "ifixit",
+    "macrumors",
+    "cpsc",
+    "consumeraffairs",
+    "vaillant",
+    "gsmarena"
+   ],
+   "sources_with_results": 1,
+   "result_domains": 1,
+   "k": 5,
+   "results": 5,
+   "relevant": [
+    "https://ifixit.com/Guide/Dyson+V8+Animal+Battery+Replacement/130540",
+    "https://ifixit.com/Guide/Dyson+V8+Battery+Replacement/224767"
+   ],
+   "top_urls": [
+    "https://www.ifixit.com/Guide/Dyson+V8+Battery+Replacement/224767",
+    "https://www.ifixit.com/Guide/Dyson+V8+Absolute+Battery+Replacement/100091",
+    "https://www.ifixit.com/Guide/Dyson+V8+Animal+Battery+Replacement/130540",
+    "https://www.ifixit.com/Guide/Dyson+V8+Absolute+Cyclone+Replacement/100041",
+    "https://www.ifixit.com/Guide/Dyson+V8+Absolute+Bin+Replacement/99954"
+   ],
+   "flags": [
+    1,
+    0,
+    1,
+    0,
+    0
+   ],
+   "hit": 1,
+   "precision": 0.4,
+   "ndcg": 0.9197207891481876,
+   "elapsed_ms": 1975.10659999989,
+   "payload_ms": 1968.406,
+   "fetches": 0,
+   "bytes": 0,
+   "robots_skips": 0,
+   "blocks": 0,
+   "short_extractions": 0,
+   "statuses": [
+    "200",
+    "200",
+    "200",
+    "200",
+    "200"
+   ],
+   "notes": "Exact iFixit Dyson V8 battery guides."
+  },
+  {
+   "id": "q21",
+   "query": "lg washing machine error code",
+   "language": "en",
+   "judged": true,
+   "topics": [
+    "appliances",
+    "boilers",
+    "phones",
+    "tv-audio"
+   ],
+   "sites": [
+    "ifixit",
+    "cpsc",
+    "consumeraffairs",
+    "rtings",
+    "guvensizurun",
+    "gsmarena"
+   ],
+   "sources_with_results": 3,
+   "result_domains": 1,
+   "k": 5,
+   "results": 5,
+   "relevant": [
+    "https://consumeraffairs.com/homeowners/lg_washing_machine.html",
+    "https://ifixit.com/Guide/How+to+Fix+the+LG+Washing+Machine+LE+Error+Code/207393"
+   ],
+   "top_urls": [
+    "https://www.ifixit.com/Guide/How+to+Fix+the+LG+Washing+Machine+LE+Error+Code/207393",
+    "https://www.ifixit.com/Guide/LG+Washing+Machine+Dispenser+Drawer+Maintenance/218506",
+    "https://www.ifixit.com/Guide/LG+Washing+Machine+Pulsator-Agitating+Plate+Replacement/244307",
+    "https://www.ifixit.com/Guide/LG+Front+Load+Washing+Machine+Pump+Assembly+Replacement/159018",
+    "https://www.ifixit.com/Guide/LG+Front+Load+Washing+Machine+Drain+Hose+Replacement/159937"
+   ],
+   "flags": [
+    1,
+    0,
+    0,
+    0,
+    0
+   ],
+   "hit": 1,
+   "precision": 0.2,
+   "ndcg": 0.6131471927654584,
+   "elapsed_ms": 1823.2820999992327,
+   "payload_ms": 1646.837,
+   "fetches": 0,
+   "bytes": 0,
+   "robots_skips": 0,
+   "blocks": 0,
+   "short_extractions": 0,
+   "statuses": [
+    "200",
+    "200",
+    "200",
+    "200",
+    "200"
+   ],
+   "notes": "LG washing-machine complaint hub plus the exact iFixit LE error-code guide."
+  },
+  {
+   "id": "q22",
+   "query": "rtx 4070 super review",
+   "language": "en",
+   "judged": true,
+   "topics": [
+    "computing",
+    "reviews"
+   ],
+   "sites": [
+    "tomshardware",
+    "rtings",
+    "macrumors",
+    "ifixit",
+    "cpsc",
+    "donanimhaber"
+   ],
+   "sources_with_results": 3,
+   "result_domains": 3,
+   "k": 5,
+   "results": 5,
+   "relevant": [
+    "https://tomshardware.com/pc-components/gpus/nvidia-geforce-rtx-4070-super-review-boosted-clocks-and-core-counts-for-the-same-dollar599-as-the-vanilla-4070"
+   ],
+   "top_urls": [
+    "https://www.tomshardware.com/pc-components/gpus/nvidia-is-reportedly-still-planning-fabled-rtx-50-super-series-for-2026-leak-claims-lineup-could-now-include-a-potential-rtx-5060-super-with-12gb-of-vram",
+    "https://www.ifixit.com/Guide/EVGA+GeForce+RTX+2060+SUPER+SC+ULTRA+Thermal+Paste+Replacement/209748",
+    "https://www.ifixit.com/Guide/Gigabyte+GeForce+RTX+2070+Super+Thermal+Pads+and+Paste+Replacement/167996",
+    "https://www.ifixit.com/Guide/Nvidia+RTX+2070+Super+Founders+Edition.+Thermal+Paste+and+Thermal+Pad+Replacement/164766",
+    "https://www.donanimhaber.com/rafa-kaldirilan-geforce-rtx-3060-super-ortaya-cikti--162825"
+   ],
+   "flags": [
+    0,
+    0,
+    0,
+    0,
+    0
+   ],
+   "hit": 0,
+   "precision": 0.0,
+   "ndcg": 0.0,
+   "elapsed_ms": 839.7158999996464,
+   "payload_ms": 831.08,
+   "fetches": 0,
+   "bytes": 0,
+   "robots_skips": 0,
+   "blocks": 0,
+   "short_extractions": 0,
+   "statuses": [
+    "200",
+    "200",
+    "200",
+    "200",
+    "200"
+   ],
+   "notes": "Exact Tom's Hardware review (2024)."
+  },
+  {
+   "id": "q23",
+   "query": "ryzen 7 7800x3d review",
+   "language": "en",
+   "judged": true,
+   "topics": [
+    "computing",
+    "reviews"
+   ],
+   "sites": [
+    "tomshardware",
+    "rtings",
+    "macrumors",
+    "ifixit",
+    "cpsc",
+    "donanimhaber"
+   ],
+   "sources_with_results": 1,
+   "result_domains": 1,
+   "k": 5,
+   "results": 1,
+   "relevant": [
+    "https://tomshardware.com/pc-components/cpus/amd-ryzen-7-7700x3d-vs-ryzen-7-7800x3d-faceoff"
+   ],
+   "top_urls": [
+    "https://www.tomshardware.com/pc-components/cpus/amd-ryzen-7-7700x3d-vs-ryzen-7-7800x3d-faceoff"
+   ],
+   "flags": [
+    1
+   ],
+   "hit": 1,
+   "precision": 0.2,
+   "ndcg": 1.0,
+   "elapsed_ms": 818.3170000002065,
+   "payload_ms": 808.233,
+   "fetches": 0,
+   "bytes": 0,
+   "robots_skips": 0,
+   "blocks": 0,
+   "short_extractions": 0,
+   "statuses": [
+    "200"
+   ],
+   "notes": "Tom's faceoff with the 7800X3D."
+  },
+  {
+   "id": "q24",
+   "query": "best budget monitor for ps5",
+   "language": "en",
+   "judged": true,
+   "topics": [
+    "computing",
+    "reviews",
+    "tv-audio"
+   ],
+   "sites": [
+    "rtings",
+    "tomshardware",
+    "whathifi",
+    "macrumors",
+    "ifixit",
+    "cpsc"
+   ],
+   "sources_with_results": 1,
+   "result_domains": 1,
+   "k": 5,
+   "results": 1,
+   "relevant": [
+    "https://rtings.com/monitor/reviews/best/ps5"
+   ],
+   "top_urls": [
+    "https://www.rtings.com/monitor/reviews/best/ps5"
+   ],
+   "flags": [
+    1
+   ],
+   "hit": 1,
+   "precision": 0.2,
+   "ndcg": 1.0,
+   "elapsed_ms": 699.6308999996472,
+   "payload_ms": 689.306,
+   "fetches": 0,
+   "bytes": 0,
+   "robots_skips": 0,
+   "blocks": 0,
+   "short_extractions": 0,
+   "statuses": [
+    "200"
+   ],
+   "notes": "RTINGS best PS5 monitor list."
+  },
+  {
+   "id": "q25",
+   "query": "honda cr-v review",
+   "language": "en",
+   "judged": true,
+   "topics": [
+    "cars",
+    "reviews"
+   ],
+   "sites": [
+    "caranddriver",
+    "cpsc",
+    "consumeraffairs",
+    "donanimhaber",
+    "gsmarena",
+    "tomshardware"
+   ],
+   "sources_with_results": 1,
+   "result_domains": 1,
+   "k": 5,
+   "results": 2,
+   "relevant": [
+    "https://caranddriver.com/reviews/a65228963/2026-honda-crv-trailsport-drive",
+    "https://caranddriver.com/reviews/in-depth-review/a15080908/2018-honda-crv-fuel-economy"
+   ],
+   "top_urls": [
+    "https://www.caranddriver.com/reviews/comparison-test/a73218206/2026-honda-cr-v-ex-l-vs-2026-mazda-cx-5-premium-plus-comparison-test/",
+    "https://www.caranddriver.com/reviews/a65228963/2026-honda-crv-trailsport-drive/"
+   ],
+   "flags": [
+    0,
+    1
+   ],
+   "hit": 1,
+   "precision": 0.2,
+   "ndcg": 0.38685280723454163,
+   "elapsed_ms": 1306.0573000002478,
+   "payload_ms": 1298.397,
+   "fetches": 0,
+   "bytes": 0,
+   "robots_skips": 0,
+   "blocks": 0,
+   "short_extractions": 0,
+   "statuses": [
+    "200",
+    "200"
+   ],
+   "notes": "Current 2026 CR-V drive and an older in-depth review."
+  },
+  {
+   "id": "q26",
+   "query": "toyota rav4 hybrid review",
+   "language": "en",
+   "judged": true,
+   "topics": [
+    "cars",
+    "reviews"
+   ],
+   "sites": [
+    "caranddriver",
+    "cpsc",
+    "consumeraffairs",
+    "donanimhaber",
+    "gsmarena",
+    "tomshardware"
+   ],
+   "sources_with_results": 1,
+   "result_domains": 1,
+   "k": 5,
+   "results": 3,
+   "relevant": [
+    "https://caranddriver.com/reviews/a68881619/2026-toyota-rav4-hybrid-test",
+    "https://caranddriver.com/reviews/comparison-test/a29878756/2020-ford-escape-hybrid-vs-2019-toyota-rav4-hybrid"
+   ],
+   "top_urls": [
+    "https://www.caranddriver.com/reviews/a68881619/2026-toyota-rav4-hybrid-test/",
+    "https://www.caranddriver.com/reviews/a73347571/2026-toyota-rav4-gr-sport-plug-in-hybrid-test/",
+    "https://www.caranddriver.com/reviews/a72089618/2026-toyota-rav4-woodland-phev-test/"
+   ],
+   "flags": [
+    1,
+    0,
+    0
+   ],
+   "hit": 1,
+   "precision": 0.2,
+   "ndcg": 0.6131471927654584,
+   "elapsed_ms": 659.0198000003511,
+   "payload_ms": 648.186,
+   "fetches": 0,
+   "bytes": 0,
+   "robots_skips": 0,
+   "blocks": 0,
+   "short_extractions": 0,
+   "statuses": [
+    "200",
+    "200",
+    "200"
+   ],
+   "notes": "2026 RAV4 Hybrid test plus a RAV4 Hybrid comparison."
+  },
+  {
+   "id": "q27",
+   "query": "vaillant ecotec fault code f28",
+   "language": "en",
+   "judged": true,
+   "topics": [
+    "boilers"
+   ],
+   "sites": [
+    "vaillant",
+    "consumeraffairs",
+    "donanimhaber",
+    "webtekno",
+    "chip",
+    "guvensizurun"
+   ],
+   "sources_with_results": 1,
+   "result_domains": 1,
+   "k": 5,
+   "results": 1,
+   "relevant": [
+    "https://vaillant.co.uk/advice/understanding-heating-technology/boilers/understanding-an-f28-fault-code-on-a-vaillant-boiler",
+    "https://vaillant.co.uk/service/boiler-fault-codes"
+   ],
+   "top_urls": [
+    "https://www.vaillant.co.uk/advice/understanding-heating-technology/boilers/understanding-an-f28-fault-code-on-a-vaillant-boiler/"
+   ],
+   "flags": [
+    1
+   ],
+   "hit": 1,
+   "precision": 0.2,
+   "ndcg": 0.6131471927654584,
+   "elapsed_ms": 1291.6668999996546,
+   "payload_ms": 1092.284,
+   "fetches": 0,
+   "bytes": 0,
+   "robots_skips": 0,
+   "blocks": 0,
+   "short_extractions": 0,
+   "statuses": [
+    "200"
+   ],
+   "notes": "Exact F28 explainer and the fault-code hub."
+  },
+  {
+   "id": "q28",
+   "query": "vaillant boiler pressure too low",
+   "language": "en",
+   "judged": true,
+   "topics": [
+    "boilers"
+   ],
+   "sites": [
+    "vaillant"
+   ],
+   "sources_with_results": 1,
+   "result_domains": 1,
+   "k": 5,
+   "results": 5,
+   "relevant": [
+    "https://vaillant.co.uk/advice/understanding-heating-technology/boilers/what-do-i-do-if-my-boiler-had-no-pressure",
+    "https://vaillant.co.uk/advice/understanding-heating-technology/boilers/what-pressure-should-my-boiler-be",
+    "https://vaillant.co.uk/advice/understanding-heating-technology/boilers/why-is-my-boiler-losing-pressure"
+   ],
+   "top_urls": [
+    "https://www.vaillant.co.uk/advice/understanding-heating-technology/boilers/why-is-my-boiler-losing-pressure/",
+    "https://www.vaillant.co.uk/advice/understanding-heating-technology/boilers/what-pressure-should-my-boiler-be/",
+    "https://www.vaillant.co.uk/advice/understanding-heating-technology/boilers/what-does-a-pressure-relief-valve-do/",
+    "https://www.vaillant.co.uk/advice/understanding-heating-technology/boilers/what-do-i-do-if-my-boiler-had-no-pressure/",
+    "https://www.vaillant.co.uk/advice/understanding-heating-technology/boilers/how-to-increase-water-pressure-in-a-shower-with-a-combi-boiler/"
+   ],
+   "flags": [
+    1,
+    1,
+    0,
+    1,
+    0
+   ],
+   "hit": 1,
+   "precision": 0.6,
+   "ndcg": 0.9674679834891693,
+   "elapsed_ms": 273.8011999999799,
+   "payload_ms": 266.607,
+   "fetches": 0,
+   "bytes": 0,
+   "robots_skips": 0,
+   "blocks": 0,
+   "short_extractions": 0,
+   "statuses": [
+    "200",
+    "200",
+    "200",
+    "200",
+    "200"
+   ],
+   "notes": "Three official pressure guides."
+  },
+  {
+   "id": "q29",
+   "query": "iphone ekran çizgi",
+   "language": "tr",
+   "judged": true,
+   "topics": [
+    "phones",
+    "apple"
+   ],
+   "sites": [
+    "donanimhaber",
+    "webtekno",
+    "chip",
+    "macrumors",
+    "gsmarena",
+    "tomshardware"
+   ],
+   "sources_with_results": 3,
+   "result_domains": 1,
+   "k": 5,
+   "results": 5,
+   "relevant": [
+    "https://chip.com.tr/guncel/apple-iphone-duo-ekran-catlaklarini-dogruladi_184924.html",
+    "https://chip.com.tr/guncel/iphone-duonun-ekran-sorunu-tedarikciye-uzandi-fine-m-tec-kusur-iddiasini-reddetti_184931.html",
+    "https://donanimhaber.com/iphone-duo-da-ekran-kirilmasi-sikayetleri-gelmeye-basladi--212035",
+    "https://donanimhaber.com/iphone-duo-ekrani-neden-kiriliyor-veya-catliyor--212087",
+    "https://webtekno.com/apple-iphone-duo-ekran-catlamasi-aciklama-h227920.html"
+   ],
+   "top_urls": [
+    "https://www.donanimhaber.com/iphone-duo-nun-ekrani-cep-yakacak--210384",
+    "https://www.donanimhaber.com/iphone-duo-bolunmus-ekran-ozelliginde-sinirlama--210401",
+    "https://www.donanimhaber.com/iphone-duo-ekrani-neden-kiriliyor-veya-catliyor--212087",
+    "https://www.donanimhaber.com/apple-yoneticisi-iphone-a-takilan-ekran-koruyuculardan-rahatsiz--210694",
+    "https://www.donanimhaber.com/iphone-duo-da-ekran-kirilmasi-sikayetleri-gelmeye-basladi--212035"
+   ],
+   "flags": [
+    0,
+    0,
+    1,
+    0,
+    1
+   ],
+   "hit": 1,
+   "precision": 0.4,
+   "ndcg": 0.30078518014914984,
+   "elapsed_ms": 722.4347000001217,
+   "payload_ms": 711.735,
+   "fetches": 0,
+   "bytes": 0,
+   "robots_skips": 0,
+   "blocks": 0,
+   "short_extractions": 0,
+   "statuses": [
+    "200",
+    "200",
+    "200",
+    "200",
+    "200"
+   ],
+   "notes": "Turkish iPhone Duo screen defect/crack coverage."
+  },
+  {
+   "id": "q30",
+   "query": "iphone 17 fiyat",
+   "language": "tr",
+   "judged": true,
+   "topics": [
+    "apple",
+    "phones"
+   ],
+   "sites": [
+    "donanimhaber",
+    "webtekno",
+    "chip",
+    "macrumors",
+    "gsmarena",
+    "tomshardware"
+   ],
+   "sources_with_results": 3,
+   "result_domains": 1,
+   "k": 5,
+   "results": 5,
+   "relevant": [
+    "https://webtekno.com/iphone-17-air-17e-zam-geldi-yeni-fiyatlari-h224032.html",
+    "https://webtekno.com/iphone-17-air-fiyati-ozellikleri-h158035.html",
+    "https://webtekno.com/iphone-17-fiyati-ozellikleri-h158061.html",
+    "https://webtekno.com/iphone-17-pro-ozellikleri-fiyati-h160537.html",
+    "https://webtekno.com/iphone-17-turkiye-fiyati-ne-kadar-olacak-h160258.html"
+   ],
+   "top_urls": [
+    "https://www.webtekno.com/iphone-17-fiyati-ozellikleri-h158061.html",
+    "https://www.webtekno.com/iphone-17-pro-ozellikleri-fiyati-h160537.html",
+    "https://www.webtekno.com/iphone-17-air-fiyati-ozellikleri-h158035.html",
+    "https://www.webtekno.com/iphone-17-pro-max-fiyati-ozellikleri-h158097.html",
+    "https://www.webtekno.com/iphone-17-turkiye-fiyati-ne-kadar-olacak-h160258.html"
+   ],
+   "flags": [
+    1,
+    1,
+    1,
+    0,
+    1
+   ],
+   "hit": 1,
+   "precision": 0.8,
+   "ndcg": 0.8539316501572937,
+   "elapsed_ms": 714.352100000724,
+   "payload_ms": 695.097,
+   "fetches": 0,
+   "bytes": 0,
+   "robots_skips": 0,
+   "blocks": 0,
+   "short_extractions": 0,
+   "statuses": [
+    "200",
+    "200",
+    "200",
+    "200",
+    "200"
+   ],
+   "notes": "Webtekno's Turkish iPhone 17 price/spec pages."
+  },
+  {
+   "id": "q31",
+   "query": "samsung galaxy s24 ultra inceleme",
+   "language": "tr",
+   "judged": true,
+   "topics": [
+    "phones",
+    "appliances",
+    "reviews"
+   ],
+   "sites": [
+    "donanimhaber",
+    "webtekno",
+    "chip",
+    "gsmarena",
+    "tomshardware",
+    "ifixit"
+   ],
+   "sources_with_results": 2,
+   "result_domains": 2,
+   "k": 5,
+   "results": 5,
+   "relevant": [
+    "https://chip.com.tr/inceleme/samsung-galaxy-s24-ultra-inceleme_169928.html"
+   ],
+   "top_urls": [
+    "https://www.chip.com.tr/inceleme/samsung-galaxy-s24-ultra-inceleme_169928.html",
+    "https://www.gsmarena.com/samsung_galaxy_s24_ultra-review-2670.php",
+    "https://www.gsmarena.com/samsung_galaxy_s24_ultra_s24_plus_s24_handson-review-2656.php",
+    "https://www.gsmarena.com/samsung_galaxy_s24-review-2663.php",
+    "https://www.gsmarena.com/samsung_galaxy_s24_fe-review-2755.php"
+   ],
+   "flags": [
+    1,
+    0,
+    0,
+    0,
+    0
+   ],
+   "hit": 1,
+   "precision": 0.2,
+   "ndcg": 1.0,
+   "elapsed_ms": 2109.71040000004,
+   "payload_ms": 2099.041,
+   "fetches": 0,
+   "bytes": 0,
+   "robots_skips": 0,
+   "blocks": 0,
+   "short_extractions": 0,
+   "statuses": [
+    "200",
+    "200",
+    "200",
+    "200",
+    "200"
+   ],
+   "notes": "Chip's Turkish S24 Ultra review."
+  },
+  {
+   "id": "q32",
+   "query": "redmi note 17 pro max inceleme",
+   "language": "tr",
+   "judged": true,
+   "topics": [
+    "phones",
+    "reviews"
+   ],
+   "sites": [
+    "donanimhaber",
+    "webtekno",
+    "chip",
+    "tomshardware",
+    "gsmarena",
+    "macrumors"
+   ],
+   "sources_with_results": 3,
+   "result_domains": 3,
+   "k": 5,
+   "results": 5,
+   "relevant": [
+    "https://chip.com.tr/inceleme/redmi-note-17-pro-max-5g-inceleme_185051.html",
+    "https://donanimhaber.com/redmi-note-17-pro-max-inceleme--211120"
+   ],
+   "top_urls": [
+    "https://www.donanimhaber.com/redmi-note-17-pro-max-inceleme--211120",
+    "https://www.chip.com.tr/inceleme/redmi-note-17-pro-max-5g-inceleme_185051.html",
+    "https://www.chip.com.tr/galeri/redmi-note-17-pro-max-5g-inceleme_184628.html",
+    "https://www.gsmarena.com/xiaomi_redmi_note_10_pro_(max)-review-2232.php",
+    "https://www.gsmarena.com/xiaomi_redmi_note_9_pro_(max)-review-2124.php"
+   ],
+   "flags": [
+    1,
+    1,
+    0,
+    0,
+    0
+   ],
+   "hit": 1,
+   "precision": 0.4,
+   "ndcg": 1.0,
+   "elapsed_ms": 1473.155399999996,
+   "payload_ms": 1101.956,
+   "fetches": 0,
+   "bytes": 0,
+   "robots_skips": 0,
+   "blocks": 0,
+   "short_extractions": 0,
+   "statuses": [
+    "200",
+    "200",
+    "200",
+    "200",
+    "200"
+   ],
+   "notes": "Exact Turkish reviews."
+  },
+  {
+   "id": "q33",
+   "query": "iphone pil sağlığı gece şarj",
+   "language": "tr",
+   "judged": true,
+   "topics": [
+    "phones",
+    "apple",
+    "computing"
+   ],
+   "sites": [
+    "donanimhaber",
+    "webtekno",
+    "chip",
+    "macrumors",
+    "tomshardware",
+    "ifixit"
+   ],
+   "sources_with_results": 2,
+   "result_domains": 2,
+   "k": 5,
+   "results": 5,
+   "relevant": [
+    "https://chip.com.tr/guncel/iphoneu-gece-sarjda-birakmak-pili-bozuyor-mu-apple-ne-soyluyor_184914.html",
+    "https://donanimhaber.com/iphone-da-bu-ozelligi-kapatin-pili-ve-interneti-somuruyor--211471"
+   ],
+   "top_urls": [
+    "https://www.chip.com.tr/guncel/iphoneu-gece-sarjda-birakmak-pili-bozuyor-mu-apple-ne-soyluyor_184914.html",
+    "https://www.donanimhaber.com/iphone-18-pro-max-ile-sarj-hizi-ve-pil-omrunde-dev-gelisme--210306",
+    "https://www.donanimhaber.com/iphone-18-pro-max-sarj-testi-ne-kadar-hizli-sarj-oluyor--210621",
+    "https://www.donanimhaber.com/iphone-18-pro-max-yeni-pil-ozelligiyle-geliyor--210704",
+    "https://www.donanimhaber.com/baseus-iphone-18-serisi-icin-60w-lik-sarj-adaptorunu-tanitti--212937"
+   ],
+   "flags": [
+    1,
+    0,
+    0,
+    0,
+    0
+   ],
+   "hit": 1,
+   "precision": 0.2,
+   "ndcg": 0.6131471927654584,
+   "elapsed_ms": 1000.7011999996394,
+   "payload_ms": 989.202,
+   "fetches": 0,
+   "bytes": 0,
+   "robots_skips": 0,
+   "blocks": 0,
+   "short_extractions": 0,
+   "statuses": [
+    "200",
+    "200",
+    "200",
+    "200",
+    "200"
+   ],
+   "notes": "Turkish iPhone battery-health guidance (night charging and drain)."
+  },
+  {
+   "id": "q34",
+   "query": "çamaşır suyu güvensiz ürün",
+   "language": "tr",
+   "judged": true,
+   "topics": [
+    "appliances",
+    "recalls"
+   ],
+   "sites": [
+    "guvensizurun",
+    "cpsc",
+    "consumeraffairs",
+    "ifixit",
+    "rtings"
+   ],
+   "sources_with_results": 1,
+   "result_domains": 1,
+   "k": 5,
+   "results": 5,
+   "relevant": [
+    "https://guvensizurun.ticaret.gov.tr/Bildirim/Detay?rid=10761",
+    "https://guvensizurun.ticaret.gov.tr/Bildirim/Detay?rid=10762",
+    "https://guvensizurun.ticaret.gov.tr/Bildirim/Detay?rid=10901",
+    "https://guvensizurun.ticaret.gov.tr/Bildirim/Detay?rid=20983"
+   ],
+   "top_urls": [
+    "http://guvensizurun.ticaret.gov.tr/Bildirim/Detay?rid=10901",
+    "http://guvensizurun.ticaret.gov.tr/Bildirim/Detay?rid=20983",
+    "http://guvensizurun.ticaret.gov.tr/Bildirim/Detay?rid=10761",
+    "http://guvensizurun.ticaret.gov.tr/Bildirim/Detay?rid=10762",
+    "http://guvensizurun.ticaret.gov.tr/Bildirim/Detay?rid=20971"
+   ],
+   "flags": [
+    1,
+    1,
+    1,
+    1,
+    0
+   ],
+   "hit": 1,
+   "precision": 0.8,
+   "ndcg": 1.0,
+   "elapsed_ms": 967.4597000002905,
+   "payload_ms": 960.446,
+   "fetches": 0,
+   "bytes": 0,
+   "robots_skips": 0,
+   "blocks": 0,
+   "short_extractions": 0,
+   "statuses": [
+    "200",
+    "200",
+    "200",
+    "200",
+    "200"
+   ],
+   "notes": "GUBIS bleach notifications (Carrefour, ABC, Karçiçeği, generic)."
+  },
+  {
+   "id": "q35",
+   "query": "oyuncak güvensiz ürün",
+   "language": "tr",
+   "judged": true,
+   "topics": [
+    "computing",
+    "recalls"
+   ],
+   "sites": [
+    "cpsc",
+    "donanimhaber",
+    "webtekno",
+    "chip",
+    "guvensizurun",
+    "tomshardware"
+   ],
+   "sources_with_results": 1,
+   "result_domains": 1,
+   "k": 5,
+   "results": 5,
+   "relevant": [
+    "https://guvensizurun.ticaret.gov.tr/Bildirim/Detay?rid=10893",
+    "https://guvensizurun.ticaret.gov.tr/Bildirim/Detay?rid=176",
+    "https://guvensizurun.ticaret.gov.tr/Bildirim/Detay?rid=177",
+    "https://guvensizurun.ticaret.gov.tr/Bildirim/Detay?rid=178",
+    "https://guvensizurun.ticaret.gov.tr/Bildirim/Detay?rid=179"
+   ],
+   "top_urls": [
+    "http://guvensizurun.ticaret.gov.tr/Bildirim/Detay?rid=10838",
+    "http://guvensizurun.ticaret.gov.tr/Bildirim/Detay?rid=10735",
+    "http://guvensizurun.ticaret.gov.tr/Bildirim/Detay?rid=10704",
+    "http://guvensizurun.ticaret.gov.tr/Bildirim/Detay?rid=178",
+    "http://guvensizurun.ticaret.gov.tr/Bildirim/Detay?rid=10483"
+   ],
+   "flags": [
+    0,
+    0,
+    0,
+    1,
+    0
+   ],
+   "hit": 1,
+   "precision": 0.2,
+   "ndcg": 0.14606834984270645,
+   "elapsed_ms": 774.4847999992999,
+   "payload_ms": 763.335,
+   "fetches": 0,
+   "bytes": 0,
+   "robots_skips": 0,
+   "blocks": 0,
+   "short_extractions": 0,
+   "statuses": [
+    "200",
+    "200",
+    "200",
+    "200",
+    "200"
+   ],
+   "notes": "GUBIS toy notifications (slime, toy pen, truck, squishy toy, soft toy)."
+  },
+  {
+   "id": "q36",
+   "query": "bebek arabası güvensiz ürün",
+   "language": "tr",
+   "judged": true,
+   "topics": [
+    "cars",
+    "recalls"
+   ],
+   "sites": [
+    "cpsc",
+    "consumeraffairs",
+    "donanimhaber",
+    "guvensizurun",
+    "caranddriver"
+   ],
+   "sources_with_results": 1,
+   "result_domains": 1,
+   "k": 5,
+   "results": 5,
+   "relevant": [
+    "https://guvensizurun.ticaret.gov.tr/Bildirim/Detay?rid=175"
+   ],
+   "top_urls": [
+    "http://guvensizurun.ticaret.gov.tr/Bildirim/Detay?rid=10329",
+    "http://guvensizurun.ticaret.gov.tr/Bildirim/Detay?rid=10593",
+    "http://guvensizurun.ticaret.gov.tr/Bildirim/Detay?rid=175",
+    "http://guvensizurun.ticaret.gov.tr/Bildirim/Detay?rid=10183",
+    "http://guvensizurun.ticaret.gov.tr/Bildirim/Detay?rid=10632"
+   ],
+   "flags": [
+    0,
+    0,
+    1,
+    0,
+    0
+   ],
+   "hit": 1,
+   "precision": 0.2,
+   "ndcg": 0.5,
+   "elapsed_ms": 674.8500999992757,
+   "payload_ms": 664.836,
+   "fetches": 0,
+   "bytes": 0,
+   "robots_skips": 0,
+   "blocks": 0,
+   "short_extractions": 0,
+   "statuses": [
+    "200",
+    "200",
+    "200",
+    "200",
+    "200"
+   ],
+   "notes": "GUBIS baby stroller notification."
+  },
+  {
+   "id": "q37",
+   "query": "vaillant kombi arıza",
+   "language": "tr",
+   "judged": true,
+   "topics": [
+    "boilers",
+    "complaints"
+   ],
+   "sites": [
+    "vaillant",
+    "donanimhaber",
+    "webtekno",
+    "chip",
+    "guvensizurun",
+    "consumeraffairs"
+   ],
+   "sources_with_results": 0,
+   "result_domains": 0,
+   "k": 5,
+   "results": 0,
+   "relevant": [
+    "https://vaillant.co.uk/service/boiler-fault-codes"
+   ],
+   "top_urls": [],
+   "flags": [],
+   "hit": 0,
+   "precision": 0.0,
+   "ndcg": 0.0,
+   "elapsed_ms": 633.475499999804,
+   "payload_ms": 625.936,
+   "fetches": 0,
+   "bytes": 0,
+   "robots_skips": 0,
+   "blocks": 0,
+   "short_extractions": 0,
+   "statuses": [],
+   "notes": "Official Vaillant boiler fault-code hub (English; kept as a relevance check across languages)."
+  },
+  {
+   "id": "q38",
+   "query": "samsung buzdolabı sorunu",
+   "language": "tr",
+   "judged": true,
+   "topics": [
+    "appliances",
+    "complaints",
+    "phones"
+   ],
+   "sites": [
+    "guvensizurun",
+    "consumeraffairs",
+    "donanimhaber",
+    "webtekno",
+    "chip",
+    "ifixit"
+   ],
+   "sources_with_results": 0,
+   "result_domains": 0,
+   "k": 5,
+   "results": 0,
+   "relevant": [
+    "https://consumeraffairs.com/homeowners/samsung_refrigerator.html"
+   ],
+   "top_urls": [],
+   "flags": [],
+   "hit": 0,
+   "precision": 0.0,
+   "ndcg": 0.0,
+   "elapsed_ms": 1234.4337000004089,
+   "payload_ms": 1143.662,
+   "fetches": 0,
+   "bytes": 0,
+   "robots_skips": 0,
+   "blocks": 0,
+   "short_extractions": 0,
+   "statuses": [],
+   "notes": "ConsumerAffairs Samsung refrigerator problem hub (English)."
+  },
+  {
+   "id": "q39",
+   "query": "anker power bank geri çağırma",
+   "language": "tr",
+   "judged": true,
+   "topics": [
+    "recalls",
+    "computing",
+    "phones"
+   ],
+   "sites": [
+    "cpsc",
+    "consumeraffairs",
+    "donanimhaber",
+    "webtekno",
+    "chip",
+    "guvensizurun"
+   ],
+   "sources_with_results": 1,
+   "result_domains": 1,
+   "k": 5,
+   "results": 5,
+   "relevant": [
+    "https://cpsc.gov/Recalls/2025/Anker-Power-Banks-Recalled-Due-to-Fire-and-Burn-Hazards-Manufactured-by-Anker-Innovations",
+    "https://cpsc.gov/Recalls/2025/More-than-One-Million-Anker-Power-Banks-Recalled-Due-to-Fire-and-Burn-Hazards-Manufactured-by-Anker-Innovations"
+   ],
+   "top_urls": [
+    "https://www.cpsc.gov/Recalls/2023/Fantasia-Trading-Recalls-Anker-Power-Banks-Due-to-Fire-Hazard",
+    "https://www.cpsc.gov/Recalls/2025/Anker-Power-Banks-Recalled-Due-to-Fire-and-Burn-Hazards-Manufactured-by-Anker-Innovations",
+    "https://www.cpsc.gov/Recalls/2025/More-than-One-Million-Anker-Power-Banks-Recalled-Due-to-Fire-and-Burn-Hazards-Manufactured-by-Anker-Innovations",
+    "https://www.cpsc.gov/Recalls/2024/Anker-EverFrost-Lithium-Ion-Battery-Powered-Coolers-Recalled-Due-to-Battery-Fire-Hazard-Manufactured-by-Anker-Innovations",
+    "https://www.cpsc.gov/Recalls/2025/Anker-Soundcore-Lithium-Ion-Battery-Powered-Bluetooth-Speakers-Recalled-Due-to-Fire-Hazard-Sold-Exclusively-on-Amazon-com-by-Anker-Innovations"
+   ],
+   "flags": [
+    0,
+    1,
+    1,
+    0,
+    0
+   ],
+   "hit": 1,
+   "precision": 0.4,
+   "ndcg": 0.6934264036172708,
+   "elapsed_ms": 808.6686999995436,
+   "payload_ms": 794.938,
+   "fetches": 0,
+   "bytes": 0,
+   "robots_skips": 0,
+   "blocks": 0,
+   "short_extractions": 0,
+   "statuses": [
+    "200",
+    "200",
+    "200",
+    "200",
+    "200"
+   ],
+   "notes": "Official CPSC Anker recalls (English)."
+  },
+  {
+   "id": "q40",
+   "query": "iphone ekran değişimi",
+   "language": "tr",
+   "judged": true,
+   "topics": [
+    "phones",
+    "apple",
+    "repair"
+   ],
+   "sites": [
+    "macrumors",
+    "ifixit",
+    "donanimhaber",
+    "webtekno",
+    "chip",
+    "gsmarena"
+   ],
+   "sources_with_results": 3,
+   "result_domains": 1,
+   "k": 5,
+   "results": 5,
+   "relevant": [
+    "https://donanimhaber.com/iphone-18-pro-max-ekran-batarya-cam-degisimi-fiyati-belli-oldu--210545"
+   ],
+   "top_urls": [
+    "https://www.donanimhaber.com/iphone-18-pro-max-ekran-batarya-cam-degisimi-fiyati-belli-oldu--210545",
+    "https://www.donanimhaber.com/iphone-duo-nun-ekrani-cep-yakacak--210384",
+    "https://www.donanimhaber.com/iphone-duo-bolunmus-ekran-ozelliginde-sinirlama--210401",
+    "https://www.donanimhaber.com/iphone-duo-ekrani-neden-kiriliyor-veya-catliyor--212087",
+    "https://www.donanimhaber.com/apple-yoneticisi-iphone-a-takilan-ekran-koruyuculardan-rahatsiz--210694"
+   ],
+   "flags": [
+    1,
+    0,
+    0,
+    0,
+    0
+   ],
+   "hit": 1,
+   "precision": 0.2,
+   "ndcg": 1.0,
+   "elapsed_ms": 1435.6282999997347,
+   "payload_ms": 1422.574,
+   "fetches": 0,
+   "bytes": 0,
+   "robots_skips": 0,
+   "blocks": 0,
+   "short_extractions": 0,
+   "statuses": [
+    "200",
+    "200",
+    "200",
+    "200",
+    "200"
+   ],
+   "notes": "Turkish iPhone screen/battery replacement pricing article."
+  },
+  {
+   "id": "q41",
+   "query": "lg c1 yanık",
+   "language": "tr",
+   "judged": true,
+   "topics": [
+    "tv-audio",
+    "appliances",
+    "phones"
+   ],
+   "sites": [
+    "rtings",
+    "whathifi",
+    "donanimhaber",
+    "webtekno",
+    "chip",
+    "guvensizurun"
+   ],
+   "sources_with_results": 1,
+   "result_domains": 1,
+   "k": 5,
+   "results": 3,
+   "relevant": [
+    "https://rtings.com/tv/reviews/lg/c1-oled",
+    "https://rtings.com/tv/reviews/lg/c1-oled/settings"
+   ],
+   "top_urls": [
+    "https://www.rtings.com/tv/reviews/lg/c1-oled",
+    "https://www.rtings.com/tv/reviews/lg/c1-oled/settings",
+    "https://www.rtings.com/monitor/reviews/lg/48-c1-oled"
+   ],
+   "flags": [
+    1,
+    1,
+    0
+   ],
+   "hit": 1,
+   "precision": 0.4,
+   "ndcg": 1.0,
+   "elapsed_ms": 713.955299999725,
+   "payload_ms": 702.7,
+   "fetches": 0,
+   "bytes": 0,
+   "robots_skips": 0,
+   "blocks": 0,
+   "short_extractions": 0,
+   "statuses": [
+    "200",
+    "200",
+    "200"
+   ],
+   "notes": "RTINGS C1 burn-in test and OLED care settings (English)."
+  },
+  {
+   "id": "q42",
+   "query": "saç kurutma makinesi güvensiz ürün",
+   "language": "tr",
+   "judged": true,
+   "topics": [
+    "appliances",
+    "recalls"
+   ],
+   "sites": [
+    "guvensizurun",
+    "cpsc",
+    "consumeraffairs",
+    "ifixit",
+    "rtings"
+   ],
+   "sources_with_results": 1,
+   "result_domains": 1,
+   "k": 5,
+   "results": 5,
+   "relevant": [
+    "https://guvensizurun.ticaret.gov.tr/Bildirim/Detay?rid=70",
+    "https://guvensizurun.ticaret.gov.tr/Bildirim/Detay?rid=71"
+   ],
+   "top_urls": [
+    "http://guvensizurun.ticaret.gov.tr/Bildirim/Detay?rid=70",
+    "http://guvensizurun.ticaret.gov.tr/Bildirim/Detay?rid=71",
+    "http://guvensizurun.ticaret.gov.tr/Bildirim/Detay?rid=73",
+    "http://guvensizurun.ticaret.gov.tr/Bildirim/Detay?rid=10615",
+    "http://guvensizurun.ticaret.gov.tr/Bildirim/Detay?rid=183"
+   ],
+   "flags": [
+    1,
+    1,
+    0,
+    0,
+    0
+   ],
+   "hit": 1,
+   "precision": 0.4,
+   "ndcg": 1.0,
+   "elapsed_ms": 1031.5405000001192,
+   "payload_ms": 1024.359,
+   "fetches": 0,
+   "bytes": 0,
+   "robots_skips": 0,
+   "blocks": 0,
+   "short_extractions": 0,
+   "statuses": [
+    "200",
+    "200",
+    "200",
+    "200",
+    "200"
+   ],
+   "notes": "GUBIS hair-dryer notifications."
+  }
+ ],
+ "warm": [
+  {
+   "id": "q01",
+   "query": "lg c1 burn in",
+   "language": "en",
+   "judged": true,
+   "topics": [
+    "tv-audio",
+    "appliances",
+    "phones"
+   ],
+   "sites": [
+    "rtings",
+    "whathifi",
+    "ifixit",
+    "cpsc",
+    "consumeraffairs",
+    "gsmarena"
+   ],
+   "sources_with_results": 1,
+   "result_domains": 1,
+   "k": 5,
+   "results": 3,
+   "relevant": [
+    "https://rtings.com/tv/reviews/lg/c1-oled",
+    "https://rtings.com/tv/reviews/lg/c1-oled/settings"
+   ],
+   "top_urls": [
+    "https://www.rtings.com/tv/reviews/lg/c1-oled",
+    "https://www.rtings.com/tv/reviews/lg/c1-oled/settings",
+    "https://www.rtings.com/monitor/reviews/lg/48-c1-oled"
+   ],
+   "flags": [
+    1,
+    1,
+    0
+   ],
+   "hit": 1,
+   "precision": 0.4,
+   "ndcg": 1.0,
+   "elapsed_ms": 0.4217999994580168,
+   "payload_ms": 0.402,
+   "fetches": 0,
+   "bytes": 0,
+   "robots_skips": 0,
+   "blocks": 0,
+   "short_extractions": 0,
+   "statuses": [
+    "200",
+    "200",
+    "200"
+   ],
+   "notes": "RTINGS C1 review includes the OLED burn-in test; settings page covers OLED care."
+  },
+  {
+   "id": "q02",
+   "query": "lg c1 best settings",
+   "language": "en",
+   "judged": true,
+   "topics": [
+    "tv-audio",
+    "appliances",
+    "phones",
+    "reviews"
+   ],
+   "sites": [
+    "rtings",
+    "whathifi",
+    "gsmarena",
+    "tomshardware",
+    "ifixit",
+    "cpsc"
+   ],
+   "sources_with_results": 1,
+   "result_domains": 1,
+   "k": 5,
+   "results": 3,
+   "relevant": [
+    "https://rtings.com/tv/reviews/lg/c1-oled/settings"
+   ],
+   "top_urls": [
+    "https://www.rtings.com/tv/reviews/lg/c1-oled/settings",
+    "https://www.rtings.com/tv/reviews/lg/c1-oled",
+    "https://www.rtings.com/monitor/reviews/lg/48-c1-oled"
+   ],
+   "flags": [
+    1,
+    0,
+    0
+   ],
+   "hit": 1,
+   "precision": 0.2,
+   "ndcg": 1.0,
+   "elapsed_ms": 0.388800000109768,
+   "payload_ms": 0.366,
+   "fetches": 0,
+   "bytes": 0,
+   "robots_skips": 0,
+   "blocks": 0,
+   "short_extractions": 0,
+   "statuses": [
+    "200",
+    "200",
+    "200"
+   ],
+   "notes": "Exact settings page."
+  },
+  {
+   "id": "q03",
+   "query": "samsung qn90b review",
+   "language": "en",
+   "judged": true,
+   "topics": [
+    "appliances",
+    "phones",
+    "reviews",
+    "tv-audio"
+   ],
+   "sites": [
+    "rtings",
+    "gsmarena",
+    "tomshardware",
+    "ifixit",
+    "cpsc",
+    "consumeraffairs"
+   ],
+   "sources_with_results": 1,
+   "result_domains": 1,
+   "k": 5,
+   "results": 3,
+   "relevant": [
+    "https://rtings.com/tv/reviews/samsung/qn90b-qled"
+   ],
+   "top_urls": [
+    "https://www.rtings.com/tv/reviews/samsung/qn90b-qled",
+    "https://www.rtings.com/tv/reviews/samsung/qn90b-qled/settings",
+    "https://www.rtings.com/monitor/reviews/samsung/43-qn90b-qled"
+   ],
+   "flags": [
+    1,
+    0,
+    0
+   ],
+   "hit": 1,
+   "precision": 0.2,
+   "ndcg": 1.0,
+   "elapsed_ms": 0.3157999999530148,
+   "payload_ms": 0.303,
+   "fetches": 0,
+   "bytes": 0,
+   "robots_skips": 0,
+   "blocks": 0,
+   "short_extractions": 0,
+   "statuses": [
+    "200",
+    "200",
+    "200"
+   ],
+   "notes": "Exact review."
+  },
+  {
+   "id": "q04",
+   "query": "sony wh-1000xm5 review",
+   "language": "en",
+   "judged": true,
+   "topics": [
+    "reviews",
+    "tv-audio"
+   ],
+   "sites": [
+    "rtings",
+    "whathifi",
+    "gsmarena",
+    "tomshardware",
+    "caranddriver",
+    "donanimhaber"
+   ],
+   "sources_with_results": 1,
+   "result_domains": 1,
+   "k": 5,
+   "results": 2,
+   "relevant": [
+    "https://rtings.com/headphones/reviews/sony/wh-1000xm5-wireless"
+   ],
+   "top_urls": [
+    "https://www.rtings.com/headphones/reviews/sony/wh-1000xm5-wireless",
+    "https://www.rtings.com/headphones/reviews/sony/wf-1000xm5-truly-wireless"
+   ],
+   "flags": [
+    1,
+    0
+   ],
+   "hit": 1,
+   "precision": 0.2,
+   "ndcg": 1.0,
+   "elapsed_ms": 0.22449999960372224,
+   "payload_ms": 0.214,
+   "fetches": 0,
+   "bytes": 0,
+   "robots_skips": 0,
+   "blocks": 0,
+   "short_extractions": 0,
+   "statuses": [
+    "200",
+    "200"
+   ],
+   "notes": "Exact review."
+  },
+  {
+   "id": "q05",
+   "query": "best oled tv for movies",
+   "language": "en",
+   "judged": true,
+   "topics": [
+    "tv-audio",
+    "reviews"
+   ],
+   "sites": [
+    "rtings",
+    "whathifi",
+    "gsmarena",
+    "tomshardware",
+    "caranddriver",
+    "donanimhaber"
+   ],
+   "sources_with_results": 3,
+   "result_domains": 2,
+   "k": 5,
+   "results": 5,
+   "relevant": [
+    "https://rtings.com/tv/reviews/best/by-usage/movies",
+    "https://whathifi.com/tv-home-cinema/televisions/prime-days-burned-through-stock-of-our-recommended-cheap-oled-tv-this-is-my-advice-for-bargain-hunting-movie-fans"
+   ],
+   "top_urls": [
+    "https://www.rtings.com/tv/reviews/best/by-type/oled",
+    "https://www.whathifi.com/tv-home-cinema/televisions/after-nearly-half-a-decade-the-small-next-gen-oled-tvs-ive-been-waiting-for-are-finally-here",
+    "https://www.whathifi.com/tv-home-cinema/televisions/prime-days-burned-through-stock-of-our-recommended-cheap-oled-tv-this-is-my-advice-for-bargain-hunting-movie-fans",
+    "https://www.whathifi.com/tv-home-cinema/televisions/ive-found-the-perfect-oled-tv-for-a-gta-vi-marathon-and-its-gbp400-off-in-the-black-friday-sales",
+    "https://www.whathifi.com/tv-home-cinema/televisions/upgrading-to-oled-on-a-budget-this-samsung-model-is-one-of-the-best-entry-level-models-we-have-tested"
+   ],
+   "flags": [
+    0,
+    0,
+    1,
+    0,
+    0
+   ],
+   "hit": 1,
+   "precision": 0.2,
+   "ndcg": 0.3065735963827292,
+   "elapsed_ms": 0.46010000005480833,
+   "payload_ms": 0.444,
+   "fetches": 0,
+   "bytes": 0,
+   "robots_skips": 0,
+   "blocks": 0,
+   "short_extractions": 0,
+   "statuses": [
+    "200",
+    "200",
+    "200",
+    "200",
+    "200"
+   ],
+   "notes": "RTINGS best-by-usage list plus a What Hi-Fi OLED buying article."
+  },
+  {
+   "id": "q06",
+   "query": "iphone 15 pro max battery life review",
+   "language": "en",
+   "judged": true,
+   "topics": [
+    "phones",
+    "apple",
+    "reviews"
+   ],
+   "sites": [
+    "gsmarena",
+    "tomshardware",
+    "macrumors",
+    "ifixit",
+    "cpsc",
+    "consumeraffairs"
+   ],
+   "sources_with_results": 2,
+   "result_domains": 2,
+   "k": 5,
+   "results": 5,
+   "relevant": [
+    "https://gsmarena.com/apple_iphone_15_pro_max-review-2618.php",
+    "https://macrumors.com/guide/iphone-15-battery-tips"
+   ],
+   "top_urls": [
+    "https://www.gsmarena.com/apple_iphone_15_pro_max-review-2618.php",
+    "https://www.gsmarena.com/apple_iphone_11_pro_max-review-1991.php",
+    "https://www.macrumors.com/review/iphone-12-pro-max/",
+    "https://www.gsmarena.com/apple_iphone_15_pro-review-2620.php",
+    "https://www.gsmarena.com/apple_iphone_15_pro_long_term-review-2692.php"
+   ],
+   "flags": [
+    1,
+    0,
+    0,
+    0,
+    0
+   ],
+   "hit": 1,
+   "precision": 0.2,
+   "ndcg": 0.6131471927654584,
+   "elapsed_ms": 0.5602000001090346,
+   "payload_ms": 0.543,
+   "fetches": 0,
+   "bytes": 0,
+   "robots_skips": 0,
+   "blocks": 0,
+   "short_extractions": 0,
+   "statuses": [
+    "200",
+    "200",
+    "200",
+    "200",
+    "200"
+   ],
+   "notes": "GSMArena review has battery tests; MacRumors guide is iPhone 15-specific."
+  },
+  {
+   "id": "q07",
+   "query": "samsung galaxy s24 ultra camera review",
+   "language": "en",
+   "judged": true,
+   "topics": [
+    "phones",
+    "appliances",
+    "reviews"
+   ],
+   "sites": [
+    "gsmarena",
+    "tomshardware",
+    "ifixit",
+    "cpsc",
+    "consumeraffairs",
+    "macrumors"
+   ],
+   "sources_with_results": 1,
+   "result_domains": 1,
+   "k": 5,
+   "results": 5,
+   "relevant": [
+    "https://gsmarena.com/samsung_galaxy_s24_ultra-review-2670.php",
+    "https://gsmarena.com/samsung_galaxy_s24_ultra_s24_plus_s24_handson-review-2656.php"
+   ],
+   "top_urls": [
+    "https://www.gsmarena.com/samsung_galaxy_s24_ultra-review-2670.php",
+    "https://www.gsmarena.com/samsung_galaxy_s24_ultra_s24_plus_s24_handson-review-2656.php",
+    "https://www.gsmarena.com/samsung_galaxy_s24-review-2663.php",
+    "https://www.gsmarena.com/samsung_galaxy_s24_fe-review-2755.php",
+    "https://www.gsmarena.com/samsung_galaxy_s24_plus-review-2664.php"
+   ],
+   "flags": [
+    1,
+    1,
+    0,
+    0,
+    0
+   ],
+   "hit": 1,
+   "precision": 0.4,
+   "ndcg": 1.0,
+   "elapsed_ms": 0.5145999994056183,
+   "payload_ms": 0.5,
+   "fetches": 0,
+   "bytes": 0,
+   "robots_skips": 0,
+   "blocks": 0,
+   "short_extractions": 0,
+   "statuses": [
+    "200",
+    "200",
+    "200",
+    "200",
+    "200"
+   ],
+   "notes": "Full review and hands-on both cover the cameras."
+  },
+  {
+   "id": "q08",
+   "query": "google pixel 8 pro overheating review",
+   "language": "en",
+   "judged": true,
+   "topics": [
+    "phones",
+    "reviews"
+   ],
+   "sites": [
+    "gsmarena",
+    "tomshardware",
+    "macrumors",
+    "ifixit",
+    "cpsc",
+    "consumeraffairs"
+   ],
+   "sources_with_results": 1,
+   "result_domains": 1,
+   "k": 5,
+   "results": 5,
+   "relevant": [
+    "https://gsmarena.com/google_pixel_8_pro-review-2629.php"
+   ],
+   "top_urls": [
+    "https://www.gsmarena.com/google_pixel_8_and_8_pro_hands_on-review-2624.php",
+    "https://www.gsmarena.com/google_pixel_8_pro-review-2629.php",
+    "https://www.gsmarena.com/google_pixel_8-review-2628.php",
+    "https://www.gsmarena.com/google_pixel_7_pro-review-2494.php",
+    "https://www.gsmarena.com/google_pixel_6_pro-review-2343.php"
+   ],
+   "flags": [
+    0,
+    1,
+    0,
+    0,
+    0
+   ],
+   "hit": 1,
+   "precision": 0.2,
+   "ndcg": 0.6309297535714575,
+   "elapsed_ms": 0.47759999961272115,
+   "payload_ms": 0.46,
+   "fetches": 0,
+   "bytes": 0,
+   "robots_skips": 0,
+   "blocks": 0,
+   "short_extractions": 0,
+   "statuses": [
+    "200",
+    "200",
+    "200",
+    "200",
+    "200"
+   ],
+   "notes": "Review covers thermals and sustained performance."
+  },
+  {
+   "id": "q09",
+   "query": "iphone 15 screen replacement",
+   "language": "en",
+   "judged": true,
+   "topics": [
+    "repair",
+    "phones",
+    "apple"
+   ],
+   "sites": [
+    "macrumors",
+    "ifixit",
+    "gsmarena",
+    "tomshardware",
+    "cpsc",
+    "consumeraffairs"
+   ],
+   "sources_with_results": 3,
+   "result_domains": 1,
+   "k": 5,
+   "results": 5,
+   "relevant": [
+    "https://ifixit.com/Guide/iPhone+15+Pro+Max+Screen+Replacement/166233",
+    "https://ifixit.com/Guide/iPhone+15+Screen+Replacement/165669"
+   ],
+   "top_urls": [
+    "https://www.ifixit.com/Guide/iPhone+15+Screen+Replacement/165669",
+    "https://www.ifixit.com/Guide/iPhone+15+Plus+Screen+Replacement/166783",
+    "https://www.ifixit.com/Guide/iPhone+15+Pro+Screen+Replacement/166303",
+    "https://www.ifixit.com/Guide/iPhone+15+Pro+Max+Screen+Replacement/166233",
+    "https://www.ifixit.com/Guide/iPhone+15+Microphone+Replacement/165725"
+   ],
+   "flags": [
+    1,
+    0,
+    0,
+    1,
+    0
+   ],
+   "hit": 1,
+   "precision": 0.4,
+   "ndcg": 0.8772153153380493,
+   "elapsed_ms": 0.863000000208558,
+   "payload_ms": 0.843,
+   "fetches": 0,
+   "bytes": 0,
+   "robots_skips": 0,
+   "blocks": 0,
+   "short_extractions": 0,
+   "statuses": [
+    "200",
+    "200",
+    "200",
+    "200",
+    "200"
+   ],
+   "notes": "Exact iFixit guides."
+  },
+  {
+   "id": "q10",
+   "query": "airpods pro 2 crackling noise",
+   "language": "en",
+   "judged": true,
+   "topics": [
+    "apple",
+    "phones",
+    "tv-audio"
+   ],
+   "sites": [
+    "macrumors",
+    "gsmarena",
+    "tomshardware",
+    "ifixit",
+    "cpsc",
+    "consumeraffairs"
+   ],
+   "sources_with_results": 2,
+   "result_domains": 1,
+   "k": 5,
+   "results": 5,
+   "relevant": [
+    "https://macrumors.com/guide/airpods-pro-crackling-popping"
+   ],
+   "top_urls": [
+    "https://www.macrumors.com/guide/airpods-pro-crackling-popping/",
+    "https://www.macrumors.com/guide/airpods-pro-noise-cancellation/",
+    "https://www.macrumors.com/how-to/control-noise-cancellation-airpods-pro/",
+    "https://www.macrumors.com/how-to/customize-noise-control-button-airpods-max/",
+    "https://www.macrumors.com/how-to/control-active-noise-cancellation-airpods-max/"
+   ],
+   "flags": [
+    1,
+    0,
+    0,
+    0,
+    0
+   ],
+   "hit": 1,
+   "precision": 0.2,
+   "ndcg": 1.0,
+   "elapsed_ms": 0.5297999996400904,
+   "payload_ms": 0.512,
+   "fetches": 0,
+   "bytes": 0,
+   "robots_skips": 0,
+   "blocks": 0,
+   "short_extractions": 0,
+   "statuses": [
+    "200",
+    "200",
+    "200",
+    "200",
+    "200"
+   ],
+   "notes": "MacRumors guide on AirPods Pro crackling/popping."
+  },
+  {
+   "id": "q11",
+   "query": "iphone battery draining after update",
+   "language": "en",
+   "judged": true,
+   "topics": [
+    "phones",
+    "apple"
+   ],
+   "sites": [
+    "macrumors",
+    "gsmarena",
+    "tomshardware",
+    "ifixit",
+    "cpsc",
+    "consumeraffairs"
+   ],
+   "sources_with_results": 3,
+   "result_domains": 2,
+   "k": 5,
+   "results": 5,
+   "relevant": [
+    "https://ifixit.com/Guide/Repair+iPhone+X+Battery+that+Drains+Fast/144596",
+    "https://macrumors.com/guide/iphone-15-battery-tips",
+    "https://macrumors.com/guide/iphone-battery-life-10-tips"
+   ],
+   "top_urls": [
+    "https://www.ifixit.com/Guide/Repair+iPhone+X+Battery+that+Drains+Fast/144596",
+    "https://www.macrumors.com/guide/iphone-15-battery-tips/",
+    "https://www.macrumors.com/how-to/show-battery-percentage-iphone/",
+    "https://www.macrumors.com/guide/iphone-16-battery-saving-tips/",
+    "https://www.macrumors.com/guide/iphone-battery-life-10-tips/"
+   ],
+   "flags": [
+    1,
+    1,
+    0,
+    0,
+    1
+   ],
+   "hit": 1,
+   "precision": 0.6,
+   "ndcg": 0.9469024295259745,
+   "elapsed_ms": 0.8924999992814264,
+   "payload_ms": 0.859,
+   "fetches": 0,
+   "bytes": 0,
+   "robots_skips": 0,
+   "blocks": 0,
+   "short_extractions": 0,
+   "statuses": [
+    "200",
+    "200",
+    "200",
+    "200",
+    "200"
+   ],
+   "notes": "Battery-drain tips plus iFixit's drain-repair guide (the top result)."
+  },
+  {
+   "id": "q12",
+   "query": "macbook air m2 battery replacement",
+   "language": "en",
+   "judged": true,
+   "topics": [
+    "repair",
+    "apple",
+    "computing",
+    "phones"
+   ],
+   "sites": [
+    "macrumors",
+    "ifixit",
+    "tomshardware",
+    "cpsc",
+    "vaillant",
+    "donanimhaber"
+   ],
+   "sources_with_results": 3,
+   "result_domains": 1,
+   "k": 5,
+   "results": 5,
+   "relevant": [
+    "https://ifixit.com/Guide/MacBook+Air+2022+(M2)+Battery+Replacement/156332"
+   ],
+   "top_urls": [
+    "https://www.ifixit.com/Guide/MacBook+Air+2022+(M2)+Battery+Replacement/156332",
+    "https://www.ifixit.com/Guide/MacBook+Pro+13-Inch+2022+(M2)+Battery+Replacement/156551",
+    "https://www.ifixit.com/Guide/MacBook+Air+2022+(M2)+Trackpad+Replacement/156263",
+    "https://www.ifixit.com/Guide/MacBook+Air+2022+(M2)+Screen+Replacement/156358",
+    "https://www.ifixit.com/Guide/MacBook+Air+2022+(M2)+Right+Speaker+Replacement/157931"
+   ],
+   "flags": [
+    1,
+    0,
+    0,
+    0,
+    0
+   ],
+   "hit": 1,
+   "precision": 0.2,
+   "ndcg": 1.0,
+   "elapsed_ms": 0.9700999999040505,
+   "payload_ms": 0.945,
+   "fetches": 0,
+   "bytes": 0,
+   "robots_skips": 0,
+   "blocks": 0,
+   "short_extractions": 0,
+   "statuses": [
+    "200",
+    "200",
+    "200",
+    "200",
+    "200"
+   ],
+   "notes": "Exact iFixit guide."
+  },
+  {
+   "id": "q13",
+   "query": "steam deck ssd upgrade",
+   "language": "en",
+   "judged": true,
+   "topics": [
+    "computing"
+   ],
+   "sites": [
+    "tomshardware",
+    "macrumors",
+    "ifixit",
+    "cpsc",
+    "rtings",
+    "donanimhaber"
+   ],
+   "sources_with_results": 3,
+   "result_domains": 2,
+   "k": 5,
+   "results": 5,
+   "relevant": [
+    "https://ifixit.com/Guide/Steam+Deck+OLED+SSD+Replacement/168255",
+    "https://ifixit.com/Guide/Steam+Deck+SSD+Replacement/148989"
+   ],
+   "top_urls": [
+    "https://www.ifixit.com/Guide/Steam+Deck+SSD+Replacement/148989",
+    "https://www.ifixit.com/Guide/Steam+Deck+OLED+SSD+Replacement/168255",
+    "https://www.ifixit.com/Guide/Steam+Machine+(2026)+SSD+Replacement/225213",
+    "https://www.ifixit.com/Guide/Steam+Machine+(2026)+SSD+Board+Replacement/225218",
+    "https://www.tomshardware.com/pc-components/ssds/elevate-your-steam-deck-and-rog-allys-ssd-storage-for-just-usd0-13-per-gb-rare-discount-brings-wd-black-sn770m-2tb-back-to-near-launch-price"
+   ],
+   "flags": [
+    1,
+    1,
+    0,
+    0,
+    0
+   ],
+   "hit": 1,
+   "precision": 0.4,
+   "ndcg": 1.0,
+   "elapsed_ms": 0.5185999998502666,
+   "payload_ms": 0.501,
+   "fetches": 0,
+   "bytes": 0,
+   "robots_skips": 0,
+   "blocks": 0,
+   "short_extractions": 0,
+   "statuses": [
+    "200",
+    "200",
+    "200",
+    "200",
+    "200"
+   ],
+   "notes": "Exact iFixit guides for both Deck models."
+  },
+  {
+   "id": "q14",
+   "query": "anker power bank recall",
+   "language": "en",
+   "judged": true,
+   "topics": [
+    "cars",
+    "computing",
+    "phones",
+    "recalls"
+   ],
+   "sites": [
+    "cpsc",
+    "consumeraffairs",
+    "donanimhaber",
+    "tomshardware",
+    "macrumors",
+    "ifixit"
+   ],
+   "sources_with_results": 1,
+   "result_domains": 1,
+   "k": 5,
+   "results": 4,
+   "relevant": [
+    "https://cpsc.gov/Recalls/2025/Anker-Power-Banks-Recalled-Due-to-Fire-and-Burn-Hazards-Manufactured-by-Anker-Innovations",
+    "https://cpsc.gov/Recalls/2025/More-than-One-Million-Anker-Power-Banks-Recalled-Due-to-Fire-and-Burn-Hazards-Manufactured-by-Anker-Innovations"
+   ],
+   "top_urls": [
+    "https://www.cpsc.gov/Recalls/2025/Anker-Power-Banks-Recalled-Due-to-Fire-and-Burn-Hazards-Manufactured-by-Anker-Innovations",
+    "https://www.cpsc.gov/Recalls/2025/More-than-One-Million-Anker-Power-Banks-Recalled-Due-to-Fire-and-Burn-Hazards-Manufactured-by-Anker-Innovations",
+    "https://www.cpsc.gov/Recalls/2025/Anker-Soundcore-Lithium-Ion-Battery-Powered-Bluetooth-Speakers-Recalled-Due-to-Fire-Hazard-Sold-Exclusively-on-Amazon-com-by-Anker-Innovations",
+    "https://www.cpsc.gov/Recalls/2024/Anker-EverFrost-Lithium-Ion-Battery-Powered-Coolers-Recalled-Due-to-Battery-Fire-Hazard-Manufactured-by-Anker-Innovations"
+   ],
+   "flags": [
+    1,
+    1,
+    0,
+    0
+   ],
+   "hit": 1,
+   "precision": 0.4,
+   "ndcg": 1.0,
+   "elapsed_ms": 0.9374999999636202,
+   "payload_ms": 0.839,
+   "fetches": 0,
+   "bytes": 0,
+   "robots_skips": 0,
+   "blocks": 0,
+   "short_extractions": 0,
+   "statuses": [
+    "200",
+    "200",
+    "200",
+    "200"
+   ],
+   "notes": "Both official CPSC Anker power-bank recalls."
+  },
+  {
+   "id": "q15",
+   "query": "anker a1257 recall",
+   "language": "en",
+   "judged": false,
+   "topics": [
+    "cars",
+    "computing",
+    "phones",
+    "recalls"
+   ],
+   "sites": [
+    "cpsc",
+    "consumeraffairs",
+    "donanimhaber",
+    "tomshardware",
+    "macrumors",
+    "ifixit"
+   ],
+   "sources_with_results": 1,
+   "result_domains": 1,
+   "k": 5,
+   "results": 3,
+   "relevant": [],
+   "top_urls": [
+    "https://www.cpsc.gov/Recalls/2025/Anker-Soundcore-Lithium-Ion-Battery-Powered-Bluetooth-Speakers-Recalled-Due-to-Fire-Hazard-Sold-Exclusively-on-Amazon-com-by-Anker-Innovations",
+    "https://www.cpsc.gov/Recalls/2025/More-than-One-Million-Anker-Power-Banks-Recalled-Due-to-Fire-and-Burn-Hazards-Manufactured-by-Anker-Innovations",
+    "https://www.cpsc.gov/Recalls/2025/Anker-Power-Banks-Recalled-Due-to-Fire-and-Burn-Hazards-Manufactured-by-Anker-Innovations"
+   ],
+   "flags": [
+    0,
+    0,
+    0
+   ],
+   "hit": 0,
+   "precision": 0.0,
+   "ndcg": 0.0,
+   "elapsed_ms": 0.7759999998597777,
+   "payload_ms": 0.758,
+   "fetches": 0,
+   "bytes": 0,
+   "robots_skips": 0,
+   "blocks": 0,
+   "short_extractions": 0,
+   "statuses": [
+    "200",
+    "200",
+    "200"
+   ],
+   "notes": "Coverage gap: CPSC has Anker A1263/A1642/A1647/A1652 recalls but no A1257 recall; the API returns zero rows for the model. Reported separately, not scored."
+  },
+  {
+   "id": "q16",
+   "query": "samsung galaxy note 7 recall",
+   "language": "en",
+   "judged": true,
+   "topics": [
+    "phones",
+    "appliances",
+    "cars",
+    "recalls"
+   ],
+   "sites": [
+    "cpsc",
+    "donanimhaber",
+    "consumeraffairs",
+    "ifixit",
+    "tomshardware",
+    "macrumors"
+   ],
+   "sources_with_results": 2,
+   "result_domains": 2,
+   "k": 5,
+   "results": 4,
+   "relevant": [
+    "https://cpsc.gov/Recalls/2016/Samsung-Recalls-Galaxy-Note7-Smartphones",
+    "https://cpsc.gov/Recalls/2017/Samsung-Expands-Recall-of-Galaxy-Note7-Smartphones-Based-on-Additional-Incidents-with-Replacement-Phones"
+   ],
+   "top_urls": [
+    "https://www.cpsc.gov/Recalls/2017/Samsung-Expands-Recall-of-Galaxy-Note7-Smartphones-Based-on-Additional-Incidents-with-Replacement-Phones",
+    "https://www.cpsc.gov/Recalls/2016/Samsung-Recalls-Galaxy-Note7-Smartphones",
+    "https://www.ifixit.com/Teardown/Samsung+Galaxy+Note7+Teardown/66389",
+    "https://www.ifixit.com/Guide/Samsung+Galaxy+Note7+Screen+Assembly+Replacement/197808"
+   ],
+   "flags": [
+    1,
+    1,
+    0,
+    0
+   ],
+   "hit": 1,
+   "precision": 0.4,
+   "ndcg": 1.0,
+   "elapsed_ms": 0.5504999999175197,
+   "payload_ms": 0.532,
+   "fetches": 0,
+   "bytes": 0,
+   "robots_skips": 0,
+   "blocks": 0,
+   "short_extractions": 0,
+   "statuses": [
+    "200",
+    "200",
+    "200",
+    "200"
+   ],
+   "notes": "Official CPSC Note7 recalls."
+  },
+  {
+   "id": "q17",
+   "query": "peloton treadmill recall",
+   "language": "en",
+   "judged": true,
+   "topics": [
+    "cars",
+    "recalls"
+   ],
+   "sites": [
+    "cpsc",
+    "consumeraffairs",
+    "caranddriver",
+    "donanimhaber",
+    "guvensizurun"
+   ],
+   "sources_with_results": 1,
+   "result_domains": 1,
+   "k": 5,
+   "results": 2,
+   "relevant": [
+    "https://cpsc.gov/Recalls/2021/Peloton-Recalls-Tread-Plus-Treadmills-After-One-Child-Died-and-More-than-70-Incidents-Reported",
+    "https://cpsc.gov/Recalls/2021/Peloton-Recalls-Tread-Treadmills-Due-to-Risk-of-Injury"
+   ],
+   "top_urls": [
+    "https://www.cpsc.gov/Recalls/2021/Peloton-Recalls-Tread-Plus-Treadmills-After-One-Child-Died-and-More-than-70-Incidents-Reported",
+    "https://www.cpsc.gov/Recalls/2021/Peloton-Recalls-Tread-Treadmills-Due-to-Risk-of-Injury"
+   ],
+   "flags": [
+    1,
+    1
+   ],
+   "hit": 1,
+   "precision": 0.4,
+   "ndcg": 1.0,
+   "elapsed_ms": 0.452199999926961,
+   "payload_ms": 0.437,
+   "fetches": 0,
+   "bytes": 0,
+   "robots_skips": 0,
+   "blocks": 0,
+   "short_extractions": 0,
+   "statuses": [
+    "200",
+    "200"
+   ],
+   "notes": "CPSC Tread+ and Tread recalls."
+  },
+  {
+   "id": "q18",
+   "query": "samsung refrigerator ice maker problem",
+   "language": "en",
+   "judged": true,
+   "topics": [
+    "appliances",
+    "complaints",
+    "phones"
+   ],
+   "sites": [
+    "consumeraffairs",
+    "guvensizurun",
+    "ifixit",
+    "cpsc",
+    "rtings",
+    "donanimhaber"
+   ],
+   "sources_with_results": 3,
+   "result_domains": 1,
+   "k": 5,
+   "results": 5,
+   "relevant": [
+    "https://consumeraffairs.com/homeowners/samsung_refrigerator.html",
+    "https://ifixit.com/Guide/How+to+Force+Defrost+and+Remove+a+Frozen+Ice+Maker+in+a+Samsung+Refrigerator/207473",
+    "https://ifixit.com/Guide/Removing+the+Samsung+refrigerator+ice+maker/235133",
+    "https://ifixit.com/Guide/Samsung+RF4287HABP+Ice+Maker+Repair/146528",
+    "https://ifixit.com/Guide/Samsung+Refrigerator+Ice+Maker+Troubleshooting+and+Repair/207482"
+   ],
+   "top_urls": [
+    "https://www.ifixit.com/Guide/Removing+the+Samsung+refrigerator+ice+maker/235133",
+    "https://www.ifixit.com/Guide/Samsung+Refrigerator+Ice+Maker+Troubleshooting+and+Repair/207482",
+    "https://www.ifixit.com/Guide/Samsung+Refrigerator+Ice+Maker+Troubleshooting+and+Repair/210414",
+    "https://www.ifixit.com/Guide/How+to+Install+a+Secondary+Heater+in+a+Samsung+Refrigerator+Ice+Maker/207479",
+    "https://www.ifixit.com/Guide/How+to+Force+Defrost+and+Remove+a+Frozen+Ice+Maker+in+a+Samsung+Refrigerator/207473"
+   ],
+   "flags": [
+    1,
+    1,
+    0,
+    0,
+    1
+   ],
+   "hit": 1,
+   "precision": 0.6,
+   "ndcg": 0.6843515475204855,
+   "elapsed_ms": 0.6395999998858315,
+   "payload_ms": 0.621,
+   "fetches": 0,
+   "bytes": 0,
+   "robots_skips": 0,
+   "blocks": 0,
+   "short_extractions": 0,
+   "statuses": [
+    "200",
+    "200",
+    "200",
+    "200",
+    "200"
+   ],
+   "notes": "iFixit Samsung ice-maker troubleshooting/repair guides plus the ConsumerAffairs brand hub."
+  },
+  {
+   "id": "q19",
+   "query": "whirlpool dishwasher not draining",
+   "language": "en",
+   "judged": true,
+   "topics": [
+    "appliances"
+   ],
+   "sites": [
+    "ifixit",
+    "cpsc",
+    "consumeraffairs",
+    "rtings",
+    "guvensizurun"
+   ],
+   "sources_with_results": 3,
+   "result_domains": 2,
+   "k": 5,
+   "results": 5,
+   "relevant": [
+    "https://consumeraffairs.com/homeowners/whirlpool_dishwashers.html"
+   ],
+   "top_urls": [
+    "https://www.consumeraffairs.com/homeowners/whirlpool_dishwashers.html",
+    "https://www.ifixit.com/Guide/Whirlpool+Dishwasher+Control+Touch+Panel+Replacement/221224",
+    "https://www.consumeraffairs.com/homeowners/whirlpool-dishwasher-warranty.html",
+    "https://www.ifixit.com/Guide/Remove+and+clean+the+Whirlpool+dishwasher+spray+arm/157559",
+    "https://www.ifixit.com/Guide/Whirlpool+980+Series+Dishwasher+%E2%80%94+Basic+Disassembly+&+Maintenance+Guide/202124"
+   ],
+   "flags": [
+    1,
+    0,
+    0,
+    0,
+    0
+   ],
+   "hit": 1,
+   "precision": 0.2,
+   "ndcg": 1.0,
+   "elapsed_ms": 0.8894000002328539,
+   "payload_ms": 0.87,
+   "fetches": 0,
+   "bytes": 0,
+   "robots_skips": 0,
+   "blocks": 0,
+   "short_extractions": 0,
+   "statuses": [
+    "200",
+    "200",
+    "200",
+    "200",
+    "200"
+   ],
+   "notes": "ConsumerAffairs Whirlpool dishwasher complaint/repair hub."
+  },
+  {
+   "id": "q20",
+   "query": "dyson v8 battery replacement",
+   "language": "en",
+   "judged": true,
+   "topics": [
+    "repair",
+    "appliances",
+    "phones"
+   ],
+   "sites": [
+    "ifixit",
+    "macrumors",
+    "cpsc",
+    "consumeraffairs",
+    "vaillant",
+    "gsmarena"
+   ],
+   "sources_with_results": 1,
+   "result_domains": 1,
+   "k": 5,
+   "results": 5,
+   "relevant": [
+    "https://ifixit.com/Guide/Dyson+V8+Animal+Battery+Replacement/130540",
+    "https://ifixit.com/Guide/Dyson+V8+Battery+Replacement/224767"
+   ],
+   "top_urls": [
+    "https://www.ifixit.com/Guide/Dyson+V8+Battery+Replacement/224767",
+    "https://www.ifixit.com/Guide/Dyson+V8+Absolute+Battery+Replacement/100091",
+    "https://www.ifixit.com/Guide/Dyson+V8+Animal+Battery+Replacement/130540",
+    "https://www.ifixit.com/Guide/Dyson+V8+Absolute+Cyclone+Replacement/100041",
+    "https://www.ifixit.com/Guide/Dyson+V8+Absolute+Bin+Replacement/99954"
+   ],
+   "flags": [
+    1,
+    0,
+    1,
+    0,
+    0
+   ],
+   "hit": 1,
+   "precision": 0.4,
+   "ndcg": 0.9197207891481876,
+   "elapsed_ms": 0.462800000605057,
+   "payload_ms": 0.444,
+   "fetches": 0,
+   "bytes": 0,
+   "robots_skips": 0,
+   "blocks": 0,
+   "short_extractions": 0,
+   "statuses": [
+    "200",
+    "200",
+    "200",
+    "200",
+    "200"
+   ],
+   "notes": "Exact iFixit Dyson V8 battery guides."
+  },
+  {
+   "id": "q21",
+   "query": "lg washing machine error code",
+   "language": "en",
+   "judged": true,
+   "topics": [
+    "appliances",
+    "boilers",
+    "phones",
+    "tv-audio"
+   ],
+   "sites": [
+    "ifixit",
+    "cpsc",
+    "consumeraffairs",
+    "rtings",
+    "guvensizurun",
+    "gsmarena"
+   ],
+   "sources_with_results": 3,
+   "result_domains": 1,
+   "k": 5,
+   "results": 5,
+   "relevant": [
+    "https://consumeraffairs.com/homeowners/lg_washing_machine.html",
+    "https://ifixit.com/Guide/How+to+Fix+the+LG+Washing+Machine+LE+Error+Code/207393"
+   ],
+   "top_urls": [
+    "https://www.ifixit.com/Guide/How+to+Fix+the+LG+Washing+Machine+LE+Error+Code/207393",
+    "https://www.ifixit.com/Guide/LG+Washing+Machine+Dispenser+Drawer+Maintenance/218506",
+    "https://www.ifixit.com/Guide/LG+Washing+Machine+Pulsator-Agitating+Plate+Replacement/244307",
+    "https://www.ifixit.com/Guide/LG+Front+Load+Washing+Machine+Pump+Assembly+Replacement/159018",
+    "https://www.ifixit.com/Guide/LG+Front+Load+Washing+Machine+Drain+Hose+Replacement/159937"
+   ],
+   "flags": [
+    1,
+    0,
+    0,
+    0,
+    0
+   ],
+   "hit": 1,
+   "precision": 0.2,
+   "ndcg": 0.6131471927654584,
+   "elapsed_ms": 0.5485000001499429,
+   "payload_ms": 0.53,
+   "fetches": 0,
+   "bytes": 0,
+   "robots_skips": 0,
+   "blocks": 0,
+   "short_extractions": 0,
+   "statuses": [
+    "200",
+    "200",
+    "200",
+    "200",
+    "200"
+   ],
+   "notes": "LG washing-machine complaint hub plus the exact iFixit LE error-code guide."
+  },
+  {
+   "id": "q22",
+   "query": "rtx 4070 super review",
+   "language": "en",
+   "judged": true,
+   "topics": [
+    "computing",
+    "reviews"
+   ],
+   "sites": [
+    "tomshardware",
+    "rtings",
+    "macrumors",
+    "ifixit",
+    "cpsc",
+    "donanimhaber"
+   ],
+   "sources_with_results": 3,
+   "result_domains": 3,
+   "k": 5,
+   "results": 5,
+   "relevant": [
+    "https://tomshardware.com/pc-components/gpus/nvidia-geforce-rtx-4070-super-review-boosted-clocks-and-core-counts-for-the-same-dollar599-as-the-vanilla-4070"
+   ],
+   "top_urls": [
+    "https://www.tomshardware.com/pc-components/gpus/nvidia-is-reportedly-still-planning-fabled-rtx-50-super-series-for-2026-leak-claims-lineup-could-now-include-a-potential-rtx-5060-super-with-12gb-of-vram",
+    "https://www.ifixit.com/Guide/EVGA+GeForce+RTX+2060+SUPER+SC+ULTRA+Thermal+Paste+Replacement/209748",
+    "https://www.ifixit.com/Guide/Gigabyte+GeForce+RTX+2070+Super+Thermal+Pads+and+Paste+Replacement/167996",
+    "https://www.ifixit.com/Guide/Nvidia+RTX+2070+Super+Founders+Edition.+Thermal+Paste+and+Thermal+Pad+Replacement/164766",
+    "https://www.donanimhaber.com/rafa-kaldirilan-geforce-rtx-3060-super-ortaya-cikti--162825"
+   ],
+   "flags": [
+    0,
+    0,
+    0,
+    0,
+    0
+   ],
+   "hit": 0,
+   "precision": 0.0,
+   "ndcg": 0.0,
+   "elapsed_ms": 0.5943999994997284,
+   "payload_ms": 0.576,
+   "fetches": 0,
+   "bytes": 0,
+   "robots_skips": 0,
+   "blocks": 0,
+   "short_extractions": 0,
+   "statuses": [
+    "200",
+    "200",
+    "200",
+    "200",
+    "200"
+   ],
+   "notes": "Exact Tom's Hardware review (2024)."
+  },
+  {
+   "id": "q23",
+   "query": "ryzen 7 7800x3d review",
+   "language": "en",
+   "judged": true,
+   "topics": [
+    "computing",
+    "reviews"
+   ],
+   "sites": [
+    "tomshardware",
+    "rtings",
+    "macrumors",
+    "ifixit",
+    "cpsc",
+    "donanimhaber"
+   ],
+   "sources_with_results": 1,
+   "result_domains": 1,
+   "k": 5,
+   "results": 1,
+   "relevant": [
+    "https://tomshardware.com/pc-components/cpus/amd-ryzen-7-7700x3d-vs-ryzen-7-7800x3d-faceoff"
+   ],
+   "top_urls": [
+    "https://www.tomshardware.com/pc-components/cpus/amd-ryzen-7-7700x3d-vs-ryzen-7-7800x3d-faceoff"
+   ],
+   "flags": [
+    1
+   ],
+   "hit": 1,
+   "precision": 0.2,
+   "ndcg": 1.0,
+   "elapsed_ms": 0.413299999308947,
+   "payload_ms": 0.402,
+   "fetches": 0,
+   "bytes": 0,
+   "robots_skips": 0,
+   "blocks": 0,
+   "short_extractions": 0,
+   "statuses": [
+    "200"
+   ],
+   "notes": "Tom's faceoff with the 7800X3D."
+  },
+  {
+   "id": "q24",
+   "query": "best budget monitor for ps5",
+   "language": "en",
+   "judged": true,
+   "topics": [
+    "computing",
+    "reviews",
+    "tv-audio"
+   ],
+   "sites": [
+    "rtings",
+    "tomshardware",
+    "whathifi",
+    "macrumors",
+    "ifixit",
+    "cpsc"
+   ],
+   "sources_with_results": 1,
+   "result_domains": 1,
+   "k": 5,
+   "results": 1,
+   "relevant": [
+    "https://rtings.com/monitor/reviews/best/ps5"
+   ],
+   "top_urls": [
+    "https://www.rtings.com/monitor/reviews/best/ps5"
+   ],
+   "flags": [
+    1
+   ],
+   "hit": 1,
+   "precision": 0.2,
+   "ndcg": 1.0,
+   "elapsed_ms": 0.2837000001818524,
+   "payload_ms": 0.271,
+   "fetches": 0,
+   "bytes": 0,
+   "robots_skips": 0,
+   "blocks": 0,
+   "short_extractions": 0,
+   "statuses": [
+    "200"
+   ],
+   "notes": "RTINGS best PS5 monitor list."
+  },
+  {
+   "id": "q25",
+   "query": "honda cr-v review",
+   "language": "en",
+   "judged": true,
+   "topics": [
+    "cars",
+    "reviews"
+   ],
+   "sites": [
+    "caranddriver",
+    "cpsc",
+    "consumeraffairs",
+    "donanimhaber",
+    "gsmarena",
+    "tomshardware"
+   ],
+   "sources_with_results": 1,
+   "result_domains": 1,
+   "k": 5,
+   "results": 2,
+   "relevant": [
+    "https://caranddriver.com/reviews/a65228963/2026-honda-crv-trailsport-drive",
+    "https://caranddriver.com/reviews/in-depth-review/a15080908/2018-honda-crv-fuel-economy"
+   ],
+   "top_urls": [
+    "https://www.caranddriver.com/reviews/comparison-test/a73218206/2026-honda-cr-v-ex-l-vs-2026-mazda-cx-5-premium-plus-comparison-test/",
+    "https://www.caranddriver.com/reviews/a65228963/2026-honda-crv-trailsport-drive/"
+   ],
+   "flags": [
+    0,
+    1
+   ],
+   "hit": 1,
+   "precision": 0.2,
+   "ndcg": 0.38685280723454163,
+   "elapsed_ms": 0.5822000002808636,
+   "payload_ms": 0.488,
+   "fetches": 0,
+   "bytes": 0,
+   "robots_skips": 0,
+   "blocks": 0,
+   "short_extractions": 0,
+   "statuses": [
+    "200",
+    "200"
+   ],
+   "notes": "Current 2026 CR-V drive and an older in-depth review."
+  },
+  {
+   "id": "q26",
+   "query": "toyota rav4 hybrid review",
+   "language": "en",
+   "judged": true,
+   "topics": [
+    "cars",
+    "reviews"
+   ],
+   "sites": [
+    "caranddriver",
+    "cpsc",
+    "consumeraffairs",
+    "donanimhaber",
+    "gsmarena",
+    "tomshardware"
+   ],
+   "sources_with_results": 1,
+   "result_domains": 1,
+   "k": 5,
+   "results": 3,
+   "relevant": [
+    "https://caranddriver.com/reviews/a68881619/2026-toyota-rav4-hybrid-test",
+    "https://caranddriver.com/reviews/comparison-test/a29878756/2020-ford-escape-hybrid-vs-2019-toyota-rav4-hybrid"
+   ],
+   "top_urls": [
+    "https://www.caranddriver.com/reviews/a68881619/2026-toyota-rav4-hybrid-test/",
+    "https://www.caranddriver.com/reviews/a73347571/2026-toyota-rav4-gr-sport-plug-in-hybrid-test/",
+    "https://www.caranddriver.com/reviews/a72089618/2026-toyota-rav4-woodland-phev-test/"
+   ],
+   "flags": [
+    1,
+    0,
+    0
+   ],
+   "hit": 1,
+   "precision": 0.2,
+   "ndcg": 0.6131471927654584,
+   "elapsed_ms": 0.5535000000236323,
+   "payload_ms": 0.539,
+   "fetches": 0,
+   "bytes": 0,
+   "robots_skips": 0,
+   "blocks": 0,
+   "short_extractions": 0,
+   "statuses": [
+    "200",
+    "200",
+    "200"
+   ],
+   "notes": "2026 RAV4 Hybrid test plus a RAV4 Hybrid comparison."
+  },
+  {
+   "id": "q27",
+   "query": "vaillant ecotec fault code f28",
+   "language": "en",
+   "judged": true,
+   "topics": [
+    "boilers"
+   ],
+   "sites": [
+    "vaillant",
+    "consumeraffairs",
+    "donanimhaber",
+    "webtekno",
+    "chip",
+    "guvensizurun"
+   ],
+   "sources_with_results": 1,
+   "result_domains": 1,
+   "k": 5,
+   "results": 1,
+   "relevant": [
+    "https://vaillant.co.uk/advice/understanding-heating-technology/boilers/understanding-an-f28-fault-code-on-a-vaillant-boiler",
+    "https://vaillant.co.uk/service/boiler-fault-codes"
+   ],
+   "top_urls": [
+    "https://www.vaillant.co.uk/advice/understanding-heating-technology/boilers/understanding-an-f28-fault-code-on-a-vaillant-boiler/"
+   ],
+   "flags": [
+    1
+   ],
+   "hit": 1,
+   "precision": 0.2,
+   "ndcg": 0.6131471927654584,
+   "elapsed_ms": 0.26669999988371274,
+   "payload_ms": 0.255,
+   "fetches": 0,
+   "bytes": 0,
+   "robots_skips": 0,
+   "blocks": 0,
+   "short_extractions": 0,
+   "statuses": [
+    "200"
+   ],
+   "notes": "Exact F28 explainer and the fault-code hub."
+  },
+  {
+   "id": "q28",
+   "query": "vaillant boiler pressure too low",
+   "language": "en",
+   "judged": true,
+   "topics": [
+    "boilers"
+   ],
+   "sites": [
+    "vaillant"
+   ],
+   "sources_with_results": 1,
+   "result_domains": 1,
+   "k": 5,
+   "results": 5,
+   "relevant": [
+    "https://vaillant.co.uk/advice/understanding-heating-technology/boilers/what-do-i-do-if-my-boiler-had-no-pressure",
+    "https://vaillant.co.uk/advice/understanding-heating-technology/boilers/what-pressure-should-my-boiler-be",
+    "https://vaillant.co.uk/advice/understanding-heating-technology/boilers/why-is-my-boiler-losing-pressure"
+   ],
+   "top_urls": [
+    "https://www.vaillant.co.uk/advice/understanding-heating-technology/boilers/why-is-my-boiler-losing-pressure/",
+    "https://www.vaillant.co.uk/advice/understanding-heating-technology/boilers/what-pressure-should-my-boiler-be/",
+    "https://www.vaillant.co.uk/advice/understanding-heating-technology/boilers/what-does-a-pressure-relief-valve-do/",
+    "https://www.vaillant.co.uk/advice/understanding-heating-technology/boilers/what-do-i-do-if-my-boiler-had-no-pressure/",
+    "https://www.vaillant.co.uk/advice/understanding-heating-technology/boilers/how-to-increase-water-pressure-in-a-shower-with-a-combi-boiler/"
+   ],
+   "flags": [
+    1,
+    1,
+    0,
+    1,
+    0
+   ],
+   "hit": 1,
+   "precision": 0.6,
+   "ndcg": 0.9674679834891693,
+   "elapsed_ms": 0.5567999996856088,
+   "payload_ms": 0.542,
+   "fetches": 0,
+   "bytes": 0,
+   "robots_skips": 0,
+   "blocks": 0,
+   "short_extractions": 0,
+   "statuses": [
+    "200",
+    "200",
+    "200",
+    "200",
+    "200"
+   ],
+   "notes": "Three official pressure guides."
+  },
+  {
+   "id": "q29",
+   "query": "iphone ekran çizgi",
+   "language": "tr",
+   "judged": true,
+   "topics": [
+    "phones",
+    "apple"
+   ],
+   "sites": [
+    "donanimhaber",
+    "webtekno",
+    "chip",
+    "macrumors",
+    "gsmarena",
+    "tomshardware"
+   ],
+   "sources_with_results": 3,
+   "result_domains": 1,
+   "k": 5,
+   "results": 5,
+   "relevant": [
+    "https://chip.com.tr/guncel/apple-iphone-duo-ekran-catlaklarini-dogruladi_184924.html",
+    "https://chip.com.tr/guncel/iphone-duonun-ekran-sorunu-tedarikciye-uzandi-fine-m-tec-kusur-iddiasini-reddetti_184931.html",
+    "https://donanimhaber.com/iphone-duo-da-ekran-kirilmasi-sikayetleri-gelmeye-basladi--212035",
+    "https://donanimhaber.com/iphone-duo-ekrani-neden-kiriliyor-veya-catliyor--212087",
+    "https://webtekno.com/apple-iphone-duo-ekran-catlamasi-aciklama-h227920.html"
+   ],
+   "top_urls": [
+    "https://www.donanimhaber.com/iphone-duo-nun-ekrani-cep-yakacak--210384",
+    "https://www.donanimhaber.com/iphone-duo-bolunmus-ekran-ozelliginde-sinirlama--210401",
+    "https://www.donanimhaber.com/iphone-duo-ekrani-neden-kiriliyor-veya-catliyor--212087",
+    "https://www.donanimhaber.com/apple-yoneticisi-iphone-a-takilan-ekran-koruyuculardan-rahatsiz--210694",
+    "https://www.donanimhaber.com/iphone-duo-da-ekran-kirilmasi-sikayetleri-gelmeye-basladi--212035"
+   ],
+   "flags": [
+    0,
+    0,
+    1,
+    0,
+    1
+   ],
+   "hit": 1,
+   "precision": 0.4,
+   "ndcg": 0.30078518014914984,
+   "elapsed_ms": 0.4619999999704305,
+   "payload_ms": 0.444,
+   "fetches": 0,
+   "bytes": 0,
+   "robots_skips": 0,
+   "blocks": 0,
+   "short_extractions": 0,
+   "statuses": [
+    "200",
+    "200",
+    "200",
+    "200",
+    "200"
+   ],
+   "notes": "Turkish iPhone Duo screen defect/crack coverage."
+  },
+  {
+   "id": "q30",
+   "query": "iphone 17 fiyat",
+   "language": "tr",
+   "judged": true,
+   "topics": [
+    "apple",
+    "phones"
+   ],
+   "sites": [
+    "donanimhaber",
+    "webtekno",
+    "chip",
+    "macrumors",
+    "gsmarena",
+    "tomshardware"
+   ],
+   "sources_with_results": 3,
+   "result_domains": 1,
+   "k": 5,
+   "results": 5,
+   "relevant": [
+    "https://webtekno.com/iphone-17-air-17e-zam-geldi-yeni-fiyatlari-h224032.html",
+    "https://webtekno.com/iphone-17-air-fiyati-ozellikleri-h158035.html",
+    "https://webtekno.com/iphone-17-fiyati-ozellikleri-h158061.html",
+    "https://webtekno.com/iphone-17-pro-ozellikleri-fiyati-h160537.html",
+    "https://webtekno.com/iphone-17-turkiye-fiyati-ne-kadar-olacak-h160258.html"
+   ],
+   "top_urls": [
+    "https://www.webtekno.com/iphone-17-fiyati-ozellikleri-h158061.html",
+    "https://www.webtekno.com/iphone-17-pro-ozellikleri-fiyati-h160537.html",
+    "https://www.webtekno.com/iphone-17-air-fiyati-ozellikleri-h158035.html",
+    "https://www.webtekno.com/iphone-17-pro-max-fiyati-ozellikleri-h158097.html",
+    "https://www.webtekno.com/iphone-17-turkiye-fiyati-ne-kadar-olacak-h160258.html"
+   ],
+   "flags": [
+    1,
+    1,
+    1,
+    0,
+    1
+   ],
+   "hit": 1,
+   "precision": 0.8,
+   "ndcg": 0.8539316501572937,
+   "elapsed_ms": 0.8348999999725493,
+   "payload_ms": 0.811,
+   "fetches": 0,
+   "bytes": 0,
+   "robots_skips": 0,
+   "blocks": 0,
+   "short_extractions": 0,
+   "statuses": [
+    "200",
+    "200",
+    "200",
+    "200",
+    "200"
+   ],
+   "notes": "Webtekno's Turkish iPhone 17 price/spec pages."
+  },
+  {
+   "id": "q31",
+   "query": "samsung galaxy s24 ultra inceleme",
+   "language": "tr",
+   "judged": true,
+   "topics": [
+    "phones",
+    "appliances",
+    "reviews"
+   ],
+   "sites": [
+    "donanimhaber",
+    "webtekno",
+    "chip",
+    "gsmarena",
+    "tomshardware",
+    "ifixit"
+   ],
+   "sources_with_results": 2,
+   "result_domains": 2,
+   "k": 5,
+   "results": 5,
+   "relevant": [
+    "https://chip.com.tr/inceleme/samsung-galaxy-s24-ultra-inceleme_169928.html"
+   ],
+   "top_urls": [
+    "https://www.chip.com.tr/inceleme/samsung-galaxy-s24-ultra-inceleme_169928.html",
+    "https://www.gsmarena.com/samsung_galaxy_s24_ultra-review-2670.php",
+    "https://www.gsmarena.com/samsung_galaxy_s24_ultra_s24_plus_s24_handson-review-2656.php",
+    "https://www.gsmarena.com/samsung_galaxy_s24-review-2663.php",
+    "https://www.gsmarena.com/samsung_galaxy_s24_fe-review-2755.php"
+   ],
+   "flags": [
+    1,
+    0,
+    0,
+    0,
+    0
+   ],
+   "hit": 1,
+   "precision": 0.2,
+   "ndcg": 1.0,
+   "elapsed_ms": 0.663600000734732,
+   "payload_ms": 0.643,
+   "fetches": 0,
+   "bytes": 0,
+   "robots_skips": 0,
+   "blocks": 0,
+   "short_extractions": 0,
+   "statuses": [
+    "200",
+    "200",
+    "200",
+    "200",
+    "200"
+   ],
+   "notes": "Chip's Turkish S24 Ultra review."
+  },
+  {
+   "id": "q32",
+   "query": "redmi note 17 pro max inceleme",
+   "language": "tr",
+   "judged": true,
+   "topics": [
+    "phones",
+    "reviews"
+   ],
+   "sites": [
+    "donanimhaber",
+    "webtekno",
+    "chip",
+    "tomshardware",
+    "gsmarena",
+    "macrumors"
+   ],
+   "sources_with_results": 3,
+   "result_domains": 3,
+   "k": 5,
+   "results": 5,
+   "relevant": [
+    "https://chip.com.tr/inceleme/redmi-note-17-pro-max-5g-inceleme_185051.html",
+    "https://donanimhaber.com/redmi-note-17-pro-max-inceleme--211120"
+   ],
+   "top_urls": [
+    "https://www.donanimhaber.com/redmi-note-17-pro-max-inceleme--211120",
+    "https://www.chip.com.tr/inceleme/redmi-note-17-pro-max-5g-inceleme_185051.html",
+    "https://www.chip.com.tr/galeri/redmi-note-17-pro-max-5g-inceleme_184628.html",
+    "https://www.gsmarena.com/xiaomi_redmi_note_10_pro_(max)-review-2232.php",
+    "https://www.gsmarena.com/xiaomi_redmi_note_9_pro_(max)-review-2124.php"
+   ],
+   "flags": [
+    1,
+    1,
+    0,
+    0,
+    0
+   ],
+   "hit": 1,
+   "precision": 0.4,
+   "ndcg": 1.0,
+   "elapsed_ms": 0.6594999995286344,
+   "payload_ms": 0.646,
+   "fetches": 0,
+   "bytes": 0,
+   "robots_skips": 0,
+   "blocks": 0,
+   "short_extractions": 0,
+   "statuses": [
+    "200",
+    "200",
+    "200",
+    "200",
+    "200"
+   ],
+   "notes": "Exact Turkish reviews."
+  },
+  {
+   "id": "q33",
+   "query": "iphone pil sağlığı gece şarj",
+   "language": "tr",
+   "judged": true,
+   "topics": [
+    "phones",
+    "apple",
+    "computing"
+   ],
+   "sites": [
+    "donanimhaber",
+    "webtekno",
+    "chip",
+    "macrumors",
+    "tomshardware",
+    "ifixit"
+   ],
+   "sources_with_results": 2,
+   "result_domains": 2,
+   "k": 5,
+   "results": 5,
+   "relevant": [
+    "https://chip.com.tr/guncel/iphoneu-gece-sarjda-birakmak-pili-bozuyor-mu-apple-ne-soyluyor_184914.html",
+    "https://donanimhaber.com/iphone-da-bu-ozelligi-kapatin-pili-ve-interneti-somuruyor--211471"
+   ],
+   "top_urls": [
+    "https://www.chip.com.tr/guncel/iphoneu-gece-sarjda-birakmak-pili-bozuyor-mu-apple-ne-soyluyor_184914.html",
+    "https://www.donanimhaber.com/iphone-18-pro-max-ile-sarj-hizi-ve-pil-omrunde-dev-gelisme--210306",
+    "https://www.donanimhaber.com/iphone-18-pro-max-sarj-testi-ne-kadar-hizli-sarj-oluyor--210621",
+    "https://www.donanimhaber.com/iphone-18-pro-max-yeni-pil-ozelligiyle-geliyor--210704",
+    "https://www.donanimhaber.com/baseus-iphone-18-serisi-icin-60w-lik-sarj-adaptorunu-tanitti--212937"
+   ],
+   "flags": [
+    1,
+    0,
+    0,
+    0,
+    0
+   ],
+   "hit": 1,
+   "precision": 0.2,
+   "ndcg": 0.6131471927654584,
+   "elapsed_ms": 0.3968999999415246,
+   "payload_ms": 0.384,
+   "fetches": 0,
+   "bytes": 0,
+   "robots_skips": 0,
+   "blocks": 0,
+   "short_extractions": 0,
+   "statuses": [
+    "200",
+    "200",
+    "200",
+    "200",
+    "200"
+   ],
+   "notes": "Turkish iPhone battery-health guidance (night charging and drain)."
+  },
+  {
+   "id": "q34",
+   "query": "çamaşır suyu güvensiz ürün",
+   "language": "tr",
+   "judged": true,
+   "topics": [
+    "appliances",
+    "recalls"
+   ],
+   "sites": [
+    "guvensizurun",
+    "cpsc",
+    "consumeraffairs",
+    "ifixit",
+    "rtings"
+   ],
+   "sources_with_results": 1,
+   "result_domains": 1,
+   "k": 5,
+   "results": 5,
+   "relevant": [
+    "https://guvensizurun.ticaret.gov.tr/Bildirim/Detay?rid=10761",
+    "https://guvensizurun.ticaret.gov.tr/Bildirim/Detay?rid=10762",
+    "https://guvensizurun.ticaret.gov.tr/Bildirim/Detay?rid=10901",
+    "https://guvensizurun.ticaret.gov.tr/Bildirim/Detay?rid=20983"
+   ],
+   "top_urls": [
+    "http://guvensizurun.ticaret.gov.tr/Bildirim/Detay?rid=10901",
+    "http://guvensizurun.ticaret.gov.tr/Bildirim/Detay?rid=20983",
+    "http://guvensizurun.ticaret.gov.tr/Bildirim/Detay?rid=10761",
+    "http://guvensizurun.ticaret.gov.tr/Bildirim/Detay?rid=10762",
+    "http://guvensizurun.ticaret.gov.tr/Bildirim/Detay?rid=20971"
+   ],
+   "flags": [
+    1,
+    1,
+    1,
+    1,
+    0
+   ],
+   "hit": 1,
+   "precision": 0.8,
+   "ndcg": 1.0,
+   "elapsed_ms": 0.31549999948765617,
+   "payload_ms": 0.303,
+   "fetches": 0,
+   "bytes": 0,
+   "robots_skips": 0,
+   "blocks": 0,
+   "short_extractions": 0,
+   "statuses": [
+    "200",
+    "200",
+    "200",
+    "200",
+    "200"
+   ],
+   "notes": "GUBIS bleach notifications (Carrefour, ABC, Karçiçeği, generic)."
+  },
+  {
+   "id": "q35",
+   "query": "oyuncak güvensiz ürün",
+   "language": "tr",
+   "judged": true,
+   "topics": [
+    "computing",
+    "recalls"
+   ],
+   "sites": [
+    "cpsc",
+    "donanimhaber",
+    "webtekno",
+    "chip",
+    "guvensizurun",
+    "tomshardware"
+   ],
+   "sources_with_results": 1,
+   "result_domains": 1,
+   "k": 5,
+   "results": 5,
+   "relevant": [
+    "https://guvensizurun.ticaret.gov.tr/Bildirim/Detay?rid=10893",
+    "https://guvensizurun.ticaret.gov.tr/Bildirim/Detay?rid=176",
+    "https://guvensizurun.ticaret.gov.tr/Bildirim/Detay?rid=177",
+    "https://guvensizurun.ticaret.gov.tr/Bildirim/Detay?rid=178",
+    "https://guvensizurun.ticaret.gov.tr/Bildirim/Detay?rid=179"
+   ],
+   "top_urls": [
+    "http://guvensizurun.ticaret.gov.tr/Bildirim/Detay?rid=10838",
+    "http://guvensizurun.ticaret.gov.tr/Bildirim/Detay?rid=10735",
+    "http://guvensizurun.ticaret.gov.tr/Bildirim/Detay?rid=10704",
+    "http://guvensizurun.ticaret.gov.tr/Bildirim/Detay?rid=178",
+    "http://guvensizurun.ticaret.gov.tr/Bildirim/Detay?rid=10483"
+   ],
+   "flags": [
+    0,
+    0,
+    0,
+    1,
+    0
+   ],
+   "hit": 1,
+   "precision": 0.2,
+   "ndcg": 0.14606834984270645,
+   "elapsed_ms": 0.2965000003314344,
+   "payload_ms": 0.285,
+   "fetches": 0,
+   "bytes": 0,
+   "robots_skips": 0,
+   "blocks": 0,
+   "short_extractions": 0,
+   "statuses": [
+    "200",
+    "200",
+    "200",
+    "200",
+    "200"
+   ],
+   "notes": "GUBIS toy notifications (slime, toy pen, truck, squishy toy, soft toy)."
+  },
+  {
+   "id": "q36",
+   "query": "bebek arabası güvensiz ürün",
+   "language": "tr",
+   "judged": true,
+   "topics": [
+    "cars",
+    "recalls"
+   ],
+   "sites": [
+    "cpsc",
+    "consumeraffairs",
+    "donanimhaber",
+    "guvensizurun",
+    "caranddriver"
+   ],
+   "sources_with_results": 1,
+   "result_domains": 1,
+   "k": 5,
+   "results": 5,
+   "relevant": [
+    "https://guvensizurun.ticaret.gov.tr/Bildirim/Detay?rid=175"
+   ],
+   "top_urls": [
+    "http://guvensizurun.ticaret.gov.tr/Bildirim/Detay?rid=10329",
+    "http://guvensizurun.ticaret.gov.tr/Bildirim/Detay?rid=10593",
+    "http://guvensizurun.ticaret.gov.tr/Bildirim/Detay?rid=175",
+    "http://guvensizurun.ticaret.gov.tr/Bildirim/Detay?rid=10183",
+    "http://guvensizurun.ticaret.gov.tr/Bildirim/Detay?rid=10632"
+   ],
+   "flags": [
+    0,
+    0,
+    1,
+    0,
+    0
+   ],
+   "hit": 1,
+   "precision": 0.2,
+   "ndcg": 0.5,
+   "elapsed_ms": 0.4232000001138658,
+   "payload_ms": 0.404,
+   "fetches": 0,
+   "bytes": 0,
+   "robots_skips": 0,
+   "blocks": 0,
+   "short_extractions": 0,
+   "statuses": [
+    "200",
+    "200",
+    "200",
+    "200",
+    "200"
+   ],
+   "notes": "GUBIS baby stroller notification."
+  },
+  {
+   "id": "q37",
+   "query": "vaillant kombi arıza",
+   "language": "tr",
+   "judged": true,
+   "topics": [
+    "boilers",
+    "complaints"
+   ],
+   "sites": [
+    "vaillant",
+    "donanimhaber",
+    "webtekno",
+    "chip",
+    "guvensizurun",
+    "consumeraffairs"
+   ],
+   "sources_with_results": 0,
+   "result_domains": 0,
+   "k": 5,
+   "results": 0,
+   "relevant": [
+    "https://vaillant.co.uk/service/boiler-fault-codes"
+   ],
+   "top_urls": [],
+   "flags": [],
+   "hit": 0,
+   "precision": 0.0,
+   "ndcg": 0.0,
+   "elapsed_ms": 0.30499999957100954,
+   "payload_ms": 0.292,
+   "fetches": 0,
+   "bytes": 0,
+   "robots_skips": 0,
+   "blocks": 0,
+   "short_extractions": 0,
+   "statuses": [],
+   "notes": "Official Vaillant boiler fault-code hub (English; kept as a relevance check across languages)."
+  },
+  {
+   "id": "q38",
+   "query": "samsung buzdolabı sorunu",
+   "language": "tr",
+   "judged": true,
+   "topics": [
+    "appliances",
+    "complaints",
+    "phones"
+   ],
+   "sites": [
+    "guvensizurun",
+    "consumeraffairs",
+    "donanimhaber",
+    "webtekno",
+    "chip",
+    "ifixit"
+   ],
+   "sources_with_results": 0,
+   "result_domains": 0,
+   "k": 5,
+   "results": 0,
+   "relevant": [
+    "https://consumeraffairs.com/homeowners/samsung_refrigerator.html"
+   ],
+   "top_urls": [],
+   "flags": [],
+   "hit": 0,
+   "precision": 0.0,
+   "ndcg": 0.0,
+   "elapsed_ms": 0.6262000006245216,
+   "payload_ms": 0.591,
+   "fetches": 0,
+   "bytes": 0,
+   "robots_skips": 0,
+   "blocks": 0,
+   "short_extractions": 0,
+   "statuses": [],
+   "notes": "ConsumerAffairs Samsung refrigerator problem hub (English)."
+  },
+  {
+   "id": "q39",
+   "query": "anker power bank geri çağırma",
+   "language": "tr",
+   "judged": true,
+   "topics": [
+    "recalls",
+    "computing",
+    "phones"
+   ],
+   "sites": [
+    "cpsc",
+    "consumeraffairs",
+    "donanimhaber",
+    "webtekno",
+    "chip",
+    "guvensizurun"
+   ],
+   "sources_with_results": 1,
+   "result_domains": 1,
+   "k": 5,
+   "results": 5,
+   "relevant": [
+    "https://cpsc.gov/Recalls/2025/Anker-Power-Banks-Recalled-Due-to-Fire-and-Burn-Hazards-Manufactured-by-Anker-Innovations",
+    "https://cpsc.gov/Recalls/2025/More-than-One-Million-Anker-Power-Banks-Recalled-Due-to-Fire-and-Burn-Hazards-Manufactured-by-Anker-Innovations"
+   ],
+   "top_urls": [
+    "https://www.cpsc.gov/Recalls/2023/Fantasia-Trading-Recalls-Anker-Power-Banks-Due-to-Fire-Hazard",
+    "https://www.cpsc.gov/Recalls/2025/Anker-Power-Banks-Recalled-Due-to-Fire-and-Burn-Hazards-Manufactured-by-Anker-Innovations",
+    "https://www.cpsc.gov/Recalls/2025/More-than-One-Million-Anker-Power-Banks-Recalled-Due-to-Fire-and-Burn-Hazards-Manufactured-by-Anker-Innovations",
+    "https://www.cpsc.gov/Recalls/2024/Anker-EverFrost-Lithium-Ion-Battery-Powered-Coolers-Recalled-Due-to-Battery-Fire-Hazard-Manufactured-by-Anker-Innovations",
+    "https://www.cpsc.gov/Recalls/2025/Anker-Soundcore-Lithium-Ion-Battery-Powered-Bluetooth-Speakers-Recalled-Due-to-Fire-Hazard-Sold-Exclusively-on-Amazon-com-by-Anker-Innovations"
+   ],
+   "flags": [
+    0,
+    1,
+    1,
+    0,
+    0
+   ],
+   "hit": 1,
+   "precision": 0.4,
+   "ndcg": 0.6934264036172708,
+   "elapsed_ms": 1.5739000000394299,
+   "payload_ms": 1.553,
+   "fetches": 0,
+   "bytes": 0,
+   "robots_skips": 0,
+   "blocks": 0,
+   "short_extractions": 0,
+   "statuses": [
+    "200",
+    "200",
+    "200",
+    "200",
+    "200"
+   ],
+   "notes": "Official CPSC Anker recalls (English)."
+  },
+  {
+   "id": "q40",
+   "query": "iphone ekran değişimi",
+   "language": "tr",
+   "judged": true,
+   "topics": [
+    "phones",
+    "apple",
+    "repair"
+   ],
+   "sites": [
+    "macrumors",
+    "ifixit",
+    "donanimhaber",
+    "webtekno",
+    "chip",
+    "gsmarena"
+   ],
+   "sources_with_results": 3,
+   "result_domains": 1,
+   "k": 5,
+   "results": 5,
+   "relevant": [
+    "https://donanimhaber.com/iphone-18-pro-max-ekran-batarya-cam-degisimi-fiyati-belli-oldu--210545"
+   ],
+   "top_urls": [
+    "https://www.donanimhaber.com/iphone-18-pro-max-ekran-batarya-cam-degisimi-fiyati-belli-oldu--210545",
+    "https://www.donanimhaber.com/iphone-duo-nun-ekrani-cep-yakacak--210384",
+    "https://www.donanimhaber.com/iphone-duo-bolunmus-ekran-ozelliginde-sinirlama--210401",
+    "https://www.donanimhaber.com/iphone-duo-ekrani-neden-kiriliyor-veya-catliyor--212087",
+    "https://www.donanimhaber.com/apple-yoneticisi-iphone-a-takilan-ekran-koruyuculardan-rahatsiz--210694"
+   ],
+   "flags": [
+    1,
+    0,
+    0,
+    0,
+    0
+   ],
+   "hit": 1,
+   "precision": 0.2,
+   "ndcg": 1.0,
+   "elapsed_ms": 0.5355000002964516,
+   "payload_ms": 0.516,
+   "fetches": 0,
+   "bytes": 0,
+   "robots_skips": 0,
+   "blocks": 0,
+   "short_extractions": 0,
+   "statuses": [
+    "200",
+    "200",
+    "200",
+    "200",
+    "200"
+   ],
+   "notes": "Turkish iPhone screen/battery replacement pricing article."
+  },
+  {
+   "id": "q41",
+   "query": "lg c1 yanık",
+   "language": "tr",
+   "judged": true,
+   "topics": [
+    "tv-audio",
+    "appliances",
+    "phones"
+   ],
+   "sites": [
+    "rtings",
+    "whathifi",
+    "donanimhaber",
+    "webtekno",
+    "chip",
+    "guvensizurun"
+   ],
+   "sources_with_results": 1,
+   "result_domains": 1,
+   "k": 5,
+   "results": 3,
+   "relevant": [
+    "https://rtings.com/tv/reviews/lg/c1-oled",
+    "https://rtings.com/tv/reviews/lg/c1-oled/settings"
+   ],
+   "top_urls": [
+    "https://www.rtings.com/tv/reviews/lg/c1-oled",
+    "https://www.rtings.com/tv/reviews/lg/c1-oled/settings",
+    "https://www.rtings.com/monitor/reviews/lg/48-c1-oled"
+   ],
+   "flags": [
+    1,
+    1,
+    0
+   ],
+   "hit": 1,
+   "precision": 0.4,
+   "ndcg": 1.0,
+   "elapsed_ms": 0.3942000003007706,
+   "payload_ms": 0.377,
+   "fetches": 0,
+   "bytes": 0,
+   "robots_skips": 0,
+   "blocks": 0,
+   "short_extractions": 0,
+   "statuses": [
+    "200",
+    "200",
+    "200"
+   ],
+   "notes": "RTINGS C1 burn-in test and OLED care settings (English)."
+  },
+  {
+   "id": "q42",
+   "query": "saç kurutma makinesi güvensiz ürün",
+   "language": "tr",
+   "judged": true,
+   "topics": [
+    "appliances",
+    "recalls"
+   ],
+   "sites": [
+    "guvensizurun",
+    "cpsc",
+    "consumeraffairs",
+    "ifixit",
+    "rtings"
+   ],
+   "sources_with_results": 1,
+   "result_domains": 1,
+   "k": 5,
+   "results": 5,
+   "relevant": [
+    "https://guvensizurun.ticaret.gov.tr/Bildirim/Detay?rid=70",
+    "https://guvensizurun.ticaret.gov.tr/Bildirim/Detay?rid=71"
+   ],
+   "top_urls": [
+    "http://guvensizurun.ticaret.gov.tr/Bildirim/Detay?rid=70",
+    "http://guvensizurun.ticaret.gov.tr/Bildirim/Detay?rid=71",
+    "http://guvensizurun.ticaret.gov.tr/Bildirim/Detay?rid=73",
+    "http://guvensizurun.ticaret.gov.tr/Bildirim/Detay?rid=10615",
+    "http://guvensizurun.ticaret.gov.tr/Bildirim/Detay?rid=183"
+   ],
+   "flags": [
+    1,
+    1,
+    0,
+    0,
+    0
+   ],
+   "hit": 1,
+   "precision": 0.4,
+   "ndcg": 1.0,
+   "elapsed_ms": 0.515599999744154,
+   "payload_ms": 0.498,
+   "fetches": 0,
+   "bytes": 0,
+   "robots_skips": 0,
+   "blocks": 0,
+   "short_extractions": 0,
+   "statuses": [
+    "200",
+    "200",
+    "200",
+    "200",
+    "200"
+   ],
+   "notes": "GUBIS hair-dryer notifications."
+  }
+ ],
+ "summary": {
+  "cold": {
+   "label": "cold",
+   "n": 41,
+   "hit@5": 0.926829268292683,
+   "ndcg@5": 0.7629258968244953,
+   "p@5": 0.3073170731707317,
+   "sources_mean": 1.7073170731707317,
+   "domains_mean": 1.2439024390243902,
+   "latency_p50_ms": 6461.949800000184,
+   "latency_p95_ms": 10627.495100000488,
+   "fetches_mean": 7.195121951219512,
+   "fetches_median": 8,
+   "fetches_total": 295,
+   "robots_skips": 0,
+   "block_rate": 0.0,
+   "short_rate": 0.0
+  },
+  "warm_fetch": {
+   "label": "warm_fetch",
+   "n": 41,
+   "hit@5": 0.926829268292683,
+   "ndcg@5": 0.7629258968244953,
+   "p@5": 0.3073170731707317,
+   "sources_mean": 1.7073170731707317,
+   "domains_mean": 1.2439024390243902,
+   "latency_p50_ms": 1000.7011999996394,
+   "latency_p95_ms": 2766.1552999998094,
+   "fetches_mean": 0,
+   "fetches_median": 0,
+   "fetches_total": 0,
+   "robots_skips": 0,
+   "block_rate": 0.0,
+   "short_rate": 0.0
+  },
+  "warm": {
+   "label": "warm",
+   "n": 41,
+   "hit@5": 0.926829268292683,
+   "ndcg@5": 0.7629258968244953,
+   "p@5": 0.3073170731707317,
+   "sources_mean": 1.7073170731707317,
+   "domains_mean": 1.2439024390243902,
+   "latency_p50_ms": 0.5185999998502666,
+   "latency_p95_ms": 0.9374999999636202,
+   "fetches_mean": 0,
+   "fetches_median": 0,
+   "fetches_total": 0,
+   "robots_skips": 0,
+   "block_rate": 0.0,
+   "short_rate": 0.0
+  }
+ }
+}
