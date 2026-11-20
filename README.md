@@ -59,7 +59,7 @@ structured JSON results
 - `data/corpus.jsonl`, `data/queries.json` — Stage-1 synthetic 500-doc corpus + 15 queries.
 - `data/pipeline_cache.sqlite`, `data/fetch_cache.sqlite` — runtime caches (ignored).
 - `data/eval_cache.sqlite`, `data/eval_fetch.sqlite` — evaluation caches (ignored).
-- `eval/queries.jsonl` — 43 realistic judged/coverage-gap queries.
+- `eval/queries.jsonl` — 42 realistic judged/coverage-gap queries.
 
 ---
 
