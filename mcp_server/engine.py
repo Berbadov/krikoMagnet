@@ -8,12 +8,16 @@ from __future__ import annotations
 
 import asyncio
 import os
+import sys
 import time
 from urllib.parse import urlparse
 
 from mcp.server.mcpserver.exceptions import ToolError
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+STAGE3 = os.path.join(ROOT, "stage3_pipeline")
+if STAGE3 not in sys.path:
+    sys.path.insert(0, STAGE3)
 RUST_BIN = os.path.join(ROOT, "stage1_rs", "target", "release", "kriko-magnet-ranker.exe")
 DEFAULT_INDEX = os.path.join(ROOT, "data", "site_index.sqlite")
 
@@ -56,7 +60,7 @@ class MagnetEngine:
 
     async def _get_searcher(self):
         if self._searcher is None:
-            from stage3_pipeline.pipeline import Searcher
+            from pipeline import Searcher
 
             self._searcher = Searcher(
                 fetcher=await self._get_fetcher(),
