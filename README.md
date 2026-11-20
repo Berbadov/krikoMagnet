@@ -141,9 +141,8 @@ recall).
 - [stage3_pipeline/README.md](stage3_pipeline/README.md) - pipeline, cache, resident ranker
 - [stage1_rs/README.md](stage1_rs/README.md) - the Rust ranker
 
-An MCP server for Magnet lives on the unmerged
-[`feat/mcp-server`](https://github.com/Berbadov/krikoMagnet/tree/feat/mcp-server)
-branch.
+An MCP server for Magnet exists on the local `feat/mcp-server` branch. It is
+not merged and not published yet.
 
 ## Licence
 
