@@ -45,3 +45,13 @@ def test_skipped_sites_are_documented():
     assert "sikayetvar.com" in skipped
     assert "old.reddit.com" in skipped
     assert "trendyol.com" in skipped
+
+
+def test_turkish_fault_query_prefers_turkish_vaillant():
+    plan = plan_sites("vaillant kombi arıza kodu", REG, RANKS, max_sites=6)
+    assert plan["sites"][0] == "vaillanttr"
+
+
+def test_generic_dishwasher_query_includes_bosch_home():
+    plan = plan_sites("bulaşık makinesi su almıyor", REG, RANKS, max_sites=6)
+    assert "boschhome" in plan["sites"]

@@ -137,6 +137,26 @@ def test_parse_xml_kinds():
     assert kind == "rss" and len(entries) == 2
 
 
+def test_turkish_product_synonym_scores_english_page():
+    candidates = [
+        Candidate(url="https://www.consumeraffairs.com/homeowners/samsung_refrigerator.html",
+                  title="homeowners samsung refrigerator",
+                  snippet="ConsumerAffairs homeowners samsung refrigerator"),
+        Candidate(url="https://example.com/samsung-phone", title="samsung phone"),
+    ]
+    ranked = score_candidates("samsung buzdolabı sorunu", candidates, max_results=5)
+    assert [c.url for c in ranked] == [
+        "https://www.consumeraffairs.com/homeowners/samsung_refrigerator.html"
+    ]
+
+
+def test_bosch_brand_lifts_bosch_home():
+    from sites.planner import plan_sites
+    from sites.registry import load_registry
+    plan = plan_sites("bosch bulaşık makinesi su almıyor", load_registry(), {}, max_sites=6)
+    assert plan["sites"][0] == "boschhome"
+
+
 def test_model_compaction_and_turkish_stemming():
     terms = query_terms("samsung galaxy note 7 recall")
     assert "note7" in terms

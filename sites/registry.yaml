@@ -43,6 +43,7 @@ sites:
     topics: [phones, computing, reviews, complaints, cars]
     language: tr
     region: tr
+    index_max_children: 48
     methods:
       - type: sitemap
         urls:

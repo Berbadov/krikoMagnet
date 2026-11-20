@@ -151,11 +151,16 @@ def _token_match(term: str, tokens: set[str]) -> bool:
 
 def score_candidates(query: str, candidates: list[Candidate], max_results: int = 40) -> list[Candidate]:
     """IDF-weighted lexical match over title+snippet."""
+    from .text import product_aliases
+
     terms = [t for t in dict.fromkeys(stem_token(t) for t in query_terms(query))]
     for term in list(terms):
         for synonym in (("replacement", "replace") if term == "upgrade" else ()):
             if synonym not in terms:
                 terms.append(synonym)
+        for alias in product_aliases(term):
+            if alias not in terms:
+                terms.append(alias)
     if not terms or not candidates:
         return []
     alpha_terms = [t for t in terms if any(ch.isalpha() for ch in t)]
@@ -175,6 +180,11 @@ def score_candidates(query: str, candidates: list[Candidate], max_results: int =
         weights[term] = weight
     total = sum(weights.values()) or 1.0
     qfold = fold(query)
+    qterms = query_terms(query)
+    qcompounds = {a + b for a, b in zip(qterms, qterms[1:]) if (a + b) in qterms}
+    qwords = [t for t in qterms
+              if t not in GENERIC_QUERY_TERMS and t not in qcompounds]
+    query_phrase = " ".join(qwords) if len(qwords) >= 2 else ""
     numeric_terms = [t for t in terms if t.isdigit()]
     scored = []
     min_specific = 2 if len(specific_terms) >= 2 else 1
@@ -191,6 +201,10 @@ def score_candidates(query: str, candidates: list[Candidate], max_results: int =
         if score <= 0:
             continue
         raw = fold(f"{cand.url} {cand.title} {cand.snippet}")
+        if query_phrase:
+            flat = re.sub(r"[-_/]+", " ", raw)
+            if query_phrase in flat:
+                score += 0.30  # exact model/name phrase, e.g. "rtx 4070 super"
         if ("review" in qfold or "inceleme" in qfold) and ("review" in raw or "inceleme" in raw):
             score += 0.25
         if ("fiyat" in qfold or "price" in qfold) and ("fiyat" in raw or "price" in raw):
@@ -202,7 +216,7 @@ def score_candidates(query: str, candidates: list[Candidate], max_results: int =
                 score += 0.15
         if numeric_terms and any(t in toks for t in numeric_terms):
             score += 0.10
-        cand.score = round(min(1.0, score), 4)
+        cand.score = round(score, 4)
         scored.append((cand, cand.score, len(specific_matched)))
 
     strict = [x for x in scored if x[2] >= min_specific]
@@ -212,7 +226,7 @@ def score_candidates(query: str, candidates: list[Candidate], max_results: int =
         chosen = scored  # a model code was absent; allow one-term evidence
     else:
         chosen = []
-    chosen.sort(key=lambda x: (x[1], x[0].published or ""), reverse=True)
+    chosen.sort(key=lambda x: (x[1], x[2], x[0].published or ""), reverse=True)
     return [cand for cand, _, _ in chosen[:max_results]]
 
 
@@ -311,8 +325,11 @@ def _select_children(entries: list[dict], method: dict, max_sitemaps: int) -> li
         selected.append(item)
 
     def key(item):
-        value = item.get("lastmod") or ""
-        return value
+        loc = item.get("loc", "")
+        found = re.search(r"(19\d{2}|20\d{2})[-_](\d{1,2})(?=[^0-9]|$)", loc)
+        if found:
+            return f"{found.group(1)}-{int(found.group(2)):02d}"
+        return item.get("lastmod") or ""
 
     selected.sort(key=key, reverse=True)
     return selected[:max_sitemaps]

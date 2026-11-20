@@ -33,6 +33,21 @@ def _base_review_url(url: str) -> str:
     return REVIEW_PAGE.sub(r"\1\2", url)
 
 
+PAGE_SUFFIX = re.compile(r"^(.*?)/([2-9])$")
+
+
+def _collapse_paginated(candidates: list[Candidate]) -> list[Candidate]:
+    """Drop /2../9 pages when the unpaginated page is also a candidate."""
+    urls = {_canonical(cand.url) for cand in candidates}
+    kept = []
+    for cand in candidates:
+        match = PAGE_SUFFIX.match(cand.url)
+        if match and _canonical(match.group(1)) in urls:
+            continue
+        kept.append(cand)
+    return kept
+
+
 def _latest_year(query: str, candidates: list[Candidate], topics: list[str]) -> list[Candidate]:
     if "cars" not in topics or YEAR.search(query):
         return candidates
@@ -109,7 +124,8 @@ async def discover(query: str, registry: dict | None = None, fetcher=None,
             key = _canonical(cand.url)
             if key not in merged or cand.score > merged[key].score:
                 merged[key] = cand
-    candidates = score_candidates(query, list(merged.values()), max_results=max_candidates)
+    candidates = _collapse_paginated(list(merged.values()))
+    candidates = score_candidates(query, candidates, max_results=max_candidates)
     candidates = enforce_model_terms(query, candidates)
     candidates = enforce_brand_terms(query, candidates)
     candidates = enforce_product_terms(query, candidates)

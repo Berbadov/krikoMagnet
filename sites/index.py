@@ -30,7 +30,7 @@ from .adapters import (
     score_candidates,
 )
 from .registry import load_registry
-from .text import fold, iso_date, query_terms, ranker_text, stem_token, unslug
+from .text import iso_date, query_terms, ranker_text, stem_token, unslug
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 DEFAULT_DB = os.path.join(HERE, "..", "data", "site_index.sqlite")
@@ -42,19 +42,30 @@ CREATE TABLE IF NOT EXISTS pages(
 CREATE TABLE IF NOT EXISTS feeds(
     url TEXT PRIMARY KEY, site TEXT, kind TEXT, etag TEXT, lastmod TEXT,
     entries INTEGER, fetched_at REAL);
+CREATE TABLE IF NOT EXISTS index_meta(key TEXT PRIMARY KEY, value TEXT);
 CREATE VIRTUAL TABLE IF NOT EXISTS pages_fts
-    USING fts5(url UNINDEXED, site UNINDEXED, text, tokenize='unicode61');
+    USING fts5(url UNINDEXED, site, text, tokenize='unicode61');
 CREATE INDEX IF NOT EXISTS pages_site ON pages(site);
 """
+SCHEMA_VERSION = "2"
 
 
 def _migrate(conn) -> None:
-    """Drop an index whose FTS rowids were not tied to pages.rowid."""
-    cols = {row[1] for row in conn.execute("PRAGMA table_info(pages)")}
-    if "rowid" not in cols and cols:
-        conn.executescript("DROP TABLE pages_fts; DROP TABLE pages;")
-        conn.executescript(SCHEMA)
-        conn.commit()
+    """Rebuild the index when the FTS layout changes (site must be indexed)."""
+    row = conn.execute(
+        "SELECT value FROM index_meta WHERE key='schema'").fetchone()
+    if row is not None and row[0] == SCHEMA_VERSION:
+        return
+    cols = {r[1] for r in conn.execute("PRAGMA table_info(pages)")}
+    if cols and "rowid" not in cols:
+        conn.executescript("DROP TABLE IF EXISTS pages_fts; DROP TABLE IF EXISTS pages;")
+    conn.executescript(
+        "DROP TABLE IF EXISTS pages_fts; DROP TABLE IF EXISTS pages;"
+        "DROP TABLE IF EXISTS feeds;")
+    conn.executescript(SCHEMA)
+    conn.execute("INSERT OR REPLACE INTO index_meta(key,value) VALUES ('schema',?)",
+                 (SCHEMA_VERSION,))
+    conn.commit()
 
 
 def _text_of(url: str, title: str, snippet: str) -> str:
@@ -151,43 +162,67 @@ class SiteIndex:
         return int(row[0]) if row else 0
 
     def query_sites(self, site_ids: list[str], query: str,
-                    max_results: int = 40, rows_per_site: int = 400) -> dict[str, list[Candidate]]:
+                    max_results: int = 40, rows_per_site: int = 250) -> dict[str, list[Candidate]]:
         """Lexical match per site, scored with the same scorer as live adapters."""
+        from .text import product_aliases
+
         terms = []
         for term in (stem_token(t) for t in query_terms(query)):
             if term and term not in terms:
                 terms.append(term)
-        if not terms or not site_ids:
+        # Combined forms ("iphone17") are for scoring; as FTS terms they only
+        # make the recall expression too strict.
+        compounds = {
+            a + b for a, b in zip(terms, terms[1:])
+            if (a + b) in terms
+        }
+        retrieval = [t for t in terms if t not in compounds]
+        for term in list(retrieval):
+            for alias in product_aliases(term):
+                if alias not in retrieval:
+                    retrieval.append(alias)
+        if not retrieval or not site_ids:
             return {}
         pairs = []
-        if len(terms) == 1:
-            pairs = [f'"{terms[0]}"']
-        else:
-            for i, first in enumerate(terms):
-                for second in terms[i + 1:]:
-                    pairs.append(f'("{first}" AND "{second}")')
-                    if len(pairs) >= 12:
-                        break
+        if len(retrieval) == 1:
+            pairs = [f'"{retrieval[0]}"']
+        for i, first in enumerate(retrieval):
+            for second in retrieval[i + 1:]:
+                pairs.append(f'("{first}" AND "{second}")')
                 if len(pairs) >= 12:
                     break
-        match = "(" + " OR ".join(pairs) + ")"
+            if len(pairs) >= 12:
+                break
+        all_and = " AND ".join(f'"{t}"' for t in retrieval)
+        loose = " OR ".join(f'"{t}"' for t in retrieval)
         out: dict[str, list[Candidate]] = {}
+        base_sql = ("SELECT p.url, p.title, p.snippet, p.lastmod, p.method "
+                    "FROM pages_fts f JOIN pages p ON p.rowid=f.rowid "
+                    "WHERE pages_fts MATCH ? AND f.site=? LIMIT ?")
+        ranked_sql = ("SELECT p.url, p.title, p.snippet, p.lastmod, p.method "
+                      "FROM pages_fts f JOIN pages p ON p.rowid=f.rowid "
+                      "WHERE pages_fts MATCH ? AND f.site=? ORDER BY rank LIMIT ?")
+
+        def fetch(expr: str) -> list:
+            total = self.conn.execute(
+                "SELECT COUNT(*) FROM pages_fts WHERE pages_fts MATCH ?",
+                (expr,)).fetchone()[0]
+            sql = base_sql if total <= rows_per_site else ranked_sql
+            return self.conn.execute(sql, (expr, site_id, rows_per_site)).fetchall()
+
         for site_id in site_ids:
-            sql = (
-                "SELECT p.url, p.title, p.snippet, p.lastmod, p.method "
-                "FROM pages_fts f JOIN pages p ON p.rowid=f.rowid "
-                "WHERE pages_fts MATCH ? AND f.site=? ORDER BY rank LIMIT ?"
-            )
             try:
-                rows = self.conn.execute(sql, (match, site_id, rows_per_site)).fetchall()
+                total_all = self.conn.execute(
+                    "SELECT COUNT(*) FROM pages_fts WHERE pages_fts MATCH ?",
+                    (f"site:{site_id} AND ({all_and})",)).fetchone()[0]
+                if total_all >= 5:
+                    rows = fetch(f"site:{site_id} AND ({all_and})")
+                else:
+                    rows = fetch(f"site:{site_id} AND (" + " OR ".join(pairs) + ")")
+                    if not rows:
+                        rows = fetch(f"site:{site_id} AND ({loose})")
             except sqlite3.OperationalError:
                 rows = []
-            if not rows and len(terms) > 1:
-                loose = " OR ".join(f'"{t}"' for t in terms)
-                try:
-                    rows = self.conn.execute(sql, (loose, site_id, rows_per_site)).fetchall()
-                except sqlite3.OperationalError:
-                    rows = []
             cands = [
                 Candidate(
                     url=row[0], title=row[1] or unslug(row[0]),
@@ -250,7 +285,15 @@ def _select_children(entries: list[dict], method: dict, limit: int) -> list[dict
         if exclude and any(p.search(loc) for p in exclude):
             continue
         selected.append(item)
-    selected.sort(key=lambda item: item.get("lastmod") or "", reverse=True)
+
+    def key(item: dict) -> str:
+        loc = item.get("loc", "")
+        found = re.search(r"(19\d{2}|20\d{2})[-_](\d{1,2})(?=[^0-9]|$)", loc)
+        if found:
+            return f"{found.group(1)}-{int(found.group(2)):02d}"
+        return item.get("lastmod") or ""
+
+    selected.sort(key=key, reverse=True)
     return selected[:limit] if limit else selected
 
 
@@ -266,7 +309,11 @@ async def ingest_site(site: dict, fetcher, index: SiteIndex, full: bool = True,
         kind = method.get("type")
         if kind == "sitemap":
             urls = list(method.get("urls") or ([method["url"]] if method.get("url") else []))
-            limit = 0 if full else recent
+            cap = site.get("index_max_children")
+            if full and cap:
+                limit = int(cap)
+            else:
+                limit = 0 if full else recent
             for url in urls:
                 try:
                     res = await fetcher.get(url, conditional=True)

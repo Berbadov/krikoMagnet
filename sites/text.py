@@ -119,12 +119,22 @@ PRODUCT_GROUPS = [
 ]
 
 
+def _alias_index() -> dict[str, set[str]]:
+    index: dict[str, set[str]] = {}
+    for group in PRODUCT_GROUPS:
+        aliases = {stem_token(alias) for alias in group}
+        for member in group:
+            index[member] = aliases
+            index[stem_token(member)] = aliases
+    return index
+
+
+_PRODUCT_ALIAS_INDEX = _alias_index()
+
+
 def product_aliases(term: str) -> set[str]:
     """Turkish/English product nouns that mean the same thing for filtering."""
-    for group in PRODUCT_GROUPS:
-        if term in group:
-            return {stem_token(alias) for alias in group}
-    return {stem_token(term)}
+    return _PRODUCT_ALIAS_INDEX.get(term, {stem_token(term)})
 
 
 def ranker_text(text: str) -> str:
