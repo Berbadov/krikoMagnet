@@ -31,6 +31,36 @@ robots.txt allows it and it returned links for a test query.
 | shiftdelete.net | phones, computing, reviews, complaints | sitemap (news/pages) | Turkish tech news; named AI crawlers are blocked, the honest UA is allowed |
 | tamindir.com | computing, phones, reviews | sitemap (news/blog/software) | Turkish software/news archive |
 
+## General reference sources (5)
+
+When a query hits none of the consumer topics, the planner falls back to
+`general` (`topics: []` → `plan["fallback"] == "general"`). Consumer queries
+never reach these sites. All five were checked live on 2026-11-20 with the
+honest UA, and only robots-allowed endpoints are used:
+
+| Site | Topics | Method | Notes |
+|---|---|---|---|
+| en.wikipedia.org | general | `json_search` on `api.wikimedia.org` | `/w/api.php` and `/api/rest_v1` are Disallow; the Wikimedia gateway is allowed |
+| tr.wikipedia.org | general | `json_search` on `api.wikimedia.org` | Turkish Vikipedi, same gateway |
+| api.crossref.org | general | `json_search` (`works?query=`) | scholarly metadata; titles come back as a one-element list |
+| api.stackexchange.com (site=math) | general | `json_search` (`search/advanced`) | question bodies come from the API (`filter=withbody`) |
+| api.stackexchange.com (site=stackoverflow) | general | `json_search` (`search/advanced`) | question pages themselves are robots-disallowed, so they are never fetched |
+
+Search-engine endpoints were not used: `en.wikipedia.org/wiki/Special:Search`,
+`export.arxiv.org/api`, `api.openalex.org` and `stackoverflow.com/questions/*`
+were all rejected by robots.txt or dropped for budget reasons.
+
+## Open-web fallback (Common Crawl)
+
+`sites/openweb.py` asks the Common Crawl CDX index for URLs on a few general
+domains whose **address** carries a query term
+(`index.commoncrawl.org/...?url=en.wikipedia.org/*kolmogorov*`). It runs only
+when the registry returns zero candidates, is capped at 8 s
+(`OPEN_WEB_BUDGET_S`), and sets a 10-minute cooldown when the index is
+unavailable so a dead service cannot slow every query. The index maps URLs, not
+page text: it can surface a wiki article slug, never a page that merely mentions
+the term. Configured under `open_web` in `registry.yaml`.
+
 ## Skipped, with reasons
 
 | Site | Why |
@@ -62,8 +92,14 @@ robots.txt allows it and it returned links for a test query.
 
 - `search` — the site's own search URL plus a CSS selector for result links.
 - `sitemap` — sitemap index or urlset, optional child filtering and limits.
-- `rss` — RSS/Atom-style feed items.
-- `api` — an official public JSON API (currently only CPSC).
+- `rss` — RSS/Atom-style feed items; `{query}`/`{slug}` in the feed URL is
+  substituted before the request.
+- `api` — an official public JSON API (currently only CPSC, fixed field names).
+- `json_search` — a JSON search endpoint described by field paths
+  (`items_path`, `title`, `snippet`, `url_field`/`url_template`, `date`,
+  `body_field`) so reference APIs need no adapter code. `body_field` takes the
+  text from the API response, which is how Stack Exchange results carry content
+  without fetching the robots-disallowed question page.
 - `url_pattern` — URL templates; implemented and tested, no active site relies
   on it yet.
 
@@ -86,7 +122,9 @@ The planner is keyword-only (no LLM, no search engine):
 1. Detect Turkish vs English from Turkish characters and stopwords.
 2. Score topics from a bilingual lexicon (`phones`, `computing`, `tv-audio`,
    `appliances`, `cars`, `boilers`, `recalls`, `repair`, `complaints`, `reviews`,
-   `apple`) with Turkish terms such as `kombi`, `buzdolabı`, `bulaşık`.
+   `apple`) with Turkish terms such as `kombi`, `buzdolabı`, `bulaşık`. With no
+   topic hit the plan is empty and `plan_sites` switches to the `general`
+   reference sources; that fallback is reported as `fallback: general`.
 3. Pick sites by exact query-term matches, brand/domain matches (e.g. `bosch`
    lifts bosch-home.com.tr), topic overlap, language, and Tranco popularity.
 4. Run adapters (or the local index) concurrently within the fetch layer's

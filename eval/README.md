@@ -41,15 +41,28 @@ host, dropping `www.`, normalizing `http`/`https`, and stripping a trailing
 slash). Near-miss pages count as misses; that is deliberate, so the metric is
 not flattered by vaguely related results.
 
-## Linkup comparison
+## Provider benchmark (Magnet vs DeepSeek Search vs Linkup)
 
-`linkup_compare.py` is a stub and is not run by `run_eval.py`. It requires
-`LINKUP_API_KEY` and `--run`, and it costs money:
+`bench_providers.py` runs the same judged queries through Magnet, the DeepSeek
+Search API (`POST /v1/tools/search`) and Linkup (`POST /v1/search`), scores the
+top-5 URLs against these same exact-URL judgments, and reports hit@5, nDCG@5,
+P@5, a softer domain-hit@5, latency percentiles, empty/error counts and cost.
+Magnet runs with fresh caches (production index, first-run page fetches) and a
+15 s page budget, so its row is the real user experience rather than a warm
+cache.
 
 ```bash
+export DEEPSEEK_API_KEY=...
 export LINKUP_API_KEY=...
-python eval/linkup_compare.py --run --json eval/linkup_results.json
+python eval/bench_providers.py --dry-run            # estimate spend, send nothing
+python eval/bench_providers.py --limit 50           # writes bench_providers.{json,md}
 ```
 
-Read https://docs.linkup.so for the current request/response schema before
-using it.
+It costs money: DeepSeek Search is $0.75 per 1,000 successful requests and
+Linkup standard search is about $0.006 per query, so 50 queries on both is
+roughly $0.35. `--limit` caps the query count; the default 50 stays under a
+dollar. `linkup_compare.py` remains as the minimal Linkup-only stub.
+
+Magnet's page-fetch budget defaults to 15 s (`--budget-ms`); a bigger budget
+buys recall at the cost of tail latency, which is why the committed run also
+includes a 30 s pass (`bench_magnet_30s.*`).

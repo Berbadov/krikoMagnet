@@ -28,7 +28,7 @@ def load_registry(path: str = DEFAULT_PATH) -> dict:
         if not isinstance(site["methods"], list) or not site["methods"]:
             raise ValueError(f"site {site['id']} has no methods")
         for method in site["methods"]:
-            if method.get("type") not in ("search", "sitemap", "rss", "api", "url_pattern"):
+            if method.get("type") not in ("search", "sitemap", "rss", "api", "json_search", "url_pattern"):
                 raise ValueError(f"site {site['id']} has unknown method {method.get('type')}")
     return data
 

@@ -24,6 +24,7 @@ DEFAULT_INDEX = os.path.join(ROOT, "data", "site_index.sqlite")
 SNIPPET_CHARS = 280
 TEXT_CHARS = 8000
 MAX_K = 10
+PAGE_BUDGET_MS = 15000
 LANGS = ("en", "tr")
 EMPTY_STATS = {"requests": 0, "bytes": 0, "cache_hits": 0, "robots_skips": 0, "retries": 0}
 
@@ -68,7 +69,8 @@ class MagnetEngine:
             from pipeline import Searcher
 
             self._searcher = Searcher(registry=self.registry,
-                                      index_path=self._index_path)
+                                      index_path=self._index_path,
+                                      page_budget_ms=PAGE_BUDGET_MS)
         if self._fetcher is None:
             self._fetcher = getattr(self._searcher, "fetcher", None)
         return self._searcher

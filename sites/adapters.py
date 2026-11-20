@@ -8,8 +8,9 @@ import re
 import time
 import xml.etree.ElementTree as ET
 from dataclasses import dataclass, field
+from datetime import datetime, timezone
 from html import unescape
-from urllib.parse import quote_plus, urljoin, urlparse
+from urllib.parse import quote, quote_plus, urljoin, urlparse
 
 from selectolax.lexbor import LexborHTMLParser as HTMLParser
 
@@ -21,6 +22,7 @@ log = get_logger("sites.adapters")
 ASSET_EXT = re.compile(r"\.(?:jpe?g|png|gif|webp|svg|ico|css|js|woff2?|ttf|zip|gz|mp4|mp3|pdf)(?:$|\?)", re.I)
 MODEL_TOKEN = re.compile(r"^(?=.*[a-z])(?=.*\d)[a-z0-9]{2,8}$")
 SITEMAP_MEMORY_TTL = 3600
+BODY_CHARS = 4000
 _SITEMAP_MEMORY: dict[str, tuple[float, str, list[dict]]] = {}
 
 
@@ -47,7 +49,8 @@ GENERIC_QUERY_TERMS = {
     "comparison", "error", "errors", "code", "codes", "fault", "faults",
     "ariza", "sorun", "service", "servis", "warranty", "garanti", "replace",
     "replacement", "repair", "teardown", "tamir", "degisim", "yorum", "inceleme",
-    "update", "updates",
+    "update", "updates", "and", "or", "the", "of", "for", "with", "about",
+    "related", "information", "explain", "meaning", "definition",
 }
 PRODUCT_TERMS = {
     "dishwasher", "washing", "washer", "dryer", "refrigerator", "fridge", "oven",
@@ -78,6 +81,7 @@ class Candidate:
     source: str = ""
     method: str = ""
     score: float = 0.0
+    body: str = ""
 
 
 @dataclass
@@ -145,6 +149,22 @@ def parse_xml(text: str) -> tuple[str, list[dict]]:
                 item["_text"] = fold(f"{item.get('title', '')} {item.get('description', '')} {item.get('category', '')}")
                 entries.append(item)
         return "rss", entries
+    if kind == "feed":
+        for node in root:
+            if _local(node.tag) != "entry":
+                continue
+            item = {}
+            for child in node:
+                key = _local(child.tag)
+                if key in ("title", "summary", "content", "published", "updated", "id"):
+                    item["pubDate" if key in ("published", "updated") else key] = (child.text or "").strip()
+                elif key == "link" and child.get("rel", "alternate") == "alternate":
+                    item["link"] = child.get("href") or (child.text or "").strip()
+            item.setdefault("link", item.get("id", ""))
+            if item.get("link"):
+                item["_text"] = fold(f"{item.get('title', '')} {item.get('summary', '')}")
+                entries.append(item)
+        return "feed", entries
     return kind, entries
 
 
@@ -156,7 +176,8 @@ def score_candidates(query: str, candidates: list[Candidate], max_results: int =
     """IDF-weighted lexical match over title+snippet."""
     from .text import product_aliases
 
-    terms = [t for t in dict.fromkeys(stem_token(t) for t in query_terms(query))]
+    raw_terms = [t for t in query_terms(query) if t not in GENERIC_QUERY_TERMS]
+    terms = [t for t in dict.fromkeys(stem_token(t) for t in raw_terms)]
     for term in list(terms):
         for synonym in (("replacement", "replace") if term == "upgrade" else ()):
             if synonym not in terms:
@@ -208,6 +229,8 @@ def score_candidates(query: str, candidates: list[Candidate], max_results: int =
             flat = re.sub(r"[-_/]+", " ", raw)
             if query_phrase in flat:
                 score += 0.30  # exact model/name phrase, e.g. "rtx 4070 super"
+            if query_phrase in re.sub(r"[-_/]+", " ", fold(cand.title)):
+                score += 0.30  # the phrase is the page title, not just a mention
         if ("review" in qfold or "inceleme" in qfold) and ("review" in raw or "inceleme" in raw):
             score += 0.25
         if ("fiyat" in qfold or "price" in qfold) and ("fiyat" in raw or "price" in raw):
@@ -481,22 +504,23 @@ def _strip_html(value: str) -> str:
 
 async def run_rss(site: dict, method: dict, query: str, fetcher) -> AdapterOutcome:
     t0 = time.perf_counter()
-    res = await fetcher.get(method["url"])
+    url = method["url"].replace("{query}", quote_plus(query)).replace("{slug}", slugify(query))
+    res = await fetcher.get(url)
     if res.robots_skipped:
         return AdapterOutcome(site["id"], "rss", "robots-denied", [], 1,
                               (time.perf_counter() - t0) * 1000)
     if not res.ok:
         return AdapterOutcome(site["id"], "rss", "error", [], 1,
                               (time.perf_counter() - t0) * 1000, f"HTTP {res.status}")
-    kind, items = await load_xml(fetcher, method["url"])
-    if kind != "rss":
+    kind, items = await load_xml(fetcher, url)
+    if kind not in ("rss", "feed"):
         return AdapterOutcome(site["id"], "rss", "error", [], 1,
-                              (time.perf_counter() - t0) * 1000, "not an RSS feed")
+                              (time.perf_counter() - t0) * 1000, "not an RSS/Atom feed")
     max_results = int(method.get("max_results", 20))
     candidates = []
     for item in items:
         title = _strip_html(item.get("title", ""))
-        desc = _strip_html(item.get("description", ""))
+        desc = _strip_html(item.get("description") or item.get("summary") or "")
         category = _strip_html(item.get("category", ""))
         display = f"{category}: {title}" if category else title
         candidates.append(Candidate(
@@ -559,6 +583,89 @@ async def run_api(site: dict, method: dict, query: str, fetcher) -> AdapterOutco
                           ranked, fetched, (time.perf_counter() - t0) * 1000)
 
 
+def _dig(data, path: str):
+    """Walk a dotted path (`query.search`, `items.0.title`) through dicts/lists."""
+    current = data
+    for part in [p for p in (path or "").split(".") if p]:
+        if isinstance(current, list):
+            try:
+                current = current[int(part)]
+            except (ValueError, IndexError):
+                return None
+        elif isinstance(current, dict):
+            current = current.get(part)
+        else:
+            return None
+        if current is None:
+            return None
+    return current
+
+
+def _iso_any(value) -> str | None:
+    if value is None or value == "":
+        return None
+    if isinstance(value, (int, float)):
+        try:
+            return datetime.fromtimestamp(float(value), timezone.utc).isoformat()
+        except (ValueError, OSError, OverflowError):
+            return None
+    return iso_date(str(value))
+
+
+def _scalar(value):
+    """Some APIs wrap a single value in a one-element list (Crossref titles)."""
+    if isinstance(value, list):
+        return value[0] if value else ""
+    return value
+
+
+async def run_json_search(site: dict, method: dict, query: str, fetcher) -> AdapterOutcome:
+    """Query a JSON search endpoint and map its items with the method's paths."""
+    t0 = time.perf_counter()
+    template = method["url"]
+    probes = [query] + [t for t in query_terms(query) if t not in API_GENERIC][:2]
+    probes = list(dict.fromkeys(p for p in probes if p))[: int(method.get("probes", 2))]
+    max_results = int(method.get("max_results", 20))
+    timeout = float(method.get("timeout", 20.0))
+    candidates = []
+    seen = set()
+    fetched = 0
+    for probe in probes:
+        url = template.replace("{query}", quote_plus(probe)).replace("{slug}", slugify(probe))
+        res = await fetcher.get(url, timeout=timeout)
+        fetched += 1
+        if res.robots_skipped or not res.ok:
+            continue
+        try:
+            data = json.loads(res.text)
+        except Exception:
+            continue
+        items = _dig(data, method.get("items_path", ""))
+        if not isinstance(items, list):
+            continue
+        for item in items:
+            link = _scalar(_dig(item, method.get("url_field", "url")) or "")
+            if method.get("url_template"):
+                link = method["url_template"].replace(
+                    "{value}", quote(str(link).replace(" ", "_"), safe=""))
+            if not isinstance(link, str) or not link.startswith("http") or link in seen:
+                continue
+            seen.add(link)
+            title = _strip_html(str(_scalar(_dig(item, method.get("title", "title"))) or "")) or unslug(link)
+            snippet = _strip_html(str(_scalar(_dig(item, method.get("snippet", "snippet"))) or ""))
+            body = ""
+            if method.get("body_field"):
+                body = _strip_html(str(_scalar(_dig(item, method["body_field"])) or ""))[:BODY_CHARS]
+            candidates.append(Candidate(
+                url=link, title=title[:300], snippet=snippet[:600],
+                published=_iso_any(_dig(item, method["date"])) if method.get("date") else None,
+                source=site["id"], method="json_search", body=body,
+            ))
+    ranked = score_candidates(query, candidates, max_results=max_results)
+    return AdapterOutcome(site["id"], "json_search", "ok" if ranked else "no-results",
+                          ranked, fetched, (time.perf_counter() - t0) * 1000)
+
+
 async def run_url_pattern(site: dict, method: dict, query: str, fetcher) -> AdapterOutcome:
     t0 = time.perf_counter()
     terms = query_terms(query)
@@ -592,6 +699,8 @@ async def run_site(site: dict, query: str, fetcher) -> list[AdapterOutcome]:
             outcome = await run_rss(site, method, query, fetcher)
         elif kind == "api":
             outcome = await run_api(site, method, query, fetcher)
+        elif kind == "json_search":
+            outcome = await run_json_search(site, method, query, fetcher)
         elif kind == "url_pattern":
             outcome = await run_url_pattern(site, method, query, fetcher)
         else:

@@ -106,8 +106,6 @@ def classify(query: str) -> dict:
         if count:
             hits[topic] = count
     ordered = sorted(hits, key=lambda t: (-hits[t], t))
-    if not ordered:
-        ordered = ["reviews"]
     return {
         "language": detect_language(query),
         "topics": ordered,
@@ -149,6 +147,11 @@ def plan_sites(query: str, registry: dict, tranco_ranks: dict[str, int] | None =
     tranco_ranks = tranco_ranks or {}
     plan = classify(query)
     topics = set(plan["topics"])
+    fallback = None
+    if not topics:
+        topics = {"general"}
+        fallback = "general"
+        plan["topics"] = ["general"]
     lang = plan["language"]
     terms = plan["terms"]
     scored = []
@@ -175,12 +178,15 @@ def plan_sites(query: str, registry: dict, tranco_ranks: dict[str, int] | None =
                  + domain_hits * 800 + float(site.get("priority", 0)) + prior)
         scored.append((score, site, matched))
     if not scored:
-        # Nothing matched: fall back to broad review sources.
-        for site in registry["sites"]:
-            if "reviews" in site["topics"]:
-                scored.append((_prior_score(site["domain"], tranco_ranks), site, 0))
+        # Nothing matched: prefer general reference sites, then broad reviews.
+        for topic in ("general", "reviews"):
+            for site in registry["sites"]:
+                if topic in site["topics"]:
+                    scored.append((_prior_score(site["domain"], tranco_ranks), site, 0))
+            if scored:
+                break
     scored.sort(key=lambda x: (-x[0], x[1]["id"]))
     chosen = [site for _, site, _ in scored[:max_sites]]
     plan["sites"] = [s["id"] for s in chosen]
     plan["site_scores"] = {s["id"]: round(score, 1) for score, s, _ in scored[:max_sites]}
-    return {**plan, "selected": chosen}
+    return {**plan, "fallback": fallback, "selected": chosen}
