@@ -1,4 +1,5 @@
 curl_cffi>=0.7
+requests>=2.31
 trafilatura>=1.8
 selectolax>=0.3
 protego>=0.3
