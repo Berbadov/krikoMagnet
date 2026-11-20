@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import asyncio
 import re
+import time
 from datetime import datetime
 from urllib.parse import urlsplit, urlunsplit
 
@@ -10,9 +11,15 @@ from .adapters import (
     Candidate, enforce_brand_terms, enforce_intent_terms, enforce_model_terms,
     enforce_product_terms, run_site, score_candidates,
 )
+from .circuit import CircuitBreaker
+from .log import get_logger
 from .planner import plan_sites
 from .registry import load_registry, load_tranco_ranks
 from .text import long_ago, ranker_text, unslug
+
+log = get_logger("sites.discovery")
+BREAKER = CircuitBreaker()
+SITE_TIMEOUT = 25.0
 
 MULTI_SUFFIX = {
     "co.uk", "com.tr", "gov.tr", "org.tr", "net.tr", "com.au", "co.jp",
@@ -74,7 +81,8 @@ def _canonical(url: str) -> str:
 
 
 async def discover(query: str, registry: dict | None = None, fetcher=None,
-                   max_sites: int = 6, max_candidates: int = 160) -> dict:
+                   max_sites: int = 6, max_candidates: int = 160,
+                   index=None) -> dict:
     registry = registry or load_registry()
     ranks = load_tranco_ranks()
     plan = plan_sites(query, registry, ranks, max_sites=max_sites)
@@ -84,11 +92,11 @@ async def discover(query: str, registry: dict | None = None, fetcher=None,
         from fetchlib import Fetcher
         own = Fetcher()
         try:
-            outcomes = await _run_all(selected, query, own)
+            outcomes = await _run_all(selected, query, own, index)
         finally:
             await own.close()
     else:
-        outcomes = await _run_all(selected, query, fetcher)
+        outcomes = await _run_all(selected, query, fetcher, index)
 
     merged = {}
     for outcome in outcomes:
@@ -115,18 +123,62 @@ async def discover(query: str, registry: dict | None = None, fetcher=None,
     }
 
 
-async def _run_all(selected: list[dict], query: str, fetcher) -> list:
+async def _run_all(selected: list[dict], query: str, fetcher, index=None) -> list:
     results = await asyncio.gather(
-        *[run_site(site, query, fetcher) for site in selected],
+        *[_run_one(site, query, fetcher, index) for site in selected],
         return_exceptions=True,
     )
     outcomes = []
     from .adapters import AdapterOutcome
     for site, result in zip(selected, results):
         if isinstance(result, Exception):
+            BREAKER.failure(site["id"])
+            log.warning("adapter failed", extra={"site": site["id"], "error": repr(result)[:160]})
             outcomes.append(AdapterOutcome(site["id"], "?", "error", [], 0, 0.0, repr(result)[:160]))
-        else:
-            outcomes.extend(result)
+            continue
+        failed = (not any(o.candidates for o in result)
+                  and any(o.status == "error" for o in result))
+        if failed:
+            BREAKER.failure(site["id"])
+        elif result:
+            BREAKER.success(site["id"])
+        outcomes.extend(result)
+    return outcomes
+
+
+def _indexable(site: dict, index) -> bool:
+    if index is None:
+        return False
+    if not any(m.get("type") in ("sitemap", "rss") for m in site["methods"]):
+        return False
+    try:
+        return index.site_pages(site["id"]) > 0
+    except Exception:
+        return False
+
+
+async def _run_one(site: dict, query: str, fetcher, index) -> list:
+    """Serve sitemap/RSS sites from the local index; keep live search/API."""
+    from .adapters import AdapterOutcome
+
+    if not BREAKER.allow(site["id"]):
+        log.warning("site circuit open", extra={"site": site["id"]})
+        return [AdapterOutcome(site["id"], "-", "circuit-open", [], 0, 0.0,
+                               "skipped: circuit open")]
+    if _indexable(site, index):
+        max_results = max(
+            int(m.get("max_results", 40)) for m in site["methods"]
+            if m.get("type") in ("sitemap", "rss")
+        )
+        candidates = index.query([site["id"]], query, max_results=max_results)
+        return [AdapterOutcome(site["id"], "index",
+                               "ok" if candidates else "no-results",
+                               candidates, 0, 0.0)]
+    t0 = time.monotonic()
+    outcomes = await asyncio.wait_for(run_site(site, query, fetcher), timeout=SITE_TIMEOUT)
+    log.debug("site adapter", extra={"site": site["id"], "status": outcomes[-1].status,
+                                     "candidates": sum(len(o.candidates) for o in outcomes),
+                                     "ms": round((time.monotonic() - t0) * 1000, 1)})
     return outcomes
 
 

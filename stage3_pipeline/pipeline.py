@@ -6,9 +6,7 @@ cache -> structured JSON results.
 """
 import json
 import os
-import subprocess
 import sys
-import tempfile
 import time
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -21,27 +19,43 @@ from worker import fetch_many
 RUST_BIN = os.path.join(ROOT, "stage1_rs", "target", "release", "kriko-magnet-ranker.exe")
 CANDIDATES = os.path.join(HERE, "candidates.jsonl")
 QUERIES_PIPE = os.path.join(HERE, "queries_pipeline.json")
-TRANCO = os.path.join(ROOT, "data", "tranco_top100k.txt")
 TOP_K_DEFAULT = 3
-
 
 class Searcher:
     def __init__(self, cache=None, top_k=TOP_K_DEFAULT, stats=None,
-                 discovery="registry", registry=None, max_sites=6, fetcher=None):
+                 discovery="registry", registry=None, max_sites=6, fetcher=None,
+                 index=None, use_index=True, index_path=None, ranker=None,
+                 page_budget_ms=0):
         self.cache = cache or Cache()
         self.top_k = top_k
+        self.page_budget_ms = page_budget_ms
         self.stats = stats or {"bytes": 0, "fetches": 0, "robots_skips": 0}
         self.discovery = discovery
         self.registry = registry
         self.max_sites = max_sites
         self.fetcher = fetcher
         self._owns_fetcher = fetcher is None
+        self.index = index
+        self._owns_index = False
+        self.ranker = ranker
+        self._owns_ranker = False
         if discovery == "curated":
             self.candidates = self._load_candidates()
         else:
             from sites import load_registry
             self.registry = registry or load_registry()
             self.candidates = None
+            if self.index is None and use_index:
+                from sites.index import SiteIndex
+                self.index = SiteIndex(index_path) if index_path else SiteIndex()
+                self._owns_index = True
+
+    def _get_ranker(self):
+        if self.ranker is None:
+            from ranker import Ranker
+            self.ranker = Ranker()
+            self._owns_ranker = True
+        return self.ranker
 
     def _load_candidates(self):
         m = {}
@@ -61,23 +75,17 @@ class Searcher:
         if self._owns_fetcher and self.fetcher is not None:
             await self.fetcher.close()
             self.fetcher = None
+        if self._owns_index and self.index is not None:
+            self.index.close()
+            self.index = None
+        if self._owns_ranker and self.ranker is not None:
+            self.ranker.close()
+            self.ranker = None
         self.cache.close()
 
-    def _rank_rust(self, corpus_path, query_text, qid="q0"):
-        with tempfile.NamedTemporaryFile("w", suffix=".json", delete=False, encoding="utf-8") as tf:
-            json.dump([{"id": qid, "text": query_text}], tf, ensure_ascii=False)
-            qpath = tf.name
-        try:
-            now = time.time()
-            cp = subprocess.run(
-                [RUST_BIN, "--corpus", corpus_path, "--queries", qpath,
-                 "--tranco", TRANCO, "--now", str(now), "--scores"],
-                capture_output=True, text=True, check=True,
-            )
-            data = json.loads(cp.stdout)
-            return data.get(qid, [])
-        finally:
-            os.unlink(qpath)
+    def _rank_rust(self, corpus_recs, query_text, qid="q0"):
+        ranked = self._get_ranker().rank(corpus_recs, query_text)
+        return ranked or []
 
     async def _rank_registry(self, query_text, k):
         from sites import discover, to_corpus
@@ -86,20 +94,13 @@ class Searcher:
         fetcher = await self._get_fetcher()
         before = dict(fetcher.stats)
         disc = await discover(query_text, registry=self.registry, fetcher=fetcher,
-                              max_sites=self.max_sites)
+                              max_sites=self.max_sites, index=self.index)
         candidates = disc["candidates"]
         if not candidates:
             return disc, [], {}
 
         corpus_recs = to_corpus(candidates)
-        with tempfile.NamedTemporaryFile("w", suffix=".jsonl", delete=False, encoding="utf-8") as tf:
-            for rec in corpus_recs:
-                tf.write(json.dumps(rec, ensure_ascii=False) + "\n")
-            corpus_path = tf.name
-        try:
-            ranked = self._rank_rust(corpus_path, ranker_text(query_text))
-        finally:
-            os.unlink(corpus_path)
+        ranked = self._rank_rust(corpus_recs, ranker_text(query_text))
 
         by_id = {rec["id"]: rec for rec in corpus_recs}
         orig = {f"c{i:04d}": c for i, c in enumerate(candidates)}
@@ -149,7 +150,8 @@ class Searcher:
 
         if to_fetch:
             fetcher = await self._get_fetcher()
-            fetched = await fetch_many(to_fetch, concurrency=4, stats=self.stats, fetcher=fetcher)
+            fetched = await fetch_many(to_fetch, concurrency=max(4, k), stats=self.stats,
+                                       fetcher=fetcher, budget_ms=self.page_budget_ms)
             for url, fr in fetched.items():
                 cand, score, cid = pending[url]
                 uh = sha16(url)
@@ -204,21 +206,8 @@ class Searcher:
         }
 
     async def _search_curated(self, query_text, k, qh, t0):
-        with tempfile.NamedTemporaryFile("w", suffix=".json", delete=False, encoding="utf-8") as tf:
-            json.dump([{"id": "q0", "text": query_text}], tf)
-            qpath = tf.name
-        try:
-            now = time.time()
-            cp = subprocess.run(
-                [RUST_BIN, "--corpus", CANDIDATES, "--queries", qpath,
-                 "--tranco", TRANCO, "--now", str(now), "--scores"],
-                capture_output=True, text=True, check=True,
-            )
-            ranked = json.loads(cp.stdout).get("q0", [])
-        finally:
-            os.unlink(qpath)
-
-        ranked = ranked[:k]
+        corpus_recs = list(self.candidates.values())
+        ranked = self._rank_rust(corpus_recs, query_text)[:k]
         results = []
         to_fetch = []
         pending = {}

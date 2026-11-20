@@ -217,6 +217,11 @@ async def main():
     ap.add_argument("--fetch-cache", default=DEFAULT_FETCH_CACHE)
     ap.add_argument("--json", default="")
     ap.add_argument("--markdown", default="")
+    ap.add_argument("--index", default=os.path.join(ROOT, "data", "site_index.sqlite"),
+                    help="persistent sitemap index; kept across --fresh runs")
+    ap.add_argument("--no-index", action="store_true", help="use live sitemap discovery")
+    ap.add_argument("--page-budget", type=int, default=0,
+                    help="ms to wait for page fetches before returning partial results (0 = all)")
     args = ap.parse_args()
 
     queries = load_queries()
@@ -230,8 +235,19 @@ async def main():
 
     fetcher = Fetcher(cache_path=args.fetch_cache)
     cache = Cache(args.cache)
+    index = None
+    if not args.no_index:
+        from sites.index import SiteIndex
+        index = SiteIndex(args.index)
+        index_stats = index.stats()
+        if index_stats.age_seconds is None:
+            print("local index: empty (run python -m sites.index build)")
+        else:
+            print(f"local index: {index_stats.pages} pages / {index_stats.sites} sites, "
+                  f"oldest-idea age {index_stats.age_seconds:.0f}s")
     searcher = Searcher(cache=cache, top_k=args.k, discovery="curated" if args.curated else "registry",
-                        fetcher=fetcher)
+                        fetcher=fetcher, index=index, use_index=not args.no_index,
+                        page_budget_ms=args.page_budget)
 
     print("=" * 100)
     print(f"COLD RUN — {len(queries)} queries, k={args.k}, discovery={searcher.discovery}")
@@ -255,6 +271,8 @@ async def main():
 
     await searcher.close()
     await fetcher.close()
+    if index is not None:
+        index.close()
 
     print_report(cold, warm, warm_fetch, cold_rows)
     md = markdown_report(cold, warm, warm_fetch, cold_rows)

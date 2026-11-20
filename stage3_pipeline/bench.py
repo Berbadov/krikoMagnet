@@ -32,6 +32,9 @@ async def main():
     ap.add_argument("--limit", type=int, default=0)
     ap.add_argument("--fresh", action="store_true", help="delete benchmark caches first")
     ap.add_argument("--k", type=int, default=3)
+    ap.add_argument("--index", default=os.path.join(ROOT, "data", "site_index.sqlite"))
+    ap.add_argument("--no-index", action="store_true")
+    ap.add_argument("--page-budget", type=int, default=0)
     args = ap.parse_args()
 
     path = CURATED_QUERIES if args.curated else KRIKO_QUERIES
@@ -49,9 +52,14 @@ async def main():
     from fetchlib import Fetcher
     stats = {"bytes": 0, "fetches": 0, "robots_skips": 0}
     fetcher = Fetcher(cache_path=BENCH_FETCH)
+    index = None
+    if not args.no_index:
+        from sites.index import SiteIndex
+        index = SiteIndex(args.index)
     searcher = Searcher(cache=Cache(BENCH_CACHE), top_k=args.k,
                         discovery="curated" if args.curated else "registry",
-                        stats=stats, fetcher=fetcher)
+                        stats=stats, fetcher=fetcher, index=index,
+                        use_index=not args.no_index, page_budget_ms=args.page_budget)
 
     print("=" * 92)
     print(f"COLD CACHE — {len(queries)} queries — discovery={searcher.discovery}")
@@ -85,6 +93,8 @@ async def main():
 
     await searcher.close()
     await fetcher.close()
+    if index is not None:
+        index.close()
 
     c_med = statistics.median(cold)
     w_med = statistics.median(warm)

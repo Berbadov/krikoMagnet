@@ -34,7 +34,7 @@ async def fetch_one(fetcher, url):
     }
 
 
-async def fetch_many(urls, concurrency=4, stats=None, fetcher=None):
+async def fetch_many(urls, concurrency=4, stats=None, fetcher=None, budget_ms=0):
     owns_fetcher = fetcher is None
     if fetcher is None:
         fetcher = Fetcher(concurrency=concurrency)
@@ -52,8 +52,16 @@ async def fetch_many(urls, concurrency=4, stats=None, fetcher=None):
                 if fr["status"] == "robots":
                     stats["robots_skips"] = stats.get("robots_skips", 0) + 1
 
+    tasks = {asyncio.create_task(worker(u)): u for u in urls}
     try:
-        await asyncio.gather(*[worker(u) for u in urls])
+        if budget_ms and budget_ms > 0:
+            done, pending = await asyncio.wait(tasks, timeout=budget_ms / 1000.0)
+            for task in pending:
+                task.cancel()
+            if pending:
+                await asyncio.gather(*pending, return_exceptions=True)
+        else:
+            await asyncio.gather(*tasks)
     finally:
         if owns_fetcher:
             await fetcher.close()
