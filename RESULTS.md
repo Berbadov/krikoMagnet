@@ -244,7 +244,98 @@ Read https://docs.linkup.so for the current schema.
 
 ### GATE 5 — results (k=5)
 
-TBD
+Two runs, both with the 60-query set and a warm local index:
+
+- **Default (no page budget)** — every top-k page is fetched. This is the
+  quality-first configuration the service uses by default.
+- **2.5 s total-query budget** — opt-in (`--page-budget 2500`); returns
+  graceful partial results when page fetches would exceed the deadline.
+
+| Metric | Stage 4 (41 judged) | Stage 5 default (59 judged) | Stage 5 + 2.5 s budget |
+|---|---|---|---|
+| Queries with >=1 relevant in top-5 | 92.7% | **94.9%** (56/59) | 74.6% |
+| nDCG@5 (mean) | 0.763 | 0.738 | 0.565 |
+| nDCG@5 English | 0.821 | 0.789 | 0.584 |
+| nDCG@5 Turkish | 0.650 | **0.681** | 0.544 |
+| Precision@5 (mean) | 0.307 | 0.251 | 0.173 |
+| Result domains / query | 1.24 | 2.10 | 1.75 |
+| Cold latency p50 / p95 | 6462 / 10627 ms | **3159 / 7336 ms** | **2517 / 5689 ms** |
+| Warm-fetch, cold-query p50 / p95 | 1001 / 2766 ms | 580 / 3816 ms | 1615 / 4815 ms |
+| Warm query-cache p50 / p95 | 1 / 1 ms | 0.4 / 0.8 ms | 0.4 / 0.9 ms |
+| Network fetches / query (cold) | 7.2 | **4.2** | 2.6 |
+| robots.txt skips / block rate | 0 / 0.0% | 0 / 3.1% | 0 / 0.0% |
+
+Index: **913,284 pages across 20 sites** (1,646 sitemap/RSS feeds), one full
+polite backfill; measured age at the run: under one hour. English hit@5 is
+**100%**; the three remaining misses are Turkish phone queries whose exact
+judged URLs are older or less specific than newer coverage.
+
+The 2.5 s budget reaches the latency target but drops hit@5 to 74.6%, so it
+is opt-in. On a warm page cache it recovers to 89.8% / 0.696, which is the
+realistic steady state after a first query touches a site.
+
+Adapter health at the same index: **21/21 healthy** (links + extraction), no
+open circuits, exit code 0 (`python -m sites.healthcheck --json`).
+
+### Same 41 queries as Stage 4
+Run on the identical original queries with the new pipeline:
+
+| Metric | Stage 4 | Stage 5 |
+|---|---|---|
+| Hit@5 | 92.7% | 92.7% |
+| nDCG@5 | 0.763 | 0.657 |
+| nDCG@5 EN | 0.821 | 0.783 |
+| nDCG@5 TR | 0.650 | 0.413 |
+| Cold p50 | 6462 ms | 3159 ms |
+| Fetches/query | 7.2 | 4.59 |
+
+Hit rate is unchanged on the old set, but nDCG falls: the broader index
+surfaces many near-duplicate Turkish phone pages, and the strict exact-URL
+judgments for `iphone ekran çizgi`, `iphone pil sağlığı gece şarj` and
+`iphone ekran değişimi` (5/2/1 judged URLs) go from partial credit to zero.
+That is the honest cost of wider coverage against a narrow judgment set.
+
+### What worked
+- The local index removes sitemap downloads: discovery for sitemap/RSS sites
+  is a local lookup (only API/search adapters touch the network), and network
+  fetches/query fell from 7.2 to 4.2 with the same k=5.
+- The full backfill recovered the Stage 4 sitemap-window failure: the Jan-2024
+  Tom's Hardware RTX 4070 Super review now ranks first for
+  `rtx 4070 super review`.
+- Turkish product/intent synonyms and Turkish stemming route
+  `samsung buzdolabı sorunu` to the ConsumerAffairs refrigerator hub,
+  `vaillant kombi arıza` to the Turkish and UK fault-code hubs, and
+  `eca kombi su ısıtmıyor` to ECA's boiler guides.
+- Resident ranker: ~2 ms/query instead of a ~70 ms spawn; warm-fetch p50 is
+  now ~0.8 s and warm query cache is still ~0 ms.
+- Domain interleaving lifted the number of result domains per query from
+  1.24 to 2.12, so one site no longer fills the whole top-5.
+- Reliability: the 25 s adapter timeout that made one CPSC hiccup cost 27 s is
+  gone (8 s site timeout, recall sources only planned for recall queries),
+  failures trip a per-site circuit breaker, and the health check reports the
+  index and open circuits.
+
+### Failures (honest)
+- **The cold p50 target (<= 2.5 s) is not met without a budget.** Cold p50 is
+  3.24 s: five results across at most two domains cost several one-second
+  per-host slots by design. The opt-in 2.5 s total budget reaches the target
+  (2.52 s) but drops hit@5 to 74.6%, so it is not the default.
+- **TR nDCG@5 is below the 0.75 target.** Three queries fail and several
+  multi-URL Turkish judgments score low: the judged pages are older or less
+  lexically specific than newer coverage with URL-only metadata. Examples:
+  `iphone ekran çizgi` judges iPhone Duo screen-crack pages while a same-day
+  iPhone-case article matches "çizgi" literally; `iphone ekran değişimi`
+  judges the iPhone 18 Pro Max price page while an iPhone 17 Pro Max page has
+  an almost identical URL. This is a metadata ceiling, not a discovery bug.
+- **EN nDCG@5 is slightly below Stage 4** (0.821 → 0.789). English hit@5 is
+  100%, but broader coverage ranks some older judged pages lower than Stage
+  4's narrow sitemap window.
+- **Six DonanımHaber monthly sitemaps returned 429** during the full ingest.
+  They were not bypassed; the index still has 52,637 DonanımHaber pages from
+  48 recent months (a later refresh can fill the gap).
+- **Two sources remain unavailable**: Arçelik/Beko robots.txt returns 403 to
+  the honest UA and Vestel's sitemap host blocks robots.txt; both are recorded
+  as skipped rather than worked around.
 
 ---
 

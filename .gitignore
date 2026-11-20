@@ -19,3 +19,9 @@ data/tranco_top100k.txt
 data/pages/
 data/sitemaps/
 *.log
+data/health*.json
+
+# Local environment and tooling
+.env
+tools/
+bench/

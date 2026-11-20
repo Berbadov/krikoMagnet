@@ -1,226 +1,154 @@
-# Kriko Magnet — Search / Crawl / Extraction Prototype
+# Kriko Magnet
 
-**Status:** v0.2.0 — Stages 1–3 gates pass; Stage 4 evaluation is in.
-**Operational name:** Kriko Magnet (experimental).
-**Goal:** prove a zero-cost, standalone search & extraction stack for Kriko
-(“check before you buy”) with **no search-engine provider**: no Google, Bing,
-SearXNG or Linkup. Site importance comes from the Tranco ranking; pages are
-found through each site’s own search/sitemap/RSS/API, then fetched directly.
-**Location:** all code, data, and docs live in the `kriko-magnet/` folder
-(this repo).
+Engine-free, polite search for the Kriko ("check before you buy") apps: given
+a product, review or troubleshooting query, it finds the exact page on the
+sites that own the answer without calling Google, Bing, SearXNG or any search
+API. A hand-verified site registry and bilingual topic map pick sources; each
+source is queried through its sitemap, RSS feed, own search page or official
+API; a local SQLite FTS5 index of sitemap/RSS metadata makes discovery a
+lookup instead of a crawl; a Rust BM25 + Tranco + freshness ranker orders the
+candidates; and a shared polite fetch layer (robots.txt enforced, honest
+`KrikoMagnet/0.2` user agent, >=1 s per host, no impersonation, no CAPTCHA
+solving) fetches only the top results, extracts them with trafilatura, and
+caches the text in SQLite.
 
-This document is the master overview. Per-component details live in each
-stage’s `README.md`; the site registry and adapters are documented in
-`sites/README.md`, the shared fetch layer in `fetchlib/README.md`, and the
-evaluation in `eval/README.md`.
+## Results
 
----
+Stage 5, 60 judged queries (59 scored), k=5. Stage 4 is the previous 42-query
+run, so the sets differ; the same-query comparison is at the end.
 
-## Architecture
-
-```
-query
-  |
-  v
-[STAGE 3 pipeline]  query-level cache (SQLite, TTL)
-  |-- query planner: topics + language (bilingual keyword lexicon, no LLM)
-  |-- site registry: 21 high-value sites, each with a verified method
-  |-- local index (SQLite FTS5): sitemap/RSS url+title+lastmod metadata
-  |     (live site search / official API still run as adapters)
-  |
-  v
-candidates (url, title, snippet, date, discovery score)
-  |
-  v
-[STAGE 1 ranker]  Rust: BM25 + Tranco prior + freshness + discovery prior
-  |  resident --serve process; top-K
-  v
-[STAGE 2 fetch worker]  polite shared fetch: robots.txt, honest UA,
-  |                     per-host spacing, 429 backoff, TTL cache
-  |                     + trafilatura (selectolax fallback)
-  v
-[SQLite cache]  url_hash + query_hash
-  |
-  v
-structured JSON results
-```
-
-### Stages
-
-| Stage | Directory | What it proves |
+| Metric | Stage 4 (41 judged) | Stage 5 (59 judged) |
 |---|---|---|
-| 1A | `stage1_py/` | Python prototype: BM25 + Tranco authority + freshness; NDCG@5 |
-| 1B | `stage1_rs/` | Rust port; numerical parity with Python; p95 <= 2 ms; `--serve` resident mode |
-| 2 | `stage2_fetch/` | Real-world direct fetching + block-rate telemetry |
-| 3 | `stage3_pipeline/` | End-to-end pipeline + FastAPI + cache benchmark |
-| 4 | `sites/`, `eval/` | Query -> pages without a search engine; honest judged eval |
-| 5 | `sites/index.py`, `eval/` | Persistent sitemap index, resident ranker, Turkish sources, 60-query eval |
+| Queries with a relevant result in top-5 | 92.7% | **94.9%** |
+| nDCG@5 | 0.763 | 0.738 |
+| nDCG@5 English | 0.821 | 0.789 |
+| nDCG@5 Turkish | 0.650 | **0.681** |
+| Cold p50 / p95 | 6462 / 10627 ms | **3159 / 7336 ms** |
+| Warm-fetch, cold-query p50 | 1001 ms | **580 ms** |
+| Warm query cache p50 | 1 ms | **0.4 ms** |
+| Network fetches per query (cold) | 7.2 | **4.2** |
+| Sites / indexed pages | 14 / none | 21 / 913,284 |
 
-### Data
-- `data/tranco_top100k.txt` — Tranco Top-1M list (top 100k slice), cached; re-downloadable.
-- `data/corpus.jsonl`, `data/queries.json` — Stage-1 synthetic 500-doc corpus + 15 queries.
-- `data/pipeline_cache.sqlite`, `data/fetch_cache.sqlite` — runtime caches (ignored).
-- `data/eval_cache.sqlite`, `data/eval_fetch.sqlite` — evaluation caches (ignored).
-- `eval/queries.jsonl` — 42 realistic judged/coverage-gap queries.
+On the identical 41 judged queries from Stage 4, hit@5 is unchanged at 92.7%
+and cold p50 drops from 6.5 s to 3.2 s, but nDCG falls to 0.657: the wider
+index surfaces many near-duplicate Turkish phone pages, and three exact-URL
+judgments that used to earn partial credit now score zero. Full tables,
+failure notes and the method are in [RESULTS.md](RESULTS.md).
 
----
+### Firecrawl comparison
 
-## Results at a glance
+One benchmark (2026-11-20) on Magnet's own judged queries and the same 100
+pages, with the same robots pre-check, honest UA and per-host spacing applied
+to both sides. Firecrawl was self-hosted from `main`, no cloud key, no LLM.
 
-| Gate | Metric | Result | Threshold | Verdict |
-|---|---|---|---|---|
-| 1A | NDCG@5 (mean) | **0.910** | >= 0.80 | PASS |
-| 1A | Top-5 precision (mean) | 0.707 | — | — |
-| 1B | Rust rank-correlation vs Python (15/15) | identical | = 1.0 | PASS |
-| 1B | Rust latency p95 | **0.54 ms** | <= 2 ms | PASS |
-| 2 | Clean extraction success | **81.8%** (27/33 fetchable) | >= 75% | PASS |
-| 2 | Hard/soft block rate | **15.2%** (5/33 fetchable) | <= 25% | PASS |
-| 2 | robots.txt skips | 7 (reported, not fetched) | — | — |
-| 3 | Registry-mode cold / warm median | **8904 ms / 0.65 ms** | — | — |
-| 3 | Registry-mode warm p95 | **0.92 ms** | < 10 ms | PASS |
-| 4 | Queries with >=1 relevant in top-5 | **92.7%** (38/41) | — | — |
-| 4 | nDCG@5 (mean) | **0.763** | — | — |
-| 4 | Cold / warm-fetch p50 latency | **6462 / 1001 ms** | — | — |
+| | Firecrawl (self-hosted + SearXNG) | Magnet |
+|---|---|---|
+| Pages with >=300 chars of text | 98/100 | 94/100 |
+| Extraction F1 vs page's `<article>`/`<main>` (n=60) | 0.43 | 0.57 |
+| End-to-end hit@5 (same 59 queries) | 45.8% | 79.7% |
+| nDCG@5 | 0.33 | 0.70 |
+| Hit@5 Turkish | 39% | 64% |
+| Whole-query latency | 18 s | 5 s |
+| Footprint | 6 containers, ~3.4 GB RAM | one Python process + one Rust binary |
 
-Full tables and failure notes: see `RESULTS.md`.
+This is one benchmark, on Magnet's own queries, not a general web-search
+comparison. Magnet covers 21 hand-picked sites; Firecrawl's `/search` is a
+proxy in front of public engines (SearXNG -> DuckDuckGo/Mojeek), so it can
+reach the whole web but inherits that dependency, those rankings and that
+traffic. Firecrawl's extraction is the opposite trade: it returns more of the
+article but also the navigation (18% boilerplate lines vs 1.2%), and it does
+not check robots.txt on `/scrape` by default. The Magnet arm in that table is
+the Stage-5 run of that day; the current rerun scores 94.9% / 0.738 at 3.16 s.
+Firecrawl's server is AGPL-3.0.
 
----
+## How it works
 
-## Key engineering decisions & findings
+1. **Plan** - keyword-only query planner detects Turkish/English and scores
+   topics from a bilingual lexicon (`kombi`, `buzdolabı`, `bulaşık`, `recall`, ...).
+2. **Discover** - the registry picks up to six sites; sitemap/RSS sites are
+   answered from a local FTS5 index (`url`, `title`, `lastmod`, match text),
+   while site search and official APIs run live.
+3. **Rank** - a resident Rust process scores BM25 over title+snippet + a
+   log-scaled Tranco authority prior + freshness + the discovery score.
+4. **Fetch** - top results are fetched concurrently across hosts, never more
+   than one request per second to the same host, robots.txt checked and cached.
+5. **Extract and cache** - trafilatura (selectolax fallback) to markdown;
+   query answers, page text, robots rules and HTTP responses live in SQLite.
 
-1. **Tranco 525 was an SSL handshake issue, not a bot wall.**
-   `tranco-list.eu` returned 525 to plain HTTP clients; the **S3 origin**
-   (`tranco-list.s3.amazonaws.com`) works with an honest user agent. No TLS
-   impersonation is used.
-2. **Additive hybrid needs a lexical gate.** A pure additive
-   `alpha*BM25 + beta*prior + gamma*fresh` let zero-match but high-authority
-   pages (e.g. apple.com) float into top-5 on priors alone. Fix: only docs with
-   >=1 query-token match are ranking candidates; the prior/freshness then
-   rescale real matches. Weights tuned (`alpha=0.40, beta=0.60, gamma=0.15`).
-3. **Spam is lexical-perfect, so authority must be additive, not
-   multiplicative.** A multiplicative `BM25*(1+beta*prior+gamma*fresh)` lost to
-   SEO spam because spam’s full-query title gives it BM25≈1 and the multiplier
-   amplifies that advantage faster than the prior compensates. The gated
-   additive form is what wins.
-4. **Rust speed:** the first port re-tokenized the whole corpus on every rank
-   call (~12 ms p95). Precomputing token arrays + inverted stats at load and
-   reusing a frequency buffer dropped p95 to **0.54 ms**.
-5. **Block-marker false positives:** matching challenge words ("captcha",
-   "access denied", "just a moment") against raw HTML flagged successful pages
-   (apnews: 4.9k clean chars) as soft-blocks. Markers are now matched only
-   against the **extracted text**, i.e. the actual challenge/render outcome.
-6. **Warm-cache <10 ms needed query-level caching.** Even with per-URL cache
-   hits, the per-query Rust subprocess spawn (~70 ms) broke the <10 ms target.
-   A query-level SQLite result cache lets repeated lookups return without
-   re-ranking or re-fetching (0.2–0.6 ms).
-7. **Polite fetching is a first-class layer, not an afterthought.**
-   `fetchlib` checks and caches robots.txt, identifies as
-   `KrikoMagnet/0.2 (+https://kriko.cc/bot)`, spaces requests per host (>=1 s,
-   Crawl-delay honoured), caps global concurrency, respects 429/Retry-After,
-   and caches responses with a TTL. Chrome TLS impersonation is an explicit
-   opt-in flag, never a default (see `fetchlib/README.md`).
-8. **The missing link was site-level discovery.** A hand-curated 26-URL list
-   cannot answer arbitrary queries. The registry maps topics -> sites and runs
-   each site’s own method (search page, sitemap/RSS, official API), then merges
-   candidates. Topic relevance and exact query terms outrank Tranco popularity.
-9. **Heuristic filters matter on real pages.** Pure BM25 on URL slugs lets repair
-   guides beat reviews, paginated GSMArena pages crowd out the article, and
-   “Note7” fail to match “Note 7”. Small deterministic filters (model codes,
-   brands, product nouns, review/price intent, GSMArena pagination collapse)
-   plus a discovery prior made the real-web eval usable.
-10. **Stage 1 parity is unchanged.** The optional `discovery` field in the Rust
-    corpus defaults to 0, so the 15-query Python/Rust parity and latency gates
-    still hold. Stage 3/4 set it to the adapter match score.
+## Quick start
 
----
-
-## How to run
-
-Prereqs: Python 3.14 with `curl_cffi`, `trafilatura`, `selectolax`,
-`protego`, `PyYAML`, `fastapi`, `uvicorn`, `pytest`; Rust 1.96+.
-Install with `python -m pip install -r requirements.txt`.
+Python 3.14+ and Rust 1.96+.
 
 ```bash
-# Stage 1A — Python prototype benchmark
-python stage1_py/benchmark.py
-
-# Stage 1B — Rust build + parity + latency
+python -m pip install -r requirements.txt
 cargo build --release --manifest-path stage1_rs/Cargo.toml
-python stage1_py/parity_rs.py
 
-# Stage 2 — fetch + block telemetry (40 real URLs, robots-aware)
-python stage2_fetch/fetch_bench.py
-
-# Stage 3 — registry-mode cold/warm benchmark (8 Kriko queries)
-python stage3_pipeline/bench.py --fresh
-# old hand-curated fallback for comparison:
-python stage3_pipeline/bench.py --curated --fresh
-
-# FastAPI service
-python stage3_pipeline/app.py       # http://127.0.0.1:8000
-curl -X POST localhost:8000/search -H 'Content-Type: application/json' \
-     -d '{"query":"lg c1 burn in","k":3}'
-
-# Adapter health check (one known query per site; non-zero exit on a break)
-python -m sites.healthcheck
-python -m sites.healthcheck --json > eval/health_latest.json
-
-# Local sitemap index (one-time polite backfill, then conditional refresh)
+# One-time polite sitemap/RSS backfill (~20 min, ~900k pages).
 python -m sites.index build
-python -m sites.index refresh
-python -m sites.index stats
 
-# Honest evaluation (60 judged queries + 1 coverage gap)
-python eval/run_eval.py --fresh --json eval/results_latest.json \
-  --markdown eval/results_latest.md
+# Serve searches.
+python stage3_pipeline/app.py          # http://127.0.0.1:8000
+curl -X POST localhost:8000/search -H 'Content-Type: application/json' \
+     -d '{"query":"lg c1 burn in","k":5}'
 
-# Tests (robots compliance, rate limiting, adapters, planner)
-python -m pytest
+# Honest evaluation on 60 judged queries (needs the index).
+python eval/run_eval.py --fresh --json eval/results_stage5.json \
+  --markdown eval/results_stage5.md
+
+# Adapter health, index age and circuit state; non-zero exit on a break.
+python -m sites.healthcheck --json
 ```
 
-Other helpers: `stage1_py/tune.py`, `stage1_py/diag.py`,
-`stage1_py/corpus.py`, `stage3_pipeline/gen_candidates.py` (regenerate the
-curated fallback), `eval/linkup_compare.py` (owner-only Linkup stub; not run by
-the prototype).
+`python -m sites.index refresh` does a conditional (ETag / If-Modified-Since)
+refresh in the background; the FastAPI app can run it periodically with
+`KRIKO_REFRESH_MINUTES=N`. A total-query deadline is available as
+`--page-budget MS` (off by default: it returns partial results but costs
+recall).
 
----
+## Politeness
 
-## Site registry at a glance
+- robots.txt is fetched, cached 24 h and enforced; a disallowed path is never
+  fetched. `401/403/429/5xx` robots responses mean deny-all.
+- Honest user agent: `KrikoMagnet/0.2 (+https://kriko.cc/bot)`. No TLS
+  impersonation, no proxies, no headless browser, no CAPTCHA solving.
+- At least one second between requests to the same host, `Crawl-delay`
+  honoured, global concurrency capped, `429`/`Retry-After` respected.
+- Sites that block the honest agent (Cloudflare, 403 robots, CAPTCHA) are
+  recorded as skipped, not worked around.
 
-14 active sites: GSMArena, RTINGS, DonanımHaber, CPSC (official API), iFixit,
-Vaillant UK, ConsumerAffairs, What Hi-Fi?, MacRumors, Tom’s Hardware,
-Car and Driver, Webtekno, Chip Online, and GÜBİS (Turkish unsafe-product RSS).
-Method and robots notes per site are in `sites/README.md`.
+## Limitations
 
-Skipped (with reasons): `sikayetvar.com` (429/CAPTCHA), `technopat.net`,
-`sahibinden.com`, `hepsiburada.com`, `nhtsa.gov` (403), `trendyol.com`
-(search disallowed, sitemap 403), `old.reddit.com` (`Disallow: /`),
-`techpowerup.com` (robots forbids automated data mining/LLM use),
-`partselect.com` (product pages 403), Safety Gate (JS-only SPA), `arabam.com`
-(search disallowed; 10 MB classified sitemaps), and several Cloudflare-blocked
-sites. Full list with reasons in `sites/registry.yaml`.
+- **21 sites, not the web.** Queries outside the registry have no answer.
+- **English and Turkish only**, with the best coverage for phones, TVs,
+  computing, appliances, boilers, cars, recalls and repair.
+- **Generic Turkish phone queries are the weak spot**: newer coverage often
+  outranks the narrowly judged page, and the exact-URL eval gives no credit
+  for near misses.
+- **Cold latency is bounded by politeness.** Five results on one host cost
+  several one-second slots; warm fetches are ~0.6 s and repeated queries
+  ~0.4 ms.
+- **Sitemap coverage is not complete.** Six DonanımHaber monthly sitemaps
+  returned `429` during the backfill and were not bypassed; a later refresh
+  can fill them.
+- **Ranking is a hand-tuned hybrid**, not a learned ranker.
 
----
+## Docs
 
-## Limitations / next steps
+- [RESULTS.md](RESULTS.md) - all stage results, metrics and failure notes
+- [sites/README.md](sites/README.md) - registry, adapters, local index, health
+- [fetchlib/README.md](fetchlib/README.md) - robots, rate limits, caching, extraction
+- [eval/README.md](eval/README.md) - judged queries and how to read the numbers
+- [stage3_pipeline/README.md](stage3_pipeline/README.md) - pipeline, cache, resident ranker
+- [stage1_rs/README.md](stage1_rs/README.md) - the Rust ranker
 
-- **Sitemap recency windows miss older evergreen reviews.** Tom’s Hardware’s
-  RTX 4070 Super review (Jan 2024) is outside the 6-month sitemap slice used
-  for a recent query. Next step: keep a persistent sitemap index or add a
-  URL-pattern/backfill method for category review pages.
-- **Turkish coverage is thin for cars/appliances.** `sikayetvar.com` and
-  `technopat.net` block honest requests; `arabam.com` only exposes huge
-  classified sitemaps. Turkish car-maintenance and appliance-repair queries
-  therefore return zero candidates.
-- **The registry is hand-maintained.** Selectors and sitemap paths can break;
-  `python -m sites.healthcheck` is the early warning. It is 14 sites, not the
-  web.
-- **No headless browser and no CAPTCHA solving.** Sites that return a JS shell
-  or challenge are skipped, not bypassed.
-- **Ranking is still a hand-tuned hybrid.** The discovery prior and the
-  model/brand/product/intent filters are deterministic heuristics; a learned
-  ranker remains future work.
-- **Eval judgments are exact-URL and strict.** Near-miss pages count as misses,
-  so nDCG is conservative.
-- **Linkup was not called.** `eval/linkup_compare.py` is a stub for the owner
-  to run a side-by-side later with their own key; it costs money.
+An MCP server for Magnet lives on the unmerged
+[`feat/mcp-server`](https://github.com/Berbadov/krikoMagnet/tree/feat/mcp-server)
+branch.
+
+## Licence
+
+[AGPL-3.0-only](LICENSE). The author is the sole copyright holder and may
+license this code elsewhere; running a modified version as a network service
+requires offering its source to that service's users (AGPL-3.0 section 13).
+Runtime dependencies are permissively licensed (MIT, Apache-2.0, BSD); there
+are no GPL/AGPL runtime dependencies.

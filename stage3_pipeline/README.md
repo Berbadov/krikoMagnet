@@ -32,8 +32,12 @@ cache, exposed as a Python function and a minimal FastAPI endpoint.
 3. Resident ranker: the Rust binary loads Tranco once and answers JSON lines;
    a per-query rank is ~2 ms instead of a ~70 ms process spawn.
 4. Fetch only top-k pages concurrently across hosts, still >=1 s apart per
-   host. `--page-budget MS` returns graceful partial results when a slow host
-   would exceed the budget (0 = wait for all).
+   host. This spacing is the latency floor. `--page-budget MS` is an opt-in
+   total-query deadline that returns graceful partial results; it is off by
+   default because it costs recall (see RESULTS Stage 5).
+5. Results are interleaved across domains (at most two in a row, two per
+   domain) so one site cannot fill the top-k; remaining slots are filled by
+   score when fewer sources answer.
 
 ## Request / response
 `POST /search` body: `{"query": "...", "k": 3}`.
