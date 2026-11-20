@@ -164,6 +164,27 @@ def test_health_reports_local_state():
     assert "probe" not in report
 
 
+def test_health_probe_summarises_sites(monkeypatch, tmp_path):
+    import sites.healthcheck as healthcheck
+
+    from mcp_server.engine import MagnetEngine
+
+    async def fake_run(site_ids=None, test_extract=True, breaker=None):
+        return [{"site": "rtings", "status": "ok", "links": 3,
+                 "circuit_open": False, "secs": 0.1}]
+
+    monkeypatch.setattr(healthcheck, "run", fake_run)
+    engine = MagnetEngine(
+        registry={"sites": [{"id": "rtings", "domain": "rtings.com", "language": "en"}]},
+        index_path=str(tmp_path / "missing.sqlite"),
+    )
+    report = asyncio.run(engine.health(probe=True))
+    assert report["ok"] is True
+    assert report["probe"] == [{"site": "rtings", "status": "ok", "links": 3,
+                               "circuit_open": False, "secs": 0.1}]
+    assert report["index"]["missing"] is True
+
+
 def test_bad_arguments_are_tool_errors():
     async def run(session, init):
         cases = [
