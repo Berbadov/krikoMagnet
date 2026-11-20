@@ -20,6 +20,7 @@ from .text import long_ago, ranker_text, unslug
 log = get_logger("sites.discovery")
 BREAKER = CircuitBreaker()
 SITE_TIMEOUT = 8.0
+OPEN_WEB_BUDGET_S = 8.0
 
 MULTI_SUFFIX = {
     "co.uk", "com.tr", "gov.tr", "org.tr", "net.tr", "com.au", "co.jp",
@@ -97,24 +98,7 @@ def _canonical(url: str) -> str:
     return urlunsplit((parts.scheme.lower(), parts.netloc.lower(), path, parts.query, ""))
 
 
-async def discover(query: str, registry: dict | None = None, fetcher=None,
-                   max_sites: int = 6, max_candidates: int = 160,
-                   index=None) -> dict:
-    registry = registry or load_registry()
-    ranks = load_tranco_ranks()
-    plan = plan_sites(query, registry, ranks, max_sites=max_sites)
-    selected = plan["selected"]
-
-    if fetcher is None:
-        from fetchlib import Fetcher
-        own = Fetcher()
-        try:
-            outcomes = await _run_all(selected, query, own, index)
-        finally:
-            await own.close()
-    else:
-        outcomes = await _run_all(selected, query, fetcher, index)
-
+def _collect(outcomes: list) -> list[Candidate]:
     merged = {}
     for outcome in outcomes:
         for cand in outcome.candidates:
@@ -126,7 +110,63 @@ async def discover(query: str, registry: dict | None = None, fetcher=None,
             key = _canonical(cand.url)
             if key not in merged or cand.score > merged[key].score:
                 merged[key] = cand
-    candidates = _collapse_paginated(list(merged.values()))
+    return list(merged.values())
+
+
+async def _run_open_web(query: str, registry: dict, plan: dict, fetcher) -> list:
+    """Common Crawl fallback, only for queries with no consumer topic."""
+    if plan.get("fallback") != "general":
+        return []
+    config = registry.get("open_web") or {}
+    if not config.get("enabled"):
+        return []
+    from .openweb import search as open_web_search
+
+    try:
+        extra = await asyncio.wait_for(
+            open_web_search(
+                query, fetcher,
+                domains=config.get("domains"),
+                index=config.get("index"),
+                max_domains=int(config.get("max_domains", 3)),
+            ),
+            timeout=OPEN_WEB_BUDGET_S,
+        )
+    except asyncio.TimeoutError:
+        from .openweb import cool_down
+        cool_down()
+        log.warning("open-web budget exceeded", extra={"site": "openweb"})
+        return []
+    if not extra:
+        return []
+    plan["open_web"] = True
+    log.info("open-web fallback", extra={"site": "openweb", "candidates": len(extra)})
+    from .adapters import AdapterOutcome
+    return [AdapterOutcome("openweb", "cdx", "ok", extra, 0, 0.0)]
+
+
+async def discover(query: str, registry: dict | None = None, fetcher=None,
+                   max_sites: int = 6, max_candidates: int = 160,
+                   index=None) -> dict:
+    registry = registry or load_registry()
+    ranks = load_tranco_ranks()
+    plan = plan_sites(query, registry, ranks, max_sites=max_sites)
+
+    own = fetcher is None
+    if own:
+        from fetchlib import Fetcher
+        fetcher = Fetcher()
+    try:
+        outcomes = await _run_all(plan["selected"], query, fetcher, index)
+        candidates = _collect(outcomes)
+        if not candidates:
+            outcomes = outcomes + await _run_open_web(query, registry, plan, fetcher)
+            candidates = _collect(outcomes)
+    finally:
+        if own:
+            await fetcher.close()
+
+    candidates = _collapse_paginated(candidates)
     candidates = score_candidates(query, candidates, max_results=max_candidates)
     candidates = enforce_model_terms(query, candidates)
     candidates = enforce_brand_terms(query, candidates)
@@ -194,7 +234,8 @@ async def _run_one(site: dict, query: str, fetcher, index) -> list:
                                "ok" if candidates else "no-results",
                                candidates, 0, 0.0)]
     t0 = time.monotonic()
-    outcomes = await asyncio.wait_for(run_site(site, query, fetcher), timeout=SITE_TIMEOUT)
+    timeout = float(site.get("timeout_s", SITE_TIMEOUT))
+    outcomes = await asyncio.wait_for(run_site(site, query, fetcher), timeout=timeout)
     log.debug("site adapter", extra={"site": site["id"], "status": outcomes[-1].status,
                                      "candidates": sum(len(o.candidates) for o in outcomes),
                                      "ms": round((time.monotonic() - t0) * 1000, 1)})
