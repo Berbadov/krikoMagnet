@@ -61,7 +61,8 @@ BRAND_TERMS = {
     "skoda", "dacia", "peugeot", "citroen", "opel", "fiat", "arcelik", "beko",
     "philips", "panasonic", "tcl", "hisense", "miele", "siemens", "zanussi",
     "insignia", "maytag", "kitchenaid", "ryzen", "nvidia", "amd", "intel",
-    "sonos", "peloton", "steam",
+    "sonos", "peloton", "steam", "baymak", "demirdokum", "eca", "buderus",
+    "vestel", "altus", "regal", "tefal", "arzum", "fakir", "karaca",
 }
 
 
@@ -259,11 +260,19 @@ def enforce_brand_terms(query: str, candidates: list[Candidate]) -> list[Candida
 
 
 def enforce_product_terms(query: str, candidates: list[Candidate]) -> list[Candidate]:
-    """When the query names a product type, keep pages about that product."""
+    """When the query names a product type, keep pages about that product.
+
+    Turkish and English product nouns are treated as equivalents, so
+    "samsung buzdolabı sorunu" keeps the English "Samsung refrigerator" hub.
+    """
+    from .text import product_aliases
+
     products = [t for t in query_terms(query) if t in PRODUCT_TERMS]
     if not products:
         return candidates
-    product_tokens = {stem_token(p) for p in products}
+    product_tokens = set()
+    for product in products:
+        product_tokens |= product_aliases(product)
     matched = []
     for cand in candidates:
         toks = match_tokens(f"{cand.url} {cand.title} {cand.snippet}")

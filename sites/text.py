@@ -101,6 +101,32 @@ def match_tokens(text: str) -> set[str]:
     return {stem_token(t) for t in tokenize(text)}
 
 
+PRODUCT_GROUPS = [
+    {"buzdolabi", "refrigerator", "fridge"},
+    {"camasir", "washing", "washer"},
+    {"bulasik", "dishwasher"},
+    {"firin", "oven"},
+    {"supurge", "vacuum"},
+    {"kombi", "boiler"},
+    {"araba", "arac", "car", "otomobil", "vehicle"},
+    {"telefon", "phone", "smartphone"},
+    {"televizyon", "tv"},
+    {"kulaklik", "headphone", "headphones", "earbuds"},
+    {"ekran", "screen", "display"},
+    {"batarya", "battery"},
+    {"klima", "air conditioner"},
+    {"termosifon", "water heater"},
+]
+
+
+def product_aliases(term: str) -> set[str]:
+    """Turkish/English product nouns that mean the same thing for filtering."""
+    for group in PRODUCT_GROUPS:
+        if term in group:
+            return {stem_token(alias) for alias in group}
+    return {stem_token(term)}
+
+
 def ranker_text(text: str) -> str:
     """Fold + stem text so the Rust tokenizer sees comparable word forms."""
     return " ".join(stem_token(t) for t in tokenize(text))

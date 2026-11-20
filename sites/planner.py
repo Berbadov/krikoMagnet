@@ -30,7 +30,10 @@ TOPIC_TERMS = {
         "dishwasher", "washing", "washer", "dryer", "fridge", "refrigerator", "oven",
         "vacuum", "robot", "bulasik", "camasir", "kurutma", "buzdolabi", "firin",
         "supurge", "ankastre", "ocak", "dyson", "bosch", "arcelik", "beko", "samsung",
-        "lg", "whirlpool", "maytag", "kitchenaid", "error",
+        "lg", "whirlpool", "maytag", "kitchenaid", "error", "bulasik makinesi",
+        "camasir makinesi", "kurutma makinesi", "derin dondurucu", "davlumbaz",
+        "su isitici", "sogutmuyor", "isinmiyor", "su akitiyor", "calismiyor",
+        "bozuk", "servis", "yedek parca",
     },
     "cars": {
         "car", "otomobil", "araba", "arac", "renault", "megane", "clio", "captur",
@@ -38,11 +41,14 @@ TOPIC_TERMS = {
         "vw", "audi", "skoda", "dacia", "peugeot", "citroen", "opel", "fiat", "dizel",
         "diesel", "motor", "yag", "filtre", "lastik", "brake", "fren", "suv", "sedan",
         "cr-v", "corolla", "golf", "passat", "focus", "clio", "megane", "recall", "crv",
+        "ariza lambasi", "servis bakim", "yedek parca", "vites", "motor yagi",
+        "yakit", "kasko",
     },
     "boilers": {
         "boiler", "kombi", "vaillant", "ecotec", "buderus", "heating", "isitma",
         "radyator", "petek", "ariza", "fault", "error", "pressure", "basinc",
-        "termostat", "thermostat", "radiator",
+        "termostat", "thermostat", "radiator", "kombi ariza", "ariza kodu",
+        "isinmiyor", "su isitmiyor", "baymak", "demirdokum", "eca",
     },
     "recalls": {
         "recall", "recalled", "recalls", "geri", "cagirma", "toplatma", "guvensiz",
@@ -125,9 +131,16 @@ def _term_in(term: str, site_terms: set[str]) -> bool:
     return any(t.startswith(term) or term.startswith(t) for t in site_terms if len(t) >= 4)
 
 
+def _domain_tokens(domain: str) -> set[str]:
+    return {
+        part for label in (domain or "").lower().split(".")
+        for part in re.split(r"[-_]", label) if len(part) >= 3
+    }
+
+
 def plan_sites(query: str, registry: dict, tranco_ranks: dict[str, int] | None = None,
                max_sites: int = 6) -> dict:
-    """Pick candidate sites: exact query-term matches, then topics, language, popularity."""
+    """Pick candidate sites: query-term matches, brand/domain, topics, language."""
     tranco_ranks = tranco_ranks or {}
     plan = classify(query)
     topics = set(plan["topics"])
@@ -145,8 +158,11 @@ def plan_sites(query: str, registry: dict, tranco_ranks: dict[str, int] | None =
             continue
         relevance = len(overlap)
         language_bonus = 1 if site.get("language") == lang else 0
+        domain_tokens = _domain_tokens(site["domain"])
+        domain_hits = sum(1 for term in terms if len(term) >= 3 and term in domain_tokens)
         prior = _prior_score(site["domain"], tranco_ranks)
-        score = matched * 1000 + relevance * 100 + language_bonus * 300 + prior
+        score = (matched * 1000 + relevance * 100 + language_bonus * 300
+                 + domain_hits * 800 + float(site.get("priority", 0)) + prior)
         scored.append((score, site, matched))
     if not scored:
         # Nothing matched: fall back to broad review sources.

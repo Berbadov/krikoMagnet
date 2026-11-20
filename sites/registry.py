@@ -33,14 +33,23 @@ def load_registry(path: str = DEFAULT_PATH) -> dict:
     return data
 
 
+_TRANCO_CACHE: dict[str, tuple[float, dict[str, int]]] = {}
+
+
 def load_tranco_ranks(path: str | None = None) -> dict[str, int]:
     path = path or os.path.join(DATA_DIR, "tranco_top100k.txt")
+    try:
+        mtime = os.path.getmtime(path)
+    except OSError:
+        return {}
+    hit = _TRANCO_CACHE.get(path)
+    if hit is not None and hit[0] == mtime:
+        return hit[1]
     ranks = {}
-    if not os.path.exists(path):
-        return ranks
     with open(path, encoding="utf-8") as f:
         for i, line in enumerate(f):
             domain = line.strip().lower()
             if domain and domain not in ranks:
                 ranks[domain] = i + 1
+    _TRANCO_CACHE[path] = (mtime, ranks)
     return ranks

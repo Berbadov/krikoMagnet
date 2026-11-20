@@ -218,6 +218,124 @@ sites:
         max_results: 20
     notes: "robots.txt returns an HTML error page (treated as unavailable); the RSS feed is public and lists unsafe-product notifications."
 
+  # --- Turkish sources added in Stage 5 (checked live on 2026-11-20) ---
+  - id: vaillanttr
+    name: Vaillant Türkiye
+    domain: vaillant.com.tr
+    topics: [boilers, repair, appliances]
+    language: tr
+    region: tr
+    priority: -20
+    methods:
+      - type: sitemap
+        urls:
+          - https://www.vaillant.com.tr/sitemap.xml
+        include_children: ["sitemap-(content|products|downloads)"]
+        max_sitemaps: 3
+        max_urls: 3000
+        max_results: 20
+    notes: "Turkish kombi/ısıtma content and product pages; robots.txt only lists the sitemap."
+
+  - id: boschhome
+    name: Bosch Home Türkiye
+    domain: bosch-home.com.tr
+    topics: [appliances, repair, complaints]
+    language: tr
+    region: tr
+    priority: -20
+    methods:
+      - type: sitemap
+        urls:
+          - https://www.bosch-home.com.tr/sherpa-sitemap-index.xml
+        include_children: ["sherpa-sitemap"]
+        max_sitemaps: 3
+        max_urls: 6000
+        max_results: 20
+    notes: "Appliance product/support pages. robots.txt disallows /manual/ and spare-part PDFs; those are not ingested."
+
+  - id: eca
+    name: ECA (Turkish heating/appliances)
+    domain: eca.com.tr
+    topics: [boilers, appliances, repair]
+    language: tr
+    region: tr
+    priority: -20
+    methods:
+      - type: sitemap
+        urls:
+          - https://eca.com.tr/sitemap_index.xml
+        include_children: ["sitemap-(pages|products)"]
+        max_sitemaps: 3
+        max_urls: 4000
+        max_results: 20
+    notes: "Kombi/ısıtma product and news pages; robots.txt only disallows query strings."
+
+  - id: baymak
+    name: Baymak (Turkish boilers)
+    domain: baymak.com.tr
+    topics: [boilers, appliances, repair]
+    language: tr
+    region: tr
+    priority: -20
+    methods:
+      - type: sitemap
+        urls:
+          - https://www.baymak.com.tr/sitemap/
+        max_urls: 1000
+        max_results: 20
+    notes: "Small sitemap of product, service and support pages."
+
+  - id: donanimarsivi
+    name: Donanım Arşivi
+    domain: donanimarsivi.com
+    topics: [phones, computing, reviews, complaints]
+    language: tr
+    region: tr
+    priority: -20
+    methods:
+      - type: sitemap
+        urls:
+          - https://donanimarsivi.com/sitemap_index.xml
+        include_children: ["post-sitemap"]
+        max_sitemaps: 12
+        max_urls: 10000
+        max_results: 30
+    notes: "Turkish tech forum/news archive; search (?s=) is disallowed, post sitemaps are allowed."
+
+  - id: shiftdelete
+    name: ShiftDelete.Net
+    domain: shiftdelete.net
+    topics: [phones, computing, reviews, complaints]
+    language: tr
+    region: tr
+    priority: -20
+    methods:
+      - type: sitemap
+        urls:
+          - https://shiftdelete.net/sitemap.xml
+        include_children: ["sitemap-(haberler|sayfalar)"]
+        max_sitemaps: 12
+        max_urls: 10000
+        max_results: 30
+    notes: "Turkish tech news; robots.txt blocks named AI crawlers only, the honest KrikoMagnet UA is allowed."
+
+  - id: tamindir
+    name: Tamindir
+    domain: tamindir.com
+    topics: [computing, phones, reviews]
+    language: tr
+    region: tr
+    priority: -20
+    methods:
+      - type: sitemap
+        urls:
+          - https://www.tamindir.com/sitemap.xml
+        include_children: ["sitemap/(news|blog|software)-tr"]
+        max_sitemaps: 12
+        max_urls: 8000
+        max_results: 20
+    notes: "Turkish software/news archive; robots.txt allows the sitemap children."
+
 skipped:
   - domain: sikayetvar.com
     reason: "Every request with the honest UA returned 429 / CAPTCHA; robots.txt lists no sitemap. Not bypassing."
