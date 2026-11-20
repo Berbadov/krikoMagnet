@@ -14,6 +14,7 @@ sites:
     topics: [phones, reviews]
     language: en
     region: global
+    index_max_age_days: 1825
     methods:
       - type: sitemap
         urls:
@@ -29,6 +30,7 @@ sites:
     topics: [tv-audio, reviews, computing, appliances]
     language: en
     region: us
+    index_max_age_days: 1825
     methods:
       - type: sitemap
         urls:
@@ -43,6 +45,7 @@ sites:
     topics: [phones, computing, reviews, complaints, cars]
     language: tr
     region: tr
+    index_max_age_days: 1095
     index_max_children: 48
     methods:
       - type: sitemap
@@ -103,6 +106,7 @@ sites:
     topics: [complaints, recalls, appliances, cars, phones]
     language: en
     region: us
+    index_max_age_days: 3650
     methods:
       - type: sitemap
         urls:
@@ -117,6 +121,7 @@ sites:
     topics: [tv-audio, reviews]
     language: en
     region: uk
+    index_max_age_days: 1825
     methods:
       - type: sitemap
         urls:
@@ -133,6 +138,7 @@ sites:
     topics: [apple, phones, computing, repair]
     language: en
     region: global
+    index_max_age_days: 1825
     methods:
       - type: sitemap
         urls:
@@ -149,6 +155,7 @@ sites:
     topics: [computing, reviews, phones]
     language: en
     region: global
+    index_max_age_days: 1825
     methods:
       - type: sitemap
         urls:
@@ -165,6 +172,7 @@ sites:
     topics: [cars, reviews]
     language: en
     region: us
+    index_max_age_days: 1825
     methods:
       - type: sitemap
         urls:
@@ -181,6 +189,7 @@ sites:
     topics: [phones, computing, reviews, complaints]
     language: tr
     region: tr
+    index_max_age_days: 1095
     methods:
       - type: sitemap
         urls:
@@ -197,6 +206,7 @@ sites:
     topics: [phones, computing, reviews, complaints]
     language: tr
     region: tr
+    index_max_age_days: 1095
     methods:
       - type: sitemap
         urls:
@@ -292,6 +302,7 @@ sites:
     topics: [phones, computing, reviews, complaints]
     language: tr
     region: tr
+    index_max_age_days: 1095
     priority: -20
     methods:
       - type: sitemap
@@ -309,6 +320,7 @@ sites:
     topics: [phones, computing, reviews, complaints]
     language: tr
     region: tr
+    index_max_age_days: 1095
     priority: -20
     methods:
       - type: sitemap
@@ -326,6 +338,7 @@ sites:
     topics: [computing, phones, reviews]
     language: tr
     region: tr
+    index_max_age_days: 1095
     priority: -20
     methods:
       - type: sitemap
