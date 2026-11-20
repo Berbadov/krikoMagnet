@@ -1,0 +1,261 @@
+# Kriko Magnet site registry.
+#
+# Every active site below was checked live on 2026-11-19 with the honest
+# user agent "KrikoMagnet/0.2 (+https://kriko.cc/bot)". A method is listed
+# only if robots.txt allows it and it actually returned links for a test
+# query. Sites whose robots.txt forbids the needed path (or that block the
+# honest agent) are in `skipped` with the reason, not in `sites`.
+version: 1
+
+sites:
+  - id: gsmarena
+    name: GSMArena
+    domain: gsmarena.com
+    topics: [phones, reviews]
+    language: en
+    region: global
+    methods:
+      - type: sitemap
+        urls:
+          - https://www.gsmarena.com/sitemaps/reviews.xml
+          - https://www.gsmarena.com/sitemaps/phones.xml
+        max_urls: 45000
+        max_results: 40
+    notes: "Site search (res.php3) is Disallow; sitemaps are allowed."
+
+  - id: rtings
+    name: RTINGS
+    domain: rtings.com
+    topics: [tv-audio, reviews, computing, appliances]
+    language: en
+    region: us
+    methods:
+      - type: sitemap
+        urls:
+          - https://www.rtings.com/sitemap.xml
+        max_urls: 10000
+        max_results: 40
+    notes: "Search page is JS-only; the single sitemap lists all reviews and tests."
+
+  - id: donanimhaber
+    name: DonanimHaber
+    domain: donanimhaber.com
+    topics: [phones, computing, reviews, complaints, cars]
+    language: tr
+    region: tr
+    methods:
+      - type: sitemap
+        urls:
+          - https://www.donanimhaber.com/sitemaps/sitemap.xml
+        include_children: ["posts-"]
+        max_sitemaps: 4
+        max_urls: 6000
+        max_results: 30
+    notes: "Search query strings (/*?q=*, /*?arama=*) are Disallow; monthly post sitemaps are allowed."
+
+  - id: cpsc
+    name: US CPSC
+    domain: cpsc.gov
+    topics: [recalls, appliances, phones, computing, cars]
+    language: en
+    region: us
+    methods:
+      - type: api
+        url: https://www.saferproducts.gov/RestWebServices/Recall?ProductName={query}&format=json
+        probes: 4
+        max_results: 20
+    notes: "Site search is Disallow (/search? and /Recalls?*); the official CPSC recalls API is public and allowed. The XML sitemap is stale (stops in 2012)."
+
+  - id: ifixit
+    name: iFixit
+    domain: ifixit.com
+    topics: [repair, phones, computing, appliances]
+    language: en
+    region: global
+    methods:
+      - type: sitemap
+        urls:
+          - https://www.ifixit.com/sitemap/sitemap.xml
+        include_children: ["(guide|wiki)"]
+        max_sitemaps: 3
+        max_urls: 60000
+        max_results: 30
+    notes: "Sitemap index has guide/wiki/answers/parts children; guide and wiki are used."
+
+  - id: vaillant
+    name: Vaillant UK
+    domain: vaillant.co.uk
+    topics: [boilers, repair]
+    language: en
+    region: uk
+    methods:
+      - type: sitemap
+        urls:
+          - https://www.vaillant.co.uk/xml-sitemap.xml
+        max_urls: 1000
+        max_results: 20
+    notes: "Small sitemap with product, service and fault-code pages."
+
+  - id: consumeraffairs
+    name: ConsumerAffairs
+    domain: consumeraffairs.com
+    topics: [complaints, recalls, appliances, cars, phones]
+    language: en
+    region: us
+    methods:
+      - type: sitemap
+        urls:
+          - https://www.consumeraffairs.com/sitemap.xml
+        max_urls: 15000
+        max_results: 30
+    notes: "Search is JS-only; the sitemap lists brand and category complaint pages."
+
+  - id: whathifi
+    name: What Hi-Fi?
+    domain: whathifi.com
+    topics: [tv-audio, reviews]
+    language: en
+    region: uk
+    methods:
+      - type: sitemap
+        urls:
+          - https://www.whathifi.com/sitemap.xml
+        include_children: ["sitemap-20\\d\\d-\\d\\d"]
+        max_sitemaps: 6
+        max_urls: 4000
+        max_results: 30
+    notes: "Search query strings are Disallow (*searchTerm=*); monthly sitemaps are allowed."
+
+  - id: macrumors
+    name: MacRumors
+    domain: macrumors.com
+    topics: [apple, phones, computing, repair]
+    language: en
+    region: global
+    methods:
+      - type: sitemap
+        urls:
+          - https://www.macrumors.com/sitemap/sitemap-review.xml
+          - https://www.macrumors.com/sitemap/sitemap-how-to.xml
+          - https://www.macrumors.com/sitemap/sitemap-guide.xml
+        max_urls: 5000
+        max_results: 30
+    notes: "/search* is Disallow; review/how-to/guide sitemaps are allowed."
+
+  - id: tomshardware
+    name: Tom's Hardware
+    domain: tomshardware.com
+    topics: [computing, reviews, phones]
+    language: en
+    region: global
+    methods:
+      - type: sitemap
+        urls:
+          - https://www.tomshardware.com/sitemap.xml
+        include_children: ["sitemap-20\\d\\d-\\d\\d"]
+        max_sitemaps: 6
+        max_urls: 5000
+        max_results: 30
+    notes: "Search query strings are Disallow; monthly sitemaps are allowed."
+
+  - id: caranddriver
+    name: Car and Driver
+    domain: caranddriver.com
+    topics: [cars, reviews]
+    language: en
+    region: us
+    methods:
+      - type: sitemap
+        urls:
+          - https://www.caranddriver.com/sitemap_index.xml
+        include_children: ["content"]
+        max_sitemaps: 1
+        max_urls: 30000
+        max_results: 30
+    notes: "The content sitemap holds reviews and features; vehicle sitemaps are separate."
+
+  - id: webtekno
+    name: Webtekno
+    domain: webtekno.com
+    topics: [phones, computing, reviews, complaints]
+    language: tr
+    region: tr
+    methods:
+      - type: sitemap
+        urls:
+          - https://www.webtekno.com/sitemap.xml
+        include_children: ["sitemaps/(evergreen|sitemap-\\d+)\\.xml"]
+        max_sitemaps: 4
+        max_urls: 6000
+        max_results: 30
+    notes: "Large Turkish tech archive; recent numbered sitemaps plus the evergreen list."
+
+  - id: chip
+    name: Chip Online
+    domain: chip.com.tr
+    topics: [phones, computing, reviews, complaints]
+    language: tr
+    region: tr
+    methods:
+      - type: sitemap
+        urls:
+          - https://www.chip.com.tr/sitemap.xml
+        include_children: ["storage/sitemaps/20\\d\\d-\\d+\\.xml"]
+        max_sitemaps: 4
+        max_urls: 3000
+        max_results: 30
+    notes: "Monthly Turkish tech sitemaps; news and review pages."
+
+  - id: guvensizurun
+    name: GUBIS (Turkish unsafe products)
+    domain: guvensizurun.ticaret.gov.tr
+    topics: [recalls, appliances, complaints]
+    language: tr
+    region: tr
+    methods:
+      - type: rss
+        url: https://guvensizurun.ticaret.gov.tr/Genel/Rss
+        max_results: 20
+    notes: "robots.txt returns an HTML error page (treated as unavailable); the RSS feed is public and lists unsafe-product notifications."
+
+skipped:
+  - domain: sikayetvar.com
+    reason: "Every request with the honest UA returned 429 / CAPTCHA; robots.txt lists no sitemap. Not bypassing."
+  - domain: technopat.net
+    reason: "Cloudflare 403 on the forum with the honest UA; no usable sitemap."
+  - domain: sahibinden.com
+    reason: "Cloudflare 403 on robots.txt and homepage."
+  - domain: trendyol.com
+    reason: "robots.txt disallows /*?q=*; the sitemap endpoint returns 403 AccessDenied."
+  - domain: hepsiburada.com
+    reason: "403 on robots.txt and homepage."
+  - domain: nhtsa.gov
+    reason: "403 on robots.txt and homepage."
+  - domain: old.reddit.com
+    reason: "robots.txt is 'User-Agent: * / Disallow: /'."
+  - domain: techpowerup.com
+    reason: "robots.txt explicitly forbids automated data mining/LLM use; search is POST-only."
+  - domain: plumbersforums.net
+    reason: "Cloudflare 403 with the honest UA."
+  - domain: repairclinic.com
+    reason: "Cloudflare 403 with the honest UA."
+  - domain: trustpilot.com
+    reason: "403 challenge; robots.txt disallows /reviews/ and /search."
+  - domain: notebookcheck.net
+    reason: "Its search is Google CSE (a search-engine dependency); the only sitemap is a rolling 5,000-URL list with no full archive."
+  - domain: support.apple.com
+    reason: "Sitemap children are sparse and repeated requests get 429; not reliable enough for a source."
+  - domain: arabam.com
+    reason: "robots.txt disallows the search paths; sitemaps are 87 children of ~10 MB classified ads, not model/repair pages."
+  - domain: partselect.com
+    reason: "Sitemaps are allowed, but model/product pages return Cloudflare 403 'Just a moment...'."
+  - domain: ec.europa.eu
+    reason: "Safety Gate is a JS-only SPA; no sitemap and no documented public search endpoint found. Skipped rather than reverse-engineering."
+  - domain: otoclubturkiye.com
+    reason: "Forum search is Google CSE; no sitemap."
+  - domain: edmunds.com
+    reason: "403 with the honest UA."
+  - domain: autocar.co.uk
+    reason: "202 bot challenge with the honest UA."
+  - domain: motor1.com
+    reason: "403 with the honest UA."
