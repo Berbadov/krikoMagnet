@@ -1,0 +1,8 @@
+curl_cffi>=0.7
+trafilatura>=1.8
+selectolax>=0.3
+protego>=0.3
+fastapi>=0.110
+uvicorn>=0.29
+pytest>=8.0
+PyYAML>=6.0

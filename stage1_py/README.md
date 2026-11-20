@@ -7,7 +7,7 @@ priors never surface zero-match pages.
 ## Files
 | File | Purpose |
 |---|---|
-| `tranco_cache.py` | Download/cache Tranco top-1M via `curl_cffi` impersonation (S3 origin, bypasses Cloudflare 525); exposes `load_top100k()` |
+| `tranco_cache.py` | Download/cache Tranco top-1M from the S3 origin with an honest user agent (`tranco-list.eu`'s 525 was an SSL handshake issue; no impersonation needed); exposes `load_top100k()` |
 | `corpus.py` | Regenerates the 500-doc corpus + 15 judged queries (60 relevant, 45 SEO-spam, 395 filler). Writes `data/corpus.jsonl`, `data/queries.json`. Prints authority-presence diagnostics |
 | `ranker.py` | `Ranker` class: BM25 (k1=1.2, b=0.75), prior `ln(1e6/rank)`, freshness `exp(-days/90)`, weight blend. `now` can be injected for parity |
 | `benchmark.py` | Prints the metrics table: P@5, NDCG@5, p50/p95 latency (per query) |

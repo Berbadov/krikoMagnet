@@ -3,6 +3,8 @@ import sys
 sys.path.insert(0, ".")
 from curl_cffi import requests as cr
 
+UA = "KrikoMagnet/0.2 (+https://kriko.cc/bot)"
+
 URLS = [
     "https://www.rtings.com/tv/reviews",
     "https://www.theverge.com/",
@@ -22,8 +24,8 @@ URLS = [
 async def fetch(url, sem):
     async with sem:
         try:
-            async with cr.AsyncSession(impersonate="chrome") as s:
-                r = await s.get(url, timeout=25, allow_redirects=True)
+            async with cr.AsyncSession() as s:
+                r = await s.get(url, timeout=25, allow_redirects=True, headers={"User-Agent": UA})
                 return url, r.status_code, len(r.content), r.headers.get("server", "")[:30]
         except Exception as e:
             return url, "ERR", 0, repr(e)[:50]

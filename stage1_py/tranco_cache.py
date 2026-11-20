@@ -1,8 +1,8 @@
 """Tranco Top-1M domain list download/cache.
 
-Downloads the free daily Tranco list via curl_cffi (browser TLS
-impersonation to bypass Cloudflare SSL challenges) and caches it on disk.
-Provides a mapping domain -> (rank, log_prior) for ranking priors.
+Downloads the free daily Tranco list from the S3 origin with an honest user
+agent and caches it on disk. Provides a mapping domain -> (rank, log_prior)
+for ranking priors.
 """
 import io
 import os
@@ -10,8 +10,9 @@ import sys
 import csv
 import zipfile
 
-import requests as _
-from curl_cffi import requests as cr
+import requests
+
+USER_AGENT = "KrikoMagnet/0.2 (+https://kriko.cc/bot)"
 
 DATA_DIR = os.path.join(os.path.dirname(__file__), "..", "data")
 ZIP_PATH = os.path.join(DATA_DIR, "tranco_top-1m.csv.zip")
@@ -27,7 +28,7 @@ def download_zip(force: bool = False) -> str:
         return ZIP_PATH
     for attempt in range(4):
         try:
-            r = cr.get(URL, impersonate="chrome", timeout=120)
+            r = requests.get(URL, timeout=120, headers={"User-Agent": USER_AGENT})
             if r.status_code == 200 and r.content[:2] == b"PK":
                 with open(ZIP_PATH, "wb") as f:
                     f.write(r.content)

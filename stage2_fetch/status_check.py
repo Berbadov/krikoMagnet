@@ -1,6 +1,8 @@
 import asyncio
 from curl_cffi import requests as cr
 
+UA = "KrikoMagnet/0.2 (+https://kriko.cc/bot)"
+
 URLS = [
     "https://arstechnica.com/gadgets/",
     "https://www.wired.com/",
@@ -44,8 +46,8 @@ URLS = [
 async def fetch(url, sem):
     async with sem:
         try:
-            async with cr.AsyncSession(impersonate="chrome") as s:
-                r = await s.get(url, timeout=25, allow_redirects=True)
+            async with cr.AsyncSession() as s:
+                r = await s.get(url, timeout=25, allow_redirects=True, headers={"User-Agent": UA})
                 return url, r.status_code, len(r.content)
         except Exception as e:
             return url, "ERR", repr(e)[:40]
