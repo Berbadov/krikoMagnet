@@ -74,21 +74,34 @@ fn load_tranco(path: &str) -> HashMap<String, u32> {
 
 fn load_corpus(path: &str) -> Corpus {
     let txt = fs::read_to_string(path).expect("read corpus");
-    let mut docs = Vec::new();
-    let mut tokens = Vec::new();
-    let mut lens = Vec::new();
-    let mut df: HashMap<String, u32> = HashMap::new();
-    let mut total_len: usize = 0;
+    let mut corpus = Corpus::default();
     for line in txt.lines() {
         if line.trim().is_empty() {
             continue;
         }
         let v: Value = serde_json::from_str(line).expect("corpus json");
+        corpus.push(&v);
+    }
+    corpus.finish();
+    corpus
+}
+
+impl Corpus {
+    fn default() -> Corpus {
+        Corpus {
+            docs: Vec::new(),
+            tokens: Vec::new(),
+            lens: Vec::new(),
+            df: HashMap::new(),
+            avgdl: 0.0,
+        }
+    }
+
+    fn push(&mut self, v: &Value) {
         let title = v["title"].as_str().unwrap_or("").to_string();
         let snippet = v["snippet"].as_str().unwrap_or("").to_string();
         let toks = tokenize(&format!("{} {}", title, snippet));
         let tl = toks.len();
-        total_len += tl;
         // df over distinct tokens per doc
         let mut seen: Vec<&str> = Vec::with_capacity(tl.min(64));
         for t in &toks {
@@ -97,20 +110,23 @@ fn load_corpus(path: &str) -> Corpus {
             }
         }
         for t in seen {
-            *df.entry(t.to_string()).or_insert(0) += 1;
+            *self.df.entry(t.to_string()).or_insert(0) += 1;
         }
-        docs.push(Doc {
+        self.docs.push(Doc {
             id: v["id"].as_str().unwrap_or("").to_string(),
             domain: v["domain"].as_str().unwrap_or("").to_string(),
             published_epoch: parse_rfc3339_epoch(v["published"].as_str().unwrap_or("")),
             discovery: v["discovery"].as_f64().unwrap_or(0.0),
         });
-        tokens.push(toks);
-        lens.push(tl);
+        self.lens.push(tl);
+        self.tokens.push(toks);
     }
-    let n = docs.len();
-    let avgdl = if n == 0 { 0.0 } else { total_len as f64 / n as f64 };
-    Corpus { docs, tokens, lens, df, avgdl }
+
+    fn finish(&mut self) {
+        let n = self.docs.len();
+        let total_len: usize = self.lens.iter().sum();
+        self.avgdl = if n == 0 { 0.0 } else { total_len as f64 / n as f64 };
+    }
 }
 
 fn load_queries(path: &str) -> Vec<(String, String)> {
@@ -197,6 +213,65 @@ fn rank(query_text: &str, c: &Corpus, domain_rank: &HashMap<String, u32>, now: f
     ranked
 }
 
+fn score_json(c: &Corpus, ranked: &[(usize, f64)]) -> Value {
+    let arr: Vec<Value> = ranked
+        .iter()
+        .map(|&(i, sc)| {
+            let mut m = serde_json::Map::new();
+            m.insert("id".into(), Value::String(c.docs[i].id.clone()));
+            m.insert("score".into(), Value::from(sc));
+            Value::Object(m)
+        })
+        .collect();
+    Value::Array(arr)
+}
+
+fn serve(domain_rank: &HashMap<String, u32>) {
+    use std::io::{BufRead, Write};
+    let stdin = std::io::stdin();
+    let mut stdout = std::io::stdout();
+    for line in stdin.lock().lines() {
+        let line = match line {
+            Ok(l) => l,
+            Err(_) => break,
+        };
+        if line.trim().is_empty() {
+            continue;
+        }
+        let v: Value = match serde_json::from_str(&line) {
+            Ok(v) => v,
+            Err(e) => {
+                let _ = writeln!(stdout, "{{\"error\":\"bad json: {}\"}}", e);
+                let _ = stdout.flush();
+                continue;
+            }
+        };
+        let mut c = Corpus::default();
+        let mut scores = true;
+        if let Some(corpus) = v["corpus"].as_array() {
+            for rec in corpus {
+                c.push(rec);
+            }
+        } else if let Some(path) = v["corpus_path"].as_str() {
+            c = load_corpus(path);
+        }
+        c.finish();
+        if let Some(flag) = v["scores"].as_bool() {
+            scores = flag;
+        }
+        let now = v["now"].as_f64().unwrap_or_else(|| Utc::now().timestamp() as f64);
+        let text = v["text"].as_str().unwrap_or("");
+        let ranked = rank(text, &c, domain_rank, now);
+        let out = if scores {
+            score_json(&c, &ranked)
+        } else {
+            Value::Array(ranked.iter().map(|&(i, _)| Value::String(c.docs[i].id.clone())).collect())
+        };
+        let _ = writeln!(stdout, "{}", serde_json::to_string(&out).unwrap());
+        let _ = stdout.flush();
+    }
+}
+
 fn main() {
     let args: Vec<String> = env::args().collect();
     let mut corpus = String::new();
@@ -205,6 +280,7 @@ fn main() {
     let mut now_opt: Option<f64> = None;
     let mut bench = false;
     let mut scores = false;
+    let mut serve_mode = false;
     let mut i = 1;
     while i < args.len() {
         match args[i].as_str() {
@@ -214,12 +290,17 @@ fn main() {
             "--now" => { now_opt = Some(args[i + 1].parse().unwrap()); i += 2; }
             "--bench" => { bench = true; i += 1; }
             "--scores" => { scores = true; i += 1; }
+            "--serve" => { serve_mode = true; i += 1; }
             _ => { i += 1; }
         }
     }
     let now = now_opt.unwrap_or_else(|| Utc::now().timestamp() as f64);
 
     let domain_rank = load_tranco(&tranco);
+    if serve_mode {
+        serve(&domain_rank);
+        return;
+    }
     let c = load_corpus(&corpus);
     let queries_list = load_queries(&queries);
 
