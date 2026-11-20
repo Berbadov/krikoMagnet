@@ -1,32 +1,47 @@
-"""Kriko Magnet Stage 3: minimal full-stack pipeline.
+"""Kriko Magnet Stage 3: full-stack pipeline.
 
-query -> Rust ranker (Stage 1) -> top-K candidates -> async fetch + extract
-(Stage 2) -> SQLite cache -> structured JSON results.
+query -> query planner + site adapters (or curated fallback) -> Rust ranker
+(Stage 1) -> top-K candidates -> async fetch + extract (Stage 2) -> SQLite
+cache -> structured JSON results.
 """
-import asyncio
 import json
 import os
 import subprocess
+import sys
 import tempfile
 import time
+
+HERE = os.path.dirname(os.path.abspath(__file__))
+ROOT = os.path.join(HERE, "..")
+sys.path.insert(0, ROOT)
 
 from cache import Cache, sha16
 from worker import fetch_many
 
-HERE = os.path.dirname(os.path.abspath(__file__))
-RUST_BIN = os.path.join(HERE, "..", "stage1_rs", "target", "release", "kriko-magnet-ranker.exe")
+RUST_BIN = os.path.join(ROOT, "stage1_rs", "target", "release", "kriko-magnet-ranker.exe")
 CANDIDATES = os.path.join(HERE, "candidates.jsonl")
 QUERIES_PIPE = os.path.join(HERE, "queries_pipeline.json")
-TRANCO = os.path.join(HERE, "..", "data", "tranco_top100k.txt")
+TRANCO = os.path.join(ROOT, "data", "tranco_top100k.txt")
 TOP_K_DEFAULT = 3
 
 
 class Searcher:
-    def __init__(self, cache=None, top_k=TOP_K_DEFAULT, stats=None):
+    def __init__(self, cache=None, top_k=TOP_K_DEFAULT, stats=None,
+                 discovery="registry", registry=None, max_sites=6, fetcher=None):
         self.cache = cache or Cache()
         self.top_k = top_k
-        self.stats = stats or {"bytes": 0, "fetches": 0}
-        self.candidates = self._load_candidates()
+        self.stats = stats or {"bytes": 0, "fetches": 0, "robots_skips": 0}
+        self.discovery = discovery
+        self.registry = registry
+        self.max_sites = max_sites
+        self.fetcher = fetcher
+        self._owns_fetcher = fetcher is None
+        if discovery == "curated":
+            self.candidates = self._load_candidates()
+        else:
+            from sites import load_registry
+            self.registry = registry or load_registry()
+            self.candidates = None
 
     def _load_candidates(self):
         m = {}
@@ -36,14 +51,26 @@ class Searcher:
                 m[rec["id"]] = rec
         return m
 
-    def _rank_rust(self, query_text, qid="q0"):
+    async def _get_fetcher(self):
+        if self.fetcher is None:
+            from fetchlib import Fetcher
+            self.fetcher = Fetcher()
+        return self.fetcher
+
+    async def close(self):
+        if self._owns_fetcher and self.fetcher is not None:
+            await self.fetcher.close()
+            self.fetcher = None
+        self.cache.close()
+
+    def _rank_rust(self, corpus_path, query_text, qid="q0"):
         with tempfile.NamedTemporaryFile("w", suffix=".json", delete=False, encoding="utf-8") as tf:
-            json.dump([{"id": qid, "text": query_text}], tf)
+            json.dump([{"id": qid, "text": query_text}], tf, ensure_ascii=False)
             qpath = tf.name
         try:
             now = time.time()
             cp = subprocess.run(
-                [RUST_BIN, "--corpus", CANDIDATES, "--queries", qpath,
+                [RUST_BIN, "--corpus", corpus_path, "--queries", qpath,
                  "--tranco", TRANCO, "--now", str(now), "--scores"],
                 capture_output=True, text=True, check=True,
             )
@@ -52,10 +79,41 @@ class Searcher:
         finally:
             os.unlink(qpath)
 
+    async def _rank_registry(self, query_text, k):
+        from sites import discover, to_corpus
+        from sites.text import ranker_text
+
+        fetcher = await self._get_fetcher()
+        before = dict(fetcher.stats)
+        disc = await discover(query_text, registry=self.registry, fetcher=fetcher,
+                              max_sites=self.max_sites)
+        candidates = disc["candidates"]
+        if not candidates:
+            return disc, [], {}
+
+        corpus_recs = to_corpus(candidates)
+        with tempfile.NamedTemporaryFile("w", suffix=".jsonl", delete=False, encoding="utf-8") as tf:
+            for rec in corpus_recs:
+                tf.write(json.dumps(rec, ensure_ascii=False) + "\n")
+            corpus_path = tf.name
+        try:
+            ranked = self._rank_rust(corpus_path, ranker_text(query_text))
+        finally:
+            os.unlink(corpus_path)
+
+        by_id = {rec["id"]: rec for rec in corpus_recs}
+        orig = {f"c{i:04d}": c for i, c in enumerate(candidates)}
+        ranked = [x for x in ranked if x["id"] in by_id][:k]
+        disc["fetches"] = fetcher.stats["requests"] - before["requests"]
+        disc["bytes"] = fetcher.stats["bytes"] - before["bytes"]
+        disc["robots_skips"] = fetcher.stats["robots_skips"] - before["robots_skips"]
+        disc["sources_with_results"] = len({c.source for c in candidates})
+        return disc, ranked, orig
+
     async def search(self, query_text, k=None):
         k = k or self.top_k
         t0 = time.perf_counter()
-        qh = sha16(query_text)
+        qh = sha16(f"{self.discovery}|{k}|{query_text}")
         cached_query = self.cache.get_query(qh)
         if cached_query is not None:
             payload = json.loads(cached_query)
@@ -66,57 +124,149 @@ class Searcher:
             payload["elapsed_ms"] = round(elapsed, 3)
             return payload
 
-        ranked = self._rank_rust(query_text)
-        ranked = ranked[:k]
+        if self.discovery == "curated":
+            return await self._search_curated(query_text, k, qh, t0)
+        return await self._search_registry(query_text, k, qh, t0)
+
+    async def _search_registry(self, query_text, k, qh, t0):
+        stats_before = dict(self.stats)
+        disc, ranked, orig = await self._rank_registry(query_text, k)
         results = []
-        urls_to_fetch = []
+        to_fetch = []
         pending = {}
 
         for item in ranked:
             cid = item["id"]
-            meta = self.candidates.get(cid)
+            cand = orig[cid]
+            uh = sha16(cand.url)
+            cached = self.cache.get(uh, qh)
+            if cached is not None:
+                results.append(self._result(cand, item["score"], cached["markdown"],
+                                            cached["status"], t0, True, cid))
+            else:
+                to_fetch.append(cand.url)
+                pending[cand.url] = (cand, item["score"], cid)
+
+        if to_fetch:
+            fetcher = await self._get_fetcher()
+            fetched = await fetch_many(to_fetch, concurrency=4, stats=self.stats, fetcher=fetcher)
+            for url, fr in fetched.items():
+                cand, score, cid = pending[url]
+                uh = sha16(url)
+                self.cache.set(uh, qh, url, cand.source, fr["markdown"], str(fr["status"]))
+                results.append(self._result(cand, score, fr["markdown"], fr["status"], t0, False, cid))
+
+        order = {item["id"]: i for i, item in enumerate(ranked)}
+        results.sort(key=lambda r: order.get(r.get("candidate_id"), 999))
+        elapsed_ms = (time.perf_counter() - t0) * 1000
+        plan = disc["plan"]
+        page_fetches = self.stats["fetches"] - stats_before["fetches"]
+        page_bytes = self.stats["bytes"] - stats_before["bytes"]
+        payload = {
+            "query": query_text,
+            "elapsed_ms": round(elapsed_ms, 3),
+            "results": results,
+            "plan": {
+                "language": plan["language"],
+                "topics": plan["topics"],
+                "sites": plan["sites"],
+                "sources_with_results": disc.get("sources_with_results", 0),
+            },
+            "fetch_stats": {
+                "discovery_fetches": disc.get("fetches", 0),
+                "discovery_bytes": disc.get("bytes", 0),
+                "page_fetches": page_fetches,
+                "page_bytes": page_bytes,
+                "total_fetches": disc.get("fetches", 0) + page_fetches,
+                "total_bytes": disc.get("bytes", 0) + page_bytes,
+                "robots_skips": disc.get("robots_skips", 0) + (self.stats["robots_skips"] - stats_before["robots_skips"]),
+            },
+        }
+        self.cache.set_query(qh, json.dumps(payload, ensure_ascii=False))
+        return payload
+
+    def _result(self, cand, score, markdown, status, t0, cache_hit, candidate_id):
+        from urllib.parse import urlparse
+        return {
+            "url": cand.url,
+            "domain": urlparse(cand.url).netloc,
+            "title": cand.title,
+            "snippet": cand.snippet,
+            "published": cand.published,
+            "source": cand.source,
+            "method": cand.method,
+            "rank_score": score,
+            "clean_markdown": markdown,
+            "status": status,
+            "latency_ms": round((time.perf_counter() - t0) * 1000, 3),
+            "cache_hit": cache_hit,
+            "candidate_id": candidate_id,
+        }
+
+    async def _search_curated(self, query_text, k, qh, t0):
+        with tempfile.NamedTemporaryFile("w", suffix=".json", delete=False, encoding="utf-8") as tf:
+            json.dump([{"id": "q0", "text": query_text}], tf)
+            qpath = tf.name
+        try:
+            now = time.time()
+            cp = subprocess.run(
+                [RUST_BIN, "--corpus", CANDIDATES, "--queries", qpath,
+                 "--tranco", TRANCO, "--now", str(now), "--scores"],
+                capture_output=True, text=True, check=True,
+            )
+            ranked = json.loads(cp.stdout).get("q0", [])
+        finally:
+            os.unlink(qpath)
+
+        ranked = ranked[:k]
+        results = []
+        to_fetch = []
+        pending = {}
+        for item in ranked:
+            meta = self.candidates.get(item["id"])
             if not meta:
                 continue
-            url = meta["url"]
-            qh, uh = sha16(query_text), sha16(url)
+            uh = sha16(meta["url"])
             cached = self.cache.get(uh, qh)
             if cached is not None:
                 results.append({
                     "url": cached["url"], "domain": cached["domain"],
-                    "rank_score": item["score"],
-                    "clean_markdown": cached["markdown"],
+                    "title": meta.get("title", ""), "snippet": meta.get("snippet", ""),
+                    "published": meta.get("published"), "source": "curated", "method": "curated",
+                    "rank_score": item["score"], "clean_markdown": cached["markdown"],
                     "status": cached["status"],
                     "latency_ms": round((time.perf_counter() - t0) * 1000, 3),
                     "cache_hit": True,
                 })
             else:
-                urls_to_fetch.append(url)
-                pending[url] = {"cid": cid, "score": item["score"], "qh": qh, "meta": meta}
+                to_fetch.append(meta["url"])
+                pending[meta["url"]] = (item["id"], item["score"], meta)
 
-        if urls_to_fetch:
-            fetched = await fetch_many(urls_to_fetch, concurrency=4, stats=self.stats)
+        if to_fetch:
+            fetcher = await self._get_fetcher()
+            fetched = await fetch_many(to_fetch, concurrency=4, stats=self.stats, fetcher=fetcher)
             for url, fr in fetched.items():
-                p = pending[url]
+                cid, score, meta = pending[url]
                 uh = sha16(url)
-                self.cache.set(uh, p["qh"], url, p["meta"]["domain"], fr["markdown"], str(fr["status"]))
+                self.cache.set(uh, qh, url, meta["domain"], fr["markdown"], str(fr["status"]))
                 results.append({
-                    "url": url, "domain": p["meta"]["domain"],
-                    "rank_score": p["score"],
-                    "clean_markdown": fr["markdown"],
+                    "url": url, "domain": meta["domain"],
+                    "title": meta.get("title", ""), "snippet": meta.get("snippet", ""),
+                    "published": meta.get("published"), "source": "curated", "method": "curated",
+                    "rank_score": score, "clean_markdown": fr["markdown"],
                     "status": fr["status"],
                     "latency_ms": round(fr["fetch_ms"] + fr.get("parse_ms", 0), 3),
                     "cache_hit": False,
                 })
 
-        # keep Rust order
         order = {item["id"]: i for i, item in enumerate(ranked)}
-        results.sort(key=lambda r: order[self._cid_for_url(r["url"])] if self._cid_for_url(r["url"]) in order else 999)
+        results.sort(key=lambda r: order.get(self._curated_id_for_url(r["url"]), 999))
         elapsed_ms = (time.perf_counter() - t0) * 1000
         payload = {"query": query_text, "elapsed_ms": round(elapsed_ms, 3), "results": results}
         self.cache.set_query(qh, json.dumps(payload, ensure_ascii=False))
         return payload
 
-    def _cid_for_url(self, url):
+    def _curated_id_for_url(self, url):
         for cid, m in self.candidates.items():
             if m["url"] == url:
                 return cid

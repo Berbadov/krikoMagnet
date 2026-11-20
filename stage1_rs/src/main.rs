@@ -18,11 +18,15 @@ const TAU_DAYS: f64 = 90.0;
 const ALPHA: f64 = 0.40;
 const BETA: f64 = 0.60;
 const GAMMA: f64 = 0.15;
+// Stage 4: optional lexical-match score from site discovery (0..1). Old
+// corpora omit the field, so Stage 1 parity is unchanged.
+const DELTA: f64 = 0.30;
 
 struct Doc {
     id: String,
     domain: String,
     published_epoch: f64,
+    discovery: f64,
 }
 
 struct Corpus {
@@ -99,6 +103,7 @@ fn load_corpus(path: &str) -> Corpus {
             id: v["id"].as_str().unwrap_or("").to_string(),
             domain: v["domain"].as_str().unwrap_or("").to_string(),
             published_epoch: parse_rfc3339_epoch(v["published"].as_str().unwrap_or("")),
+            discovery: v["discovery"].as_f64().unwrap_or(0.0),
         });
         tokens.push(toks);
         lens.push(tl);
@@ -185,7 +190,7 @@ fn rank(query_text: &str, c: &Corpus, domain_rank: &HashMap<String, u32>, now: f
         let fresh = (-days / TAU_DAYS).exp();
         let bm_s = bm[i] / max_bm;
         let prior_s = prior / PRIOR_LN;
-        let sc = ALPHA * bm_s + BETA * prior_s + GAMMA * fresh;
+        let sc = ALPHA * bm_s + BETA * prior_s + GAMMA * fresh + DELTA * c.docs[i].discovery;
         ranked.push((i, sc));
     }
     ranked.sort_by(|a, b| b.1.total_cmp(&a.1).then(a.0.cmp(&b.0)));

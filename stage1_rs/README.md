@@ -21,6 +21,11 @@ cargo build --release
 CLI flags: `--corpus <jsonl> --queries <json> --tranco <txt> --now <epoch>
 --bench --scores`.
 
+## Stage 3/4 discovery prior
+Corpus records may carry an optional `discovery` field (0..1). It is added to
+the final score with `delta=0.30`; old corpora omit it (default 0), so Stage 1
+parity and latency are unchanged.
+
 ## Design
 - **Tokenization** mirrors Python's `[a-z0-9]+` over lowercased text.
 - **Corpus stats precomputed at load:** token arrays, doc lengths, term doc

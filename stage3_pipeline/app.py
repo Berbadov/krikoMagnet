@@ -6,7 +6,7 @@ from pydantic import BaseModel
 
 from pipeline import Searcher
 
-app = FastAPI(title="Kriko Magnet", version="0.1.0")
+app = FastAPI(title="Kriko Magnet", version="0.2.0")
 searcher = Searcher()
 
 
