@@ -132,6 +132,46 @@ recall).
   can fill them.
 - **Ranking is a hand-tuned hybrid**, not a learned ranker.
 
+## Use it in OpenCode
+
+`mcp_server/` exposes the same stack as a local stdio MCP server, so an agent
+can call Magnet as a tool. It reuses the Stage 3 pipeline (discovery, resident
+Rust ranker, query cache) and `fetchlib` (robots.txt, honest UA, >=1 s per
+host), so it adds no new crawling rules. stdout carries the MCP protocol; logs
+go to stderr.
+
+| Tool | Arguments | Returns |
+|---|---|---|
+| `magnet_search` | `query`, `k` (1-10, default 5), `lang` (`en`/`tr`), `fetch` (default true) | Ranked results with title, URL, site, snippet, score, cache/fetch state, polite counters and skipped (robots/HTTP) URLs |
+| `magnet_fetch` | `url` | Extracted main text; robots-disallowed URLs are refused, never fetched |
+| `magnet_health` | `probe` (default false) | Registry, index, resident ranker and circuit state; `probe=true` runs one live query per site |
+
+Setup: install the requirements (this includes `mcp`), build the ranker and
+the index once, then add this to `~/.config/opencode/opencode.jsonc` under
+`mcp.servers` (V2 shape; it is disabled by default):
+
+```jsonc
+"magnet": {
+  "type": "local",
+  "command": ["<path-to>\\.venv\\Scripts\\python.exe", "-m", "mcp_server"],
+  "cwd": "<path-to>",
+  "disabled": true
+}
+```
+
+Set `"disabled": false` (or delete the line). With the default Code Mode the
+tools appear as `tools.magnet.magnet_search`, `tools.magnet.magnet_fetch` and
+`tools.magnet.magnet_health`.
+
+Cold search is ~3.2 s on the 60-query eval but ~8 s in the MCP smoke test on
+this machine. The difference is start-up, not search: a fresh MCP client pays
+the MCP SDK + Magnet imports and the server build (~3-4 s before the first
+tool call), then one uncached query costs the same ~3-4 s as the eval cold
+median. The server warms the index and resident ranker at start
+(`MAGNET_MCP_WARM=0` disables it), so the first tool call no longer pays the
+~1 s searcher/ranker build; the remaining gap is process start and page
+fetches on a cold cache, not ranking.
+
 ## Docs
 
 - [RESULTS.md](RESULTS.md) - all stage results, metrics and failure notes
@@ -141,8 +181,7 @@ recall).
 - [stage3_pipeline/README.md](stage3_pipeline/README.md) - pipeline, cache, resident ranker
 - [stage1_rs/README.md](stage1_rs/README.md) - the Rust ranker
 
-An MCP server for Magnet exists on the local `feat/mcp-server` branch. It is
-not merged and not published yet.
+## Licence
 
 ## Licence
 
