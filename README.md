@@ -137,7 +137,7 @@ Full tables and failure notes: see `RESULTS.md`.
 ## How to run
 
 Prereqs: Python 3.14 with `curl_cffi`, `trafilatura`, `selectolax`,
-`protego`, `PyYAML`, `fastapi`, `uvicorn`, `pytest`; Rust 1.96+.
+`protego`, `PyYAML`, `fastapi`, `uvicorn`, `mcp`, `pytest`; Rust 1.96+.
 Install with `python -m pip install -r requirements.txt`.
 
 ```bash
@@ -182,6 +182,79 @@ Other helpers: `stage1_py/tune.py`, `stage1_py/diag.py`,
 `stage1_py/corpus.py`, `stage3_pipeline/gen_candidates.py` (regenerate the
 curated fallback), `eval/linkup_compare.py` (owner-only Linkup stub; not run by
 the prototype).
+
+---
+
+## Use as an OpenCode MCP tool (optional)
+
+`mcp_server/` wraps the existing stack as a local stdio MCP server, so an agent
+can call Magnet as a tool. It reuses `stage3_pipeline.pipeline.Searcher`
+(discovery + resident Rust ranker + query cache) and `fetchlib` (robots.txt,
+honest UA, >=1 s per host), so it adds no new crawling rules. stdout is the MCP
+protocol; logs go to stderr.
+
+Tools:
+
+| Tool | Arguments | Returns |
+|---|---|---|
+| `magnet_search` | `query`, `k` (1-10, default 5), `lang` (`en`/`tr`, optional), `fetch` (default `true`) | Ranked `results` with `title`, `url`, `site`, short `snippet`, `score`, `cached`/`fetched`, plus `polite` counters and `skipped` (robots/HTTP refusals) |
+| `magnet_fetch` | `url` | Extracted main text (`chars`, `truncated`, `cached`); robots-disallowed URLs are refused with an explanation, never fetched |
+| `magnet_health` | `probe` (default `false`) | Registry/index/ranker/circuit state; `probe=true` runs one live query per site |
+
+Setup (from the repo root; the paths below assume
+`.`):
+
+```powershell
+python -m venv .venv
+.venv\Scripts\python.exe -m pip install -r requirements.txt
+cargo build --release --manifest-path stage1_rs\Cargo.toml   # ranker binary
+python -m sites.index build                                   # once; sitemap index
+python -m mcp_server                                          # manual stdio test
+```
+
+Add this to `~/.config/opencode/opencode.jsonc` under `mcp.servers` (the V2
+shape used by the rest of the owner config). It is **disabled** by default:
+
+```jsonc
+"magnet": {
+  "type": "local",
+  "command": [
+    ".\\.venv\\Scripts\\python.exe",
+    "-m",
+    "mcp_server"
+  ],
+  "cwd": ".",
+  "disabled": true
+}
+```
+
+Set `"disabled": false` (or delete the line) to enable it, then run
+`opencode mcp list` or `/mcps`. V1 configs used `"enabled": false`; V2 reads
+`disabled`. OpenCode's built-in `websearch` is a separate integration and stays
+as it is — Magnet is one more MCP tool the agent chooses per query. With the
+default Code Mode the tools appear as `tools.magnet.magnet_search`,
+`tools.magnet.magnet_fetch` and `tools.magnet.magnet_health` (without Code Mode
+they are flattened to `magnet_magnet_search`, etc.).
+
+To make an agent prefer it for buying research, add to the project `AGENTS.md`:
+
+```md
+For product/buying research, prefer the Magnet MCP tools
+(`magnet_search`, `magnet_fetch`) over web search; they cite real review,
+complaint and recall pages. Fall back to web search only if Magnet is empty.
+```
+
+Notes:
+- The first query in a process pays for the resident ranker start and live
+  discovery; query-level and page caches then answer repeats in ms.
+- Without `data/site_index.sqlite` (run `python -m sites.index build`) every
+  query falls back to live sitemap/search fetches and takes seconds.
+- Tests are offline: `python -m pytest tests/test_mcp_server.py` drives the real
+  stdio protocol with `tests/mcp_fake_engine.py` injected via
+  `MAGNET_MCP_ENGINE` (stub searcher/fetcher, no network).
+- Startup measured at ~2.1 s from the venv; `magnet_search` on a cold cache
+  ~8 s with the local index (~30 s without it), repeat ~0.3 s, `magnet_fetch`
+  ~0.1 s when already cached.
 
 ---
 
