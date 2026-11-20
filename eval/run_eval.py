@@ -109,6 +109,7 @@ async def run_once(searcher: Searcher, queries, k: int):
             "blocks": blocks,
             "short_extractions": short,
             "statuses": statuses,
+            "methods": sorted({r.get("method", "") for r in results}),
             "notes": q.get("notes", ""),
         })
         mark = "HIT " if rows[-1]["hit"] else "miss"
@@ -236,6 +237,7 @@ async def main():
     fetcher = Fetcher(cache_path=args.fetch_cache)
     cache = Cache(args.cache)
     index = None
+    index_stats = None
     if not args.no_index:
         from sites.index import SiteIndex
         index = SiteIndex(args.index)
@@ -244,7 +246,7 @@ async def main():
             print("local index: empty (run python -m sites.index build)")
         else:
             print(f"local index: {index_stats.pages} pages / {index_stats.sites} sites, "
-                  f"oldest-idea age {index_stats.age_seconds:.0f}s")
+                  f"newest page {index_stats.age_seconds:.0f}s ago")
     searcher = Searcher(cache=cache, top_k=args.k, discovery="curated" if args.curated else "registry",
                         fetcher=fetcher, index=index, use_index=not args.no_index,
                         page_budget_ms=args.page_budget)
@@ -281,6 +283,7 @@ async def main():
     if args.json:
         with open(args.json, "w", encoding="utf-8") as f:
             json.dump({"cold": cold_rows, "warm_fetch": warm_fetch_rows, "warm": warm_rows,
+                       "index": index_stats.as_dict() if index_stats else None,
                        "summary": {"cold": cold, "warm_fetch": warm_fetch, "warm": warm}},
                       f, ensure_ascii=False, indent=1)
         print(f"\nwrote {args.json}")

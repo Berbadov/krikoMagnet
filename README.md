@@ -22,17 +22,18 @@ evaluation in `eval/README.md`.
 query
   |
   v
-[STAGE 3 pipeline]  query-level cache (SQLite)
-  |-- query planner: topics + language (keyword lexicon, no LLM)
-  |-- site registry: 14 high-value sites, each with a verified method
-  |-- adapters: site search / sitemap / RSS / official API
+[STAGE 3 pipeline]  query-level cache (SQLite, TTL)
+  |-- query planner: topics + language (bilingual keyword lexicon, no LLM)
+  |-- site registry: 21 high-value sites, each with a verified method
+  |-- local index (SQLite FTS5): sitemap/RSS url+title+lastmod metadata
+  |     (live site search / official API still run as adapters)
   |
   v
 candidates (url, title, snippet, date, discovery score)
   |
   v
 [STAGE 1 ranker]  Rust: BM25 + Tranco prior + freshness + discovery prior
-  |  top-K
+  |  resident --serve process; top-K
   v
 [STAGE 2 fetch worker]  polite shared fetch: robots.txt, honest UA,
   |                     per-host spacing, 429 backoff, TTL cache
@@ -49,10 +50,11 @@ structured JSON results
 | Stage | Directory | What it proves |
 |---|---|---|
 | 1A | `stage1_py/` | Python prototype: BM25 + Tranco authority + freshness; NDCG@5 |
-| 1B | `stage1_rs/` | Rust port; numerical parity with Python; p95 <= 2 ms |
+| 1B | `stage1_rs/` | Rust port; numerical parity with Python; p95 <= 2 ms; `--serve` resident mode |
 | 2 | `stage2_fetch/` | Real-world direct fetching + block-rate telemetry |
 | 3 | `stage3_pipeline/` | End-to-end pipeline + FastAPI + cache benchmark |
 | 4 | `sites/`, `eval/` | Query -> pages without a search engine; honest judged eval |
+| 5 | `sites/index.py`, `eval/` | Persistent sitemap index, resident ranker, Turkish sources, 60-query eval |
 
 ### Data
 - `data/tranco_top100k.txt` — Tranco Top-1M list (top 100k slice), cached; re-downloadable.
@@ -159,10 +161,16 @@ python stage3_pipeline/app.py       # http://127.0.0.1:8000
 curl -X POST localhost:8000/search -H 'Content-Type: application/json' \
      -d '{"query":"lg c1 burn in","k":3}'
 
-# Adapter health check (one known query per site)
+# Adapter health check (one known query per site; non-zero exit on a break)
 python -m sites.healthcheck
+python -m sites.healthcheck --json > eval/health_latest.json
 
-# Honest evaluation (42 judged queries + 1 coverage gap)
+# Local sitemap index (one-time polite backfill, then conditional refresh)
+python -m sites.index build
+python -m sites.index refresh
+python -m sites.index stats
+
+# Honest evaluation (60 judged queries + 1 coverage gap)
 python eval/run_eval.py --fresh --json eval/results_latest.json \
   --markdown eval/results_latest.md
 

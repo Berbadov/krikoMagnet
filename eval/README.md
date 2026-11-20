@@ -1,13 +1,16 @@
 # Evaluation
 
-`queries.jsonl` contains 42 realistic Kriko queries: 41 with hand-checked
+`queries.jsonl` contains 60 realistic Kriko queries: 59 with hand-checked
 relevant URLs and one deliberately unjudged coverage gap (`anker a1257
-recall`). That is 83 judged URL references (75 unique URLs); every judged URL
-returned HTTP 200 under the honest user agent when checked on 2026-11-19.
+recall`). Every judged URL returned HTTP 200 under the honest user agent when
+checked on 2026-11-19/20. Turkish coverage was extended in Stage 5 with boiler
+and appliance sources (Vaillant TR, ECA, Baymak, Bosch Home TR, ShiftDelete,
+Donanım Arşivi).
 
 ## Run
 
 ```bash
+python -m sites.index build          # one-time: fill the local sitemap index
 python eval/run_eval.py --fresh
 # optional:
 python eval/run_eval.py --fresh --json eval/results_latest.json \
@@ -16,11 +19,16 @@ python eval/run_eval.py --fresh --json eval/results_latest.json \
 
 `--fresh` deletes the eval query cache and the eval fetch cache, then runs:
 
-1. **cold** — empty query cache, empty fetch cache (sitemaps and pages are
-   downloaded during the run and shared across later queries);
+1. **cold** — empty query cache, empty fetch cache; the local sitemap index is
+   kept (that is the production warm-index path), so only top-k pages are
+   fetched;
 2. **warm-fetch, cold-query** — sitemap/page cache retained, query cache
    cleared;
 3. **warm query cache** — exact repeats.
+
+`--no-index` runs the old live-sitemap discovery for comparison.
+`--page-budget MS` returns graceful partial results when page fetches exceed
+the budget (0 = wait for all).
 
 The script prints hit@5, nDCG@5, P@5, sources/query, result domains/query,
 cold and warm latency, network fetches/query, robots skips, and block rate.

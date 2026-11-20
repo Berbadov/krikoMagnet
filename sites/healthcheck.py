@@ -116,11 +116,12 @@ def main():
     index = index_report(args.index)
     ok = 0
     for r in results:
-        r["healthy"] = bool(r["links"]) and r["extract"] == "ok"
+        r["healthy"] = bool(r["links"]) and (args.no_extract or r["extract"] == "ok")
         if r["healthy"]:
             ok += 1
         else:
             BREAKER.failure(r["site"])
+        r["circuit_open"] = BREAKER.is_open(r["site"])
     unhealthy = [r["site"] for r in results if not r["healthy"]]
     report = {
         "healthy": ok == len(results),

@@ -7,10 +7,11 @@ cache, exposed as a Python function and a minimal FastAPI endpoint.
 ## Files
 | File | Purpose |
 |---|---|
-| `pipeline.py` | `Searcher`: query -> planner/adapters (or curated fallback) -> Rust ranker -> top-K -> fetch/cache -> structured results |
-| `worker.py` | Async fetch via `fetchlib` + extract (`trafilatura`, selectolax fallback) |
-| `cache.py` | SQLite `cache` (url/query -> markdown) and `qcache` (query -> payload) tables |
-| `app.py` | FastAPI `POST /search` endpoint |
+| `pipeline.py` | `Searcher`: query -> planner/adapters or local index -> resident Rust ranker -> top-K -> fetch/cache -> structured results |
+| `ranker.py` | Resident Rust ranker (`--serve`, JSON lines) with one-shot fallback |
+| `worker.py` | Async fetch via `fetchlib` + extract (`trafilatura`, selectolax fallback); optional page budget |
+| `cache.py` | SQLite (WAL) `cache` and `qcache` tables with TTLs |
+| `app.py` | FastAPI `POST /search`, `/health` (index + circuit), optional background index refresh |
 | `bench.py` | Cold vs warm benchmark; registry mode by default, `--curated` fallback |
 | `queries_kriko.json` | 8 representative registry-mode queries |
 | `queries_pipeline.json` | Original 10 curated-mode benchmark queries |
@@ -18,11 +19,21 @@ cache, exposed as a Python function and a minimal FastAPI endpoint.
 
 ## Discovery modes
 - **registry** (default): `sites.discover()` plans topics/language, picks sites
-  from `sites/registry.yaml`, runs their adapters concurrently, merges and
-  filters candidates, and sends the pool to the Rust ranker.
+  from `sites/registry.yaml`, asks the local index for sitemap/RSS sites and
+  live adapters for search/API sites, merges and filters candidates, and sends
+  the pool to the Rust ranker.
 - **curated** (`discovery="curated"` / `bench.py --curated`): the original
   hand-picked 26-URL candidate list, kept for comparison with the old Stage 3
   numbers.
+
+## Speed path (Stage 5)
+1. Build the index once: `python -m sites.index build` (polite, full backfill).
+2. Query: local FTS5 lookup (~1 ms) instead of sitemap downloads.
+3. Resident ranker: the Rust binary loads Tranco once and answers JSON lines;
+   a per-query rank is ~2 ms instead of a ~70 ms process spawn.
+4. Fetch only top-k pages concurrently across hosts, still >=1 s apart per
+   host. `--page-budget MS` returns graceful partial results when a slow host
+   would exceed the budget (0 = wait for all).
 
 ## Request / response
 `POST /search` body: `{"query": "...", "k": 3}`.
@@ -62,13 +73,16 @@ cache, exposed as a Python function and a minimal FastAPI endpoint.
 ```
 
 ## Caching
+- **Local index:** `data/site_index.sqlite` (FTS5) holds sitemap/RSS page
+  metadata. `python -m sites.index refresh` does a conditional refresh;
+  `python -m sites.index stats` prints counts and age.
 - **Content cache:** keyed by `url_hash + query_hash`; stores extracted
-  markdown. Used to avoid re-extracting.
+  markdown (7-day TTL).
 - **Query-level cache:** stores the full result payload per
-  `discovery|k|query`; a repeat returns without discovery, ranking, or
-  fetching. This is what keeps warm lookups at ~1 ms.
+  `discovery|k|query` (6-hour TTL); a repeat returns without discovery,
+  ranking, or fetching. This is what keeps warm lookups at ~1 ms.
 - **HTTP cache:** `fetchlib` caches raw responses with a TTL (default 24 h),
-  plus robots.txt and parsed sitemaps.
+  plus robots.txt and parsed sitemaps; conditional GETs refresh sitemaps.
 
 ## Benchmarks
 Registry mode, 8 Kriko queries, top-k=3:

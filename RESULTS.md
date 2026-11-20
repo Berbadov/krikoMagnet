@@ -207,6 +207,47 @@ Read https://docs.linkup.so for the current schema.
 
 ---
 
+## Stage 5 — Faster, more reliable discovery (60 judged queries)
+
+### What was built
+- **Persistent local index.** `sites/index.py` ingests every sitemap/RSS into
+  SQLite FTS5 (`data/site_index.sqlite`): url, title, snippet, lastmod and a
+  folded match text. A query now does a local lexical lookup instead of
+  downloading sitemaps; only the top-k pages are fetched, still through
+  `fetchlib` (robots.txt, honest UA, >=1 s/host). `build` is the one-time full
+  backfill, `refresh` uses ETag/If-Modified-Since; `stats` reports age.
+- **Resident ranker.** The Rust binary runs in `--serve` mode: Tranco loads
+  once and queries are JSON lines. Per-query rank drops from a ~70 ms spawn to
+  ~2 ms; a dead child restarts and falls back to the one-shot binary.
+- **Reliability.** Per-site circuit breaker (3 failures, 5-minute cooldown,
+  surfaced in the health check), per-adapter 25 s timeout, graceful partial
+  results, jittered retry backoff, WAL on all SQLite caches, query/content
+  TTLs, JSON logs, and a health check that exits non-zero and reports index
+  age + open circuits.
+- **Turkish coverage.** Seven Turkish sources were added after a live
+  robots.txt check: Vaillant TR, Bosch Home TR, ECA, Baymak, Donanım Arşivi,
+  ShiftDelete, Tamindir. Turkish/English product nouns are now equivalent for
+  filtering (`kombi` ≈ `boiler`), and the planner has a brand/domain bonus so
+  `bosch ...` lifts bosch-home.com.tr.
+- **Tests.** 37 pytest tests, no network: robots/conditional fetch, rate
+  limits, adapters, planner, index ingest/query, circuit breaker, cache TTLs,
+  fetch budget, resident-ranker parity (skipped without a Rust build).
+
+### Evaluation design (Stage 5)
+- **60 queries**: 30 English + 30 Turkish (Stage 4's 42 plus 18 new, mostly
+  Turkish appliance/boiler queries). 59 judged; `anker a1257 recall` stays a
+  documented coverage gap. Every new judged URL returned HTTP 200 with the
+  honest UA and extracted text on 2026-11-20.
+- `cold` = empty query cache and empty fetch cache; the local sitemap index is
+  kept (the production warm-index path). `warm-fetch` keeps page caches;
+  `warm` repeats the query.
+
+### GATE 5 — results (k=5)
+
+TBD
+
+---
+
 ## Layout
 ```
 kriko-magnet/

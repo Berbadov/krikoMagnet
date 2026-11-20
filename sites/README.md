@@ -1,11 +1,11 @@
 # Site registry and adapters
 
 `registry.yaml` is the hand-maintained topic map. Every active site was
-checked live on 2026-11-19 with the honest user agent
+checked live on 2026-11-19/20 with the honest user agent
 `KrikoMagnet/0.2 (+https://kriko.cc/bot)`. A method is listed only when
 robots.txt allows it and it returned links for a test query.
 
-## Active sites (14)
+## Active sites (21)
 
 | Site | Topics | Method | Notes |
 |---|---|---|---|
@@ -18,11 +18,18 @@ robots.txt allows it and it returned links for a test query.
 | consumeraffairs.com | complaints, recalls, appliances, cars, phones | sitemap | search is JS-only |
 | whathifi.com | tv-audio, reviews | sitemap (monthly) | `searchTerm` is disallowed |
 | macrumors.com | apple, phones, computing, repair | sitemaps (review/how-to/guide) | `/search*` is disallowed |
-| tomshardware.com | computing, reviews, phones | sitemap (monthly) | search query strings are disallowed |
+| tomshardware.com | computing, reviews, phones | sitemap (monthly, full backfill in the index) | search query strings are disallowed |
 | caranddriver.com | cars, reviews | sitemap (`content`) | 27k review/feature URLs |
 | webtekno.com | phones, computing, reviews, complaints | sitemap (recent + evergreen) | large Turkish archive |
 | chip.com.tr | phones, computing, reviews, complaints | sitemap (monthly) | Turkish tech |
 | guvensizurun.ticaret.gov.tr | recalls, appliances, complaints | RSS | official GUBIS unsafe-product feed; robots.txt is an HTML error page |
+| vaillant.com.tr | boilers, repair, appliances | sitemap (content/products/downloads) | Turkish kombi fault codes, pressure and maintenance guides |
+| bosch-home.com.tr | appliances, repair, complaints | sitemap (sherpa index) | Turkish appliance support/help pages |
+| eca.com.tr | boilers, appliances, repair | sitemap (pages/products) | Turkish kombi blog: pressure, no hot water, filter cleaning |
+| baymak.com.tr | boilers, appliances, repair | sitemap | Turkish user guides (kombi water pressure) |
+| donanimarsivi.com | phones, computing, reviews, complaints | sitemap (post sitemaps) | Turkish tech forum/news archive |
+| shiftdelete.net | phones, computing, reviews, complaints | sitemap (news/pages) | Turkish tech news; named AI crawlers are blocked, the honest UA is allowed |
+| tamindir.com | computing, phones, reviews | sitemap (news/blog/software) | Turkish software/news archive |
 
 ## Skipped, with reasons
 
@@ -45,6 +52,11 @@ robots.txt allows it and it returned links for a test query.
 | ec.europa.eu Safety Gate | JS-only SPA, no sitemap or public search endpoint found |
 | otoclubturkiye.com | forum search is Google CSE |
 | autocar.co.uk | 202 bot challenge |
+| arcelik.com.tr, beko.com.tr | robots.txt returns 403 to the honest UA → deny-all, not fetched |
+| r10.net | robots.txt 403 → deny-all |
+| log.com.tr | robots.txt `Disallow: /` for all agents |
+| vestel.com.tr | product sitemaps live on `statics.vestel.com.tr`, whose robots.txt returns 403 → not ingested |
+| demirdokum.com.tr | advertised sitemap URL returns 404 (both schemes) |
 
 ## Adapter types
 
@@ -55,26 +67,52 @@ robots.txt allows it and it returned links for a test query.
 - `url_pattern` — URL templates; implemented and tested, no active site relies
   on it yet.
 
+## Local index (Stage 5)
+
+`python -m sites.index build` ingests every sitemap/RSS into
+`data/site_index.sqlite` (SQLite FTS5: url/title/snippet/lastmod + folded match
+text). Query time then reads the index instead of downloading sitemaps; only
+the top-k pages are fetched, still through `fetchlib` (robots.txt, honest UA,
+>=1 s/host). `refresh` uses conditional GETs (ETag / If-Modified-Since) and
+only the newest children; `build` is the one-time full backfill (which is what
+brings older reviews such as the Jan-2024 RTX 4070 Super review back into the
+candidate pool). `stats` prints page counts and age. Ingest never fetches pages,
+only sitemaps/feeds.
+
 ## Query planning
 
 The planner is keyword-only (no LLM, no search engine):
 
 1. Detect Turkish vs English from Turkish characters and stopwords.
-2. Score topics from a small lexicon (`phones`, `computing`, `tv-audio`,
+2. Score topics from a bilingual lexicon (`phones`, `computing`, `tv-audio`,
    `appliances`, `cars`, `boilers`, `recalls`, `repair`, `complaints`, `reviews`,
-   `apple`).
-3. Pick sites by exact query-term matches, then topic overlap, language, and
-   finally Tranco popularity.
-4. Run adapters concurrently within the fetch layer's politeness limits.
-5. Merge candidates and apply model/brand/product/intent filters.
+   `apple`) with Turkish terms such as `kombi`, `buzdolabı`, `bulaşık`.
+3. Pick sites by exact query-term matches, brand/domain matches (e.g. `bosch`
+   lifts bosch-home.com.tr), topic overlap, language, and Tranco popularity.
+4. Run adapters (or the local index) concurrently within the fetch layer's
+   politeness limits.
+5. Merge candidates and apply model/brand/product/intent filters; Turkish and
+   English product nouns are treated as equivalents (`kombi` ≈ `boiler`).
 6. Send the candidate pool to the Rust ranker (BM25 + Tranco prior + freshness
    + an optional discovery score).
 
 ## Health check
 
 ```bash
-python -m sites.healthcheck
+python -m sites.healthcheck            # human table
+python -m sites.healthcheck --json     # JSON report; non-zero exit if broken
 ```
 
 One known query per adapter; reports links found, extraction status and chars,
-fetches, and seconds. Run it after changing a selector or sitemap.
+fetches, seconds, index page counts/age, and any open circuit breaker. Run it
+after changing a selector or sitemap.
+
+## Reliability
+
+- Per-site circuit breaker: 3 consecutive failures open the site for a 5-minute
+  cooldown; discovery skips it (`circuit-open`) and the health check reports it.
+- Per-adapter timeout (25 s) and graceful partial results.
+- Retries with jittered backoff for transport errors; `Retry-After` is still
+  honoured exactly for 429/503.
+- Structured JSON logs on `KRIKO_LOG=INFO` (default WARNING).
+

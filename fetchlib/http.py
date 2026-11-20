@@ -492,9 +492,9 @@ class Fetcher:
             result.text = decode_body(body, resp_headers)
             result.final_url = final_url
 
-            if status in (429, 503) and attempt < MAX_RETRIES:
+            if status in (429, 500, 502, 503, 504) and attempt < MAX_RETRIES:
                 retry_after = retry_after_seconds(resp_headers.get("retry-after"), self._now())
-                if retry_after is not None:
+                if retry_after is not None and status in (429, 503):
                     wait = min(MAX_BACKOFF, max(1.0, retry_after))
                 else:
                     wait = min(MAX_BACKOFF, 2.0 * (attempt + 1) * random.uniform(0.75, 1.0))
