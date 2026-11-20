@@ -14,10 +14,18 @@
 - **Politeness:** at least 1 s between requests to the same host
   (`min_interval` configurable), Crawl-delay honoured, global async concurrency
   cap (default 8).
-- **429/503:** `Retry-After` (seconds or HTTP date) is honoured, capped at 30 s,
-  with at most two retries.
-- **Caching:** HTTP responses in SQLite with a TTL (default 24 h for pages,
-  24 h for robots). Sitemaps are additionally parsed once per process.
+- **429/503:** `Retry-After` (seconds or HTTP date) is honoured exactly, capped
+  at 30 s, with at most two retries. Transport failures back off with jitter
+  (`0.75–1.0` of the nominal delay) so a retry storm is spread out.
+- **Conditional requests:** `get(url, conditional=True)` sends
+  `If-None-Match` / `If-Modified-Since` from the cached response. A 304
+  refreshes the cache TTL and returns the cached body with
+  `not_modified=True`, so sitemap refreshes cost a header exchange, not a
+  download.
+- **Caching:** HTTP responses in SQLite (WAL) with a TTL (default 24 h for
+  pages, 24 h for robots). Sitemaps are additionally parsed once per process.
+  The pipeline cache has its own TTLs (6 h for query answers, 7 d for extracted
+  content) and `prune()` / `invalidate()`.
 - **Extraction:** `fetchlib.extract_text` uses trafilatura with a selectolax
   (lexbor) fallback; `classify_fetch` gives the Stage-2 hard/soft block verdict.
 
@@ -25,7 +33,8 @@
 
 `tests/test_fetch.py` covers robots denial (including wildcards), 403 robots,
 HTML robots errors, rate limiting with an injected clock, Retry-After
-backoff, and TTL cache behaviour. No network is used.
+backoff, TTL cache behaviour and a 304 conditional refresh. No network is
+used.
 
 ## Tranco download
 

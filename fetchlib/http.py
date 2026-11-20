@@ -13,6 +13,7 @@ import asyncio
 import hashlib
 import json
 import os
+import random
 import re
 import sqlite3
 import threading
@@ -153,6 +154,20 @@ class ResponseCache:
             headers = {}
         return {"status": status, "headers": headers, "body": body, "fetched_at": fetched_at}
 
+    def get_raw(self, url: str) -> Optional[dict]:
+        """A cached response regardless of TTL (for conditional requests)."""
+        with self._lock:
+            row = self.conn.execute(
+                "SELECT status, headers, body, fetched_at FROM http_cache WHERE url=?", (url,)
+            ).fetchone()
+        if row is None:
+            return None
+        try:
+            headers = json.loads(row[1])
+        except Exception:
+            headers = {}
+        return {"status": row[0], "headers": headers, "body": row[2], "fetched_at": row[3]}
+
     def set(self, url: str, status: int, headers: dict, body: bytes, now: Optional[float] = None) -> None:
         if len(body) > MAX_CACHE_BYTES:
             return
@@ -162,6 +177,13 @@ class ResponseCache:
                 "INSERT OR REPLACE INTO http_cache(url,status,headers,body,fetched_at) VALUES (?,?,?,?,?)",
                 (url, status, json.dumps(headers), body, now),
             )
+            self.conn.commit()
+
+    def touch(self, url: str, now: Optional[float] = None) -> None:
+        """Mark a cached response fresh after a 304 Not Modified."""
+        now = time.time() if now is None else now
+        with self._lock:
+            self.conn.execute("UPDATE http_cache SET fetched_at=? WHERE url=?", (now, url))
             self.conn.commit()
 
     def clear(self) -> None:
@@ -287,6 +309,7 @@ class FetchResult:
     headers: dict = field(default_factory=dict)
     error: Optional[str] = None
     from_cache: bool = False
+    not_modified: bool = False
     robots_allowed: Optional[bool] = None
     robots_skipped: bool = False
     elapsed_ms: float = 0.0
@@ -381,6 +404,7 @@ class Fetcher:
         use_cache: bool = True,
         timeout: float = 25.0,
         headers: Optional[dict] = None,
+        conditional: bool = False,
     ) -> FetchResult:
         t0 = time.monotonic()
         result = FetchResult(url=url, final_url=url)
@@ -397,6 +421,7 @@ class Fetcher:
                     result.elapsed_ms = (time.monotonic() - t0) * 1000
                     return result
 
+        stale = None
         if use_cache:
             cached = self.cache.get(url, self.cache_ttl, now=self._now())
             if cached is not None:
@@ -409,10 +434,22 @@ class Fetcher:
                 result.from_cache = True
                 result.elapsed_ms = (time.monotonic() - t0) * 1000
                 return result
+            if conditional:
+                stale = self.cache.get_raw(url)
 
         req_headers = {"User-Agent": self.user_agent}
         if headers:
             req_headers.update(headers)
+        if stale is not None:
+            old = stale["headers"] or {}
+            etag = old.get("etag") or old.get("ETag")
+            last_mod = old.get("last-modified") or old.get("Last-Modified")
+            if etag:
+                req_headers["If-None-Match"] = etag
+            if last_mod:
+                req_headers["If-Modified-Since"] = last_mod
+            if not etag and not last_mod:
+                stale = None
 
         for attempt in range(MAX_RETRIES + 1):
             await self.limiter.wait(host_of(url), crawl_delay)
@@ -428,8 +465,22 @@ class Fetcher:
                 result.status = "ERR"
                 if attempt < MAX_RETRIES:
                     self.stats["retries"] += 1
-                    await self._sleep(1.0 + attempt)
+                    await self._sleep((1.0 + attempt) * random.uniform(0.75, 1.0))
                     continue
+                result.elapsed_ms = (time.monotonic() - t0) * 1000
+                return result
+
+            if status == 304 and stale is not None:
+                self.stats["requests"] += 1
+                self.cache.touch(url, now=self._now())
+                headers_out = stale["headers"]
+                result.status = 200
+                result.body = stale["body"]
+                result.headers = headers_out
+                result.text = decode_body(stale["body"], headers_out)
+                result.from_cache = True
+                result.not_modified = True
+                result.final_url = final_url
                 result.elapsed_ms = (time.monotonic() - t0) * 1000
                 return result
 
@@ -442,8 +493,11 @@ class Fetcher:
             result.final_url = final_url
 
             if status in (429, 503) and attempt < MAX_RETRIES:
-                wait = retry_after_seconds(resp_headers.get("retry-after"), self._now())
-                wait = min(MAX_BACKOFF, max(1.0, wait if wait is not None else 2.0 * (attempt + 1)))
+                retry_after = retry_after_seconds(resp_headers.get("retry-after"), self._now())
+                if retry_after is not None:
+                    wait = min(MAX_BACKOFF, max(1.0, retry_after))
+                else:
+                    wait = min(MAX_BACKOFF, 2.0 * (attempt + 1) * random.uniform(0.75, 1.0))
                 self.stats["retries"] += 1
                 await self._sleep(wait)
                 continue

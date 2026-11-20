@@ -161,6 +161,38 @@ def test_retry_after_is_respected(tmp_path):
     assert calls["n"] == 2
 
 
+def test_conditional_get_serves_cached_body_on_304(tmp_path):
+    calls = {"n": 0}
+
+    def page(url):
+        calls["n"] += 1
+        if calls["n"] == 1:
+            return FakeResponse(200, b"<html>v1</html>",
+                                {"content-type": "text/html", "etag": '"v1"'}, url)
+        return FakeResponse(304, b"", {"etag": '"v1"'}, url)
+
+    routes = {
+        "https://example.com/robots.txt": (200, "User-agent: *\nAllow: /\n", {"content-type": "text/plain"}),
+        "https://example.com/page": page,
+    }
+    now = [1000.0]
+    fetcher, _ = make_fetcher(tmp_path, routes, cache_ttl=60, now_fn=lambda: now[0])
+
+    async def run():
+        first = await fetcher.get("https://example.com/page")
+        now[0] += 61
+        second = await fetcher.get("https://example.com/page", conditional=True)
+        third = await fetcher.get("https://example.com/page", conditional=True)
+        return first, second, third
+
+    first, second, third = asyncio.run(run())
+    assert first.text == "<html>v1</html>"
+    assert second.not_modified is True and second.ok
+    assert second.text == "<html>v1</html>"
+    assert third.from_cache is True  # the 304 refreshed the TTL
+    assert calls["n"] == 2
+
+
 def test_page_cache_ttl(tmp_path):
     routes = {
         "https://example.com/robots.txt": (200, "User-agent: *\nAllow: /\n", {"content-type": "text/plain"}),
