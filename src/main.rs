@@ -2,6 +2,7 @@ mod discover;
 mod extract;
 mod http;
 mod index;
+mod measure;
 mod planner;
 mod ranker;
 mod search;
@@ -23,8 +24,11 @@ use tokio::sync::Mutex as AsyncMutex;
 use url::Url;
 
 use crate::discover::base_domain;
-use crate::http::USER_AGENT;
+use crate::http::{Fetcher, USER_AGENT};
 use crate::index::{SiteIndex, build_index};
+use crate::measure::{
+    baseline_default_path, calibrate_from_cache, load_baseline, measure_urls_sequential,
+};
 use crate::planner::load_registry;
 use crate::search::{SearchConfig, Searcher};
 
@@ -117,6 +121,8 @@ async fn run_cli(args: &[String]) -> Result<i32, String> {
         "mcp" => cmd_mcp(tail).await,
         "index" => cmd_index(tail).await,
         "health" => cmd_health(tail).await,
+        "calibrate" => cmd_calibrate(tail),
+        "measure" => cmd_measure(tail).await,
         "tranco" => cmd_tranco().await,
         _ => Err(format!("unknown subcommand '{cmd}' (run --help)")),
     }
@@ -132,6 +138,8 @@ fn print_usage() {
            magnet mcp [--budget-ms 15000]\n  \
            magnet index <build|refresh|stats> [--site ID ...] [--recent 12] [--concurrency 4] [--db PATH]\n  \
            magnet health [--probe]\n  \
+           magnet calibrate [--fetch-cache PATH] [--out PATH]\n  \
+           magnet measure <url...> [--baseline PATH]\n  \
            magnet tranco"
     );
 }
@@ -325,6 +333,90 @@ async fn cmd_health(args: &[String]) -> Result<i32, String> {
             .map(|a| a.is_empty())
             .unwrap_or(true);
     Ok(if ok { 0 } else { 1 })
+}
+
+fn cmd_calibrate(args: &[String]) -> Result<i32, String> {
+    let mut reg_path = PathBuf::from("registry.yaml");
+    let mut cache_path = Fetcher::default_cache_path();
+    let mut out_path = baseline_default_path();
+    let mut as_json = false;
+    let mut i = 0;
+    while i < args.len() {
+        match args[i].as_str() {
+            "--registry" => reg_path = PathBuf::from(next_val(args, &mut i, "--registry")?),
+            "--fetch-cache" => cache_path = PathBuf::from(next_val(args, &mut i, "--fetch-cache")?),
+            "--out" => out_path = PathBuf::from(next_val(args, &mut i, "--out")?),
+            "--json" => as_json = true,
+            s => return Err(format!("unknown flag {s}")),
+        }
+        i += 1;
+    }
+    let reg = load_registry(&reg_path)?;
+    let (baseline, estimates) = calibrate_from_cache(&cache_path, &reg, &out_path)?;
+    if as_json {
+        println!(
+            "{}",
+            serde_json::to_string_pretty(&json!({
+                "baseline": baseline,
+                "hosts": estimates,
+            }))
+            .unwrap()
+        );
+    } else {
+        println!(
+            "calibrated {} golden hosts ({} pages) -> {}",
+            baseline.sites_calibrated,
+            baseline.pages_calibrated,
+            out_path.display()
+        );
+        println!(
+            "{:<28} {:>3} {:>6} {:>15} {:>6} {:>6} {:>6} {:>6} {:>8}",
+            "host", "n", "p_gold", "[low, high]", "burst", "zlib", "dup", "aff%", "decision"
+        );
+        for e in &estimates {
+            println!(
+                "{:<28} {:>3} {:>6.3} [{:.2}, {:.2}]   {:>6.3} {:>6.3} {:>6.3} {:>5.1}% {:>8}",
+                e.host,
+                e.pages_sampled,
+                e.p_golden,
+                e.p_low,
+                e.p_high,
+                e.shape.median_burstiness,
+                e.shape.median_zlib_ratio,
+                e.shape.cross_page_dup,
+                e.shape.median_affiliate_ratio * 100.0,
+                e.decision
+            );
+        }
+    }
+    Ok(0)
+}
+
+async fn cmd_measure(args: &[String]) -> Result<i32, String> {
+    let (cfg, rest) = parse_search_cfg(args, 0)?;
+    let mut baseline_path = baseline_default_path();
+    let mut urls = Vec::new();
+    let mut i = 0;
+    while i < rest.len() {
+        match rest[i].as_str() {
+            "--baseline" => baseline_path = PathBuf::from(next_val(&rest, &mut i, "--baseline")?),
+            s if s.starts_with("http") => urls.push(s.to_string()),
+            s => return Err(format!("expected http(s) URL or flag, got '{s}'")),
+        }
+        i += 1;
+    }
+    if urls.is_empty() {
+        return Err("missing <url...>".into());
+    }
+    let host = Url::parse(&urls[0])
+        .ok()
+        .and_then(|u| u.host_str().map(str::to_ascii_lowercase))
+        .unwrap_or_else(|| base_domain(&urls[0]));
+    let fetcher = Fetcher::open(&cfg.fetch_cache_path)?;
+    let baseline = load_baseline(&baseline_path);
+    let est = measure_urls_sequential(&host, &urls, &fetcher, &baseline, -0.5).await;
+    println!("{}", serde_json::to_string_pretty(&est).unwrap());
+    Ok(0)
 }
 
 async fn cmd_tranco() -> Result<i32, String> {

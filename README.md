@@ -39,9 +39,11 @@ cargo test
 ./target/release/magnet index build
 ./target/release/magnet index stats
 
-# CLI search, fetch, health
+# CLI search, fetch, health, and source quality estimation
 ./target/release/magnet search "lg c1 burn in" -k 5
 ./target/release/magnet health
+./target/release/magnet calibrate
+./target/release/magnet measure https://example.com/a https://example.com/b
 
 # HTTP server (http://127.0.0.1:8000)
 ./target/release/magnet serve
@@ -69,6 +71,7 @@ src/
   discover.rs       circuit breaker, adapters (sitemap/RSS/API/search/CDX), filters
   ranker.rs         in-process hybrid BM25 + Tranco + freshness scorer
   extract.rs        Readability + HTML-to-Markdown extraction
+  measure.rs        probabilistic source shape & AI-slop estimator + calibration
   search.rs         pipeline orchestration, domain diversification, pipeline cache
 eval/
   queries.jsonl     60 judged EN/TR evaluation queries
