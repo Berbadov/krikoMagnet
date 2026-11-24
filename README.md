@@ -99,7 +99,8 @@ DeepSeek + Linkup):
 | **`linkup`** | `4.1%` | `12.2% [4.1–20.4%]` | `0.069` | `0.068 [0.018–0.127]` | `16.3%` | `1632 / 2115` | `0.6` | `$0.3000` (`$6.00`) |
 
 - **Paired Win / Tie / Loss (`49` judged):** `magnet` vs `deepseek` = `39 / 9 / 1` (`Hit@5` & `nDCG@5`); `magnet` vs `linkup` = `37 / 10 / 2` (`Hit@5`), `40 / 7 / 2` (`nDCG@5`).
-- Note: Under a strict `15 s` cold timeout in `fetch_many`, aborted page fetches omit those candidates from `results` (`83.7%` cold vs `91.8%` once fetches are cached in `magnet_warm_fetch`).
+- **Important methodology caveat (closed ground-truth domain bias):** [eval/queries.jsonl](eval/queries.jsonl) lists relevant URLs exclusively from Kriko Magnet's `21` curated registry domains. Only `8.6%` of DeepSeek's top-5 URLs and `4.5%` of Linkup's top-5 URLs came from those judged domains (`Domain-Hit@5 = 16.3%` for both, vs `98.0%` for Magnet warm-fetch), so valid off-registry results returned by open-web search (e.g., `techpowerup.com`, `anker.com`, `support.apple.com`, `reddit.com`) are scored as `0`. Conditional on hitting a judged domain, Linkup's `Hit@5` is `75.0%` (`6/8`) and DeepSeek's is `37.5%` (`3/8`); conversely, uncurated open-web results also include off-locale noise (`13.1%` non-target TLD/path rate for DeepSeek such as `.no`/`.de`/`.fr`/`.dk`/`.it` on EN queries, plus `weibo.com` and `.id` pages for Linkup on TR queries) and low-trust SEO/AI-review sites (`historytools.org`, `nvidiareview.com`, `techfuelhq.com`, `review-rating.com`).
+- **Budget caveat:** Under a strict `15 s` cold timeout in `fetch_many`, aborted page fetches omit those candidates from `results` (`83.7%` cold vs `91.8%` once fetches are cached in `magnet_warm_fetch`).
 
 ### Subsystems, Calibration & Cross-Domain General Queries
 
