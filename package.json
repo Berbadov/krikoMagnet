@@ -1,0 +1,14 @@
+{
+  "name": "kriko-magnet",
+  "version": "0.3.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "cargo build --release",
+    "test": "cargo test",
+    "eval": "bun run eval/eval.ts",
+    "eval:fresh": "bun run eval/eval.ts --fresh",
+    "bench": "bun run eval/eval.ts --providers all --limit 50",
+    "health": "cargo run --release -- health"
+  }
+}

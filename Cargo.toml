@@ -1,0 +1,32 @@
+[package]
+name = "magnet"
+version = "0.3.0"
+edition = "2024"
+description = "Engine-free, polite consumer & reference search"
+license = "AGPL-3.0-only"
+
+[dependencies]
+axum = "0.8"
+chrono = { version = "0.4", features = ["serde"] }
+dom_smoothie = "0.20"
+flate2 = "1.1"
+htmd = "0.6"
+quick-xml = "0.37"
+rand = "0.9"
+regex = "1"
+reqwest = { version = "0.12", default-features = false, features = ["native-tls", "gzip", "deflate", "brotli", "json"] }
+robotstxt = "0.3"
+rusqlite = { version = "0.32", features = ["bundled"] }
+scraper = "0.22"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+serde_yaml = "0.9"
+sha2 = "0.10"
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "net", "io-util", "io-std", "time", "sync", "signal"] }
+unicode-normalization = "0.1"
+url = "2"
+
+[profile.release]
+opt-level = 3
+lto = "thin"
+codegen-units = 1

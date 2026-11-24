@@ -1,0 +1,736 @@
+mod discover;
+mod extract;
+mod http;
+mod index;
+mod planner;
+mod ranker;
+mod search;
+mod text;
+
+use std::io::Read;
+use std::path::PathBuf;
+use std::sync::Arc;
+use std::sync::atomic::Ordering;
+
+use axum::extract::{Query, State};
+use axum::routing::{get, post};
+use axum::{Json, Router};
+use flate2::read::DeflateDecoder;
+use serde::Deserialize;
+use serde_json::{Value, json};
+use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
+use tokio::sync::Mutex as AsyncMutex;
+use url::Url;
+
+use crate::discover::base_domain;
+use crate::http::USER_AGENT;
+use crate::index::{SiteIndex, build_index};
+use crate::planner::load_registry;
+use crate::search::{SearchConfig, Searcher};
+
+const MCP_INSTRUCTIONS: &str = "Kriko Magnet searches a curated registry of high-value review, complaint, recall and repair sites (plus general reference fallback) without a search-engine provider, then extracts the page text politely (honest user agent, robots.txt, >=1s per host). Use magnet_search for product/buying questions or general lookups; use magnet_fetch to read one page (robots-disallowed URLs are refused); use magnet_health when results look empty or stale.";
+
+#[derive(Deserialize)]
+struct HttpSearchReq {
+    query: String,
+    #[serde(default = "default_k")]
+    k: usize,
+    #[serde(default = "default_true")]
+    fetch: bool,
+    budget_ms: Option<u64>,
+}
+
+fn default_k() -> usize {
+    3
+}
+fn default_true() -> bool {
+    true
+}
+
+#[derive(Deserialize)]
+struct HealthParams {
+    #[serde(default)]
+    probe: bool,
+}
+
+#[tokio::main]
+async fn main() {
+    let args: Vec<String> = std::env::args().skip(1).collect();
+    let code = match run_cli(&args).await {
+        Ok(c) => c,
+        Err(e) => {
+            eprintln!("error: {e}");
+            1
+        }
+    };
+    std::process::exit(code);
+}
+
+fn next_val(args: &[String], i: &mut usize, flag: &str) -> Result<String, String> {
+    if *i + 1 >= args.len() {
+        return Err(format!("missing value for {flag}"));
+    }
+    *i += 1;
+    Ok(args[*i].clone())
+}
+
+fn parse_search_cfg(args: &[String], default_budget_ms: u64) -> Result<(SearchConfig, Vec<String>), String> {
+    let mut cfg = SearchConfig {
+        page_budget_ms: default_budget_ms,
+        ..Default::default()
+    };
+    let mut rest = Vec::new();
+    let mut i = 0;
+    while i < args.len() {
+        match args[i].as_str() {
+            "--registry" => cfg.registry_path = PathBuf::from(next_val(args, &mut i, "--registry")?),
+            "--tranco" => cfg.tranco_path = PathBuf::from(next_val(args, &mut i, "--tranco")?),
+            "--cache" => cfg.cache_path = PathBuf::from(next_val(args, &mut i, "--cache")?),
+            "--fetch-cache" => {
+                cfg.fetch_cache_path = PathBuf::from(next_val(args, &mut i, "--fetch-cache")?)
+            }
+            "--index" => cfg.index_path = Some(PathBuf::from(next_val(args, &mut i, "--index")?)),
+            "--no-index" => cfg.index_path = None,
+            "--budget-ms" | "--page-budget" => {
+                cfg.page_budget_ms = next_val(args, &mut i, "--budget-ms")?
+                    .parse()
+                    .map_err(|_| "invalid --budget-ms")?
+            }
+            _ => rest.push(args[i].clone()),
+        }
+        i += 1;
+    }
+    Ok((cfg, rest))
+}
+
+async fn run_cli(args: &[String]) -> Result<i32, String> {
+    if args.is_empty() || matches!(args[0].as_str(), "-h" | "--help" | "help") {
+        print_usage();
+        return Ok(0);
+    }
+    let cmd = args[0].as_str();
+    let tail = &args[1..];
+    match cmd {
+        "search" => cmd_search(tail).await,
+        "fetch" => cmd_fetch(tail).await,
+        "serve" => cmd_serve(tail).await,
+        "mcp" => cmd_mcp(tail).await,
+        "index" => cmd_index(tail).await,
+        "health" => cmd_health(tail).await,
+        "tranco" => cmd_tranco().await,
+        _ => Err(format!("unknown subcommand '{cmd}' (run --help)")),
+    }
+}
+
+fn print_usage() {
+    println!(
+        "magnet v0.3.0 — engine-free, polite search\n\n\
+         USAGE:\n  \
+           magnet search <query> [-k 5] [--no-fetch] [--budget-ms MS] [--no-index]\n  \
+           magnet fetch <url>\n  \
+           magnet serve [--host 127.0.0.1] [--port 8000] [--budget-ms MS] [--refresh-mins N]\n  \
+           magnet mcp [--budget-ms 15000]\n  \
+           magnet index <build|refresh|stats> [--site ID ...] [--recent 12] [--concurrency 4] [--db PATH]\n  \
+           magnet health [--probe]\n  \
+           magnet tranco"
+    );
+}
+
+async fn cmd_search(args: &[String]) -> Result<i32, String> {
+    let (cfg, rest) = parse_search_cfg(args, 0)?;
+    let mut k = 5usize;
+    let mut fetch_pages = true;
+    let mut query_parts = Vec::new();
+    let mut i = 0;
+    while i < rest.len() {
+        match rest[i].as_str() {
+            "-k" | "--k" => k = next_val(&rest, &mut i, "-k")?.parse().map_err(|_| "invalid -k")?,
+            "--no-fetch" => fetch_pages = false,
+            s => query_parts.push(s.to_string()),
+        }
+        i += 1;
+    }
+    let query = query_parts.join(" ").trim().to_string();
+    if query.is_empty() {
+        return Err("missing <query>".into());
+    }
+    let searcher = Searcher::open(cfg)?;
+    let out = searcher.search(&query, k, fetch_pages, None).await;
+    println!("{}", serde_json::to_string_pretty(&out).unwrap());
+    Ok(0)
+}
+
+async fn cmd_fetch(args: &[String]) -> Result<i32, String> {
+    let (cfg, rest) = parse_search_cfg(args, 0)?;
+    let url = rest.first().ok_or("missing <url>")?;
+    let searcher = Searcher::open(cfg)?;
+    let out = searcher.fetch_one_page(url).await;
+    println!("{}", serde_json::to_string_pretty(&out).unwrap());
+    Ok(if out["ok"].as_bool().unwrap_or(false) { 0 } else { 1 })
+}
+
+async fn cmd_serve(args: &[String]) -> Result<i32, String> {
+    let env_budget = std::env::var("KRIKO_PAGE_BUDGET_MS")
+        .ok()
+        .and_then(|s| s.parse().ok())
+        .unwrap_or(0);
+    let (cfg, rest) = parse_search_cfg(args, env_budget)?;
+    let mut host = "127.0.0.1".to_string();
+    let mut port = 8000u16;
+    let mut refresh_mins: f64 = std::env::var("KRIKO_REFRESH_MINUTES")
+        .ok()
+        .and_then(|s| s.parse().ok())
+        .unwrap_or(0.0);
+    let mut i = 0;
+    while i < rest.len() {
+        match rest[i].as_str() {
+            "--host" => host = next_val(&rest, &mut i, "--host")?,
+            "--port" => port = next_val(&rest, &mut i, "--port")?.parse().map_err(|_| "invalid --port")?,
+            "--refresh-mins" => {
+                refresh_mins = next_val(&rest, &mut i, "--refresh-mins")?
+                    .parse()
+                    .map_err(|_| "invalid --refresh-mins")?
+            }
+            s => return Err(format!("unknown flag {s}")),
+        }
+        i += 1;
+    }
+
+    let reg_path = cfg.registry_path.clone();
+    let idx_path = cfg.index_path.clone();
+    let searcher = Arc::new(Searcher::open(cfg)?);
+
+    if refresh_mins > 0.0
+        && let Some(db) = idx_path
+    {
+        tokio::spawn(async move {
+            let wait = std::time::Duration::from_secs_f64(refresh_mins * 60.0);
+            loop {
+                tokio::time::sleep(wait).await;
+                if let Ok(reg) = load_registry(&reg_path) {
+                    let _ = build_index(&reg, &[], &db, false, 12, 4).await;
+                }
+            }
+        });
+    }
+
+    let app = Router::new()
+        .route(
+            "/health",
+            get(|State(s): State<Arc<Searcher>>, Query(p): Query<HealthParams>| async move {
+                Json(s.health(p.probe).await)
+            }),
+        )
+        .route(
+            "/search",
+            post(|State(s): State<Arc<Searcher>>, Json(req): Json<HttpSearchReq>| async move {
+                Json(s.search(&req.query, req.k, req.fetch, req.budget_ms).await)
+            }),
+        )
+        .route(
+            "/cache/clear-queries",
+            post(|State(s): State<Arc<Searcher>>| async move {
+                s.cache.clear_queries();
+                Json(json!({ "ok": true }))
+            }),
+        )
+        .with_state(searcher);
+
+    let addr = format!("{host}:{port}");
+    let listener = tokio::net::TcpListener::bind(&addr)
+        .await
+        .map_err(|e| format!("bind {addr}: {e}"))?;
+    let bound = listener.local_addr().map_err(|e| format!("local_addr: {e}"))?;
+    eprintln!("magnet listening on http://{bound}");
+    axum::serve(listener, app)
+        .await
+        .map_err(|e| format!("serve: {e}"))?;
+    Ok(0)
+}
+
+async fn cmd_index(args: &[String]) -> Result<i32, String> {
+    let sub = args.first().map(String::as_str).unwrap_or("stats");
+    let mut db = SiteIndex::default_path();
+    let mut reg_path = PathBuf::from("registry.yaml");
+    let mut sites = Vec::new();
+    let mut recent = 12usize;
+    let mut concurrency = 4usize;
+    let mut as_json = false;
+    let mut i = 1;
+    while i < args.len() {
+        match args[i].as_str() {
+            "--db" => db = PathBuf::from(next_val(args, &mut i, "--db")?),
+            "--registry" => reg_path = PathBuf::from(next_val(args, &mut i, "--registry")?),
+            "--site" => sites.push(next_val(args, &mut i, "--site")?),
+            "--recent" => recent = next_val(args, &mut i, "--recent")?.parse().map_err(|_| "invalid --recent")?,
+            "--concurrency" => {
+                concurrency = next_val(args, &mut i, "--concurrency")?
+                    .parse()
+                    .map_err(|_| "invalid --concurrency")?
+            }
+            "--json" => as_json = true,
+            s => return Err(format!("unknown flag {s}")),
+        }
+        i += 1;
+    }
+
+    match sub {
+        "stats" => {
+            let idx = SiteIndex::open(&db)?;
+            println!("{}", serde_json::to_string_pretty(&idx.stats()).unwrap());
+            Ok(0)
+        }
+        "build" | "refresh" => {
+            let reg = load_registry(&reg_path)?;
+            let full = sub == "build";
+            let (reports, stats) =
+                build_index(&reg, &sites, &db, full, recent, concurrency).await?;
+            if as_json {
+                println!(
+                    "{}",
+                    serde_json::to_string_pretty(&json!({
+                        "mode": sub, "sites": reports, "index": stats
+                    }))
+                    .unwrap()
+                );
+            } else {
+                for r in &reports {
+                    println!(
+                        "{:<16} pages={:<6} feeds={:<4} robots={:<2} {:>5.1}s {}",
+                        r.site,
+                        r.pages,
+                        r.feeds,
+                        r.robots_skips,
+                        r.seconds,
+                        r.errors.join("; ")
+                    );
+                }
+                println!("{}", serde_json::to_string(&stats).unwrap());
+            }
+            Ok(0)
+        }
+        _ => Err(format!("unknown index subcommand '{sub}'")),
+    }
+}
+
+async fn cmd_health(args: &[String]) -> Result<i32, String> {
+    let (cfg, rest) = parse_search_cfg(args, 0)?;
+    let probe = rest.iter().any(|a| a == "--probe");
+    let searcher = Searcher::open(cfg)?;
+    let report = searcher.health(probe).await;
+    println!("{}", serde_json::to_string_pretty(&report).unwrap());
+    let ok = report["ok"].as_bool().unwrap_or(false)
+        && report["circuit_open"]
+            .as_array()
+            .map(|a| a.is_empty())
+            .unwrap_or(true);
+    Ok(if ok { 0 } else { 1 })
+}
+
+async fn cmd_tranco() -> Result<i32, String> {
+    let client = reqwest::Client::builder()
+        .timeout(std::time::Duration::from_secs(120))
+        .build()
+        .map_err(|e| format!("http: {e}"))?;
+    let url = "https://tranco-list.s3.amazonaws.com/top-1m.csv.zip";
+    let resp = client
+        .get(url)
+        .header("User-Agent", USER_AGENT)
+        .send()
+        .await
+        .map_err(|e| format!("tranco fetch: {e}"))?;
+    if !resp.status().is_success() {
+        return Err(format!("tranco HTTP {}", resp.status()));
+    }
+    let bytes = resp.bytes().await.map_err(|e| format!("tranco bytes: {e}"))?;
+    let csv_txt = unzip_first_entry(&bytes)?;
+    let mut domains = Vec::with_capacity(100_000);
+    for line in csv_txt.lines() {
+        if let Some((_, dom)) = line.split_once(',') {
+            let d = dom.trim();
+            if !d.is_empty() {
+                domains.push(d);
+                if domains.len() >= 100_000 {
+                    break;
+                }
+            }
+        }
+    }
+    std::fs::create_dir_all("data").map_err(|e| format!("mkdir data: {e}"))?;
+    let out_path = PathBuf::from("data").join("tranco_top100k.txt");
+    std::fs::write(&out_path, domains.join("\n")).map_err(|e| format!("write tranco: {e}"))?;
+    println!("cached {} domains -> {}", domains.len(), out_path.display());
+    Ok(0)
+}
+
+fn unzip_first_entry(zip: &[u8]) -> Result<String, String> {
+    // Minimal PK\x03\x04 local file header reader (handles deflate & data descriptor via CD lookup).
+    let eocd = zip
+        .windows(4)
+        .rposition(|w| w == b"PK\x05\x06")
+        .ok_or("invalid zip: missing EOCD")?;
+    let cd_offset = u32::from_le_bytes(zip[eocd + 16..eocd + 20].try_into().unwrap()) as usize;
+    if zip.get(cd_offset..cd_offset + 4) != Some(b"PK\x01\x02") {
+        return Err("invalid zip: missing central dir".into());
+    }
+    let method = u16::from_le_bytes(zip[cd_offset + 10..cd_offset + 12].try_into().unwrap());
+    let comp_sz = u32::from_le_bytes(zip[cd_offset + 20..cd_offset + 24].try_into().unwrap()) as usize;
+    let lfh_off = u32::from_le_bytes(zip[cd_offset + 42..cd_offset + 46].try_into().unwrap()) as usize;
+    if zip.get(lfh_off..lfh_off + 4) != Some(b"PK\x03\x04") {
+        return Err("invalid zip: missing local header".into());
+    }
+    let name_len = u16::from_le_bytes(zip[lfh_off + 26..lfh_off + 28].try_into().unwrap()) as usize;
+    let extra_len = u16::from_le_bytes(zip[lfh_off + 28..lfh_off + 30].try_into().unwrap()) as usize;
+    let data_start = lfh_off + 30 + name_len + extra_len;
+    let slice = zip
+        .get(data_start..data_start + comp_sz)
+        .ok_or("invalid zip bounds")?;
+    let mut text = String::new();
+    match method {
+        0 => text = String::from_utf8_lossy(slice).into_owned(),
+        8 => {
+            let mut dec = DeflateDecoder::new(slice);
+            dec.read_to_string(&mut text)
+                .map_err(|e| format!("inflate: {e}"))?;
+        }
+        m => return Err(format!("unsupported zip compression {m}")),
+    }
+    Ok(text)
+}
+
+// --- Stdio MCP server ----------------------------------------------------
+
+async fn cmd_mcp(args: &[String]) -> Result<i32, String> {
+    let (cfg, _) = parse_search_cfg(args, 15_000)?;
+    let searcher = Arc::new(Searcher::open(cfg)?);
+    let search_lock = Arc::new(AsyncMutex::new(()));
+    let mut lines = BufReader::new(tokio::io::stdin()).lines();
+    let mut stdout = tokio::io::stdout();
+
+    while let Ok(Some(line)) = lines.next_line().await {
+        let trimmed = line.trim();
+        if trimmed.is_empty() {
+            continue;
+        }
+        let Ok(req) = serde_json::from_str::<Value>(trimmed) else {
+            continue;
+        };
+        let Some(id) = req.get("id").cloned() else {
+            continue; // notification
+        };
+        let method = req["method"].as_str().unwrap_or("");
+        let params = &req["params"];
+        let resp = handle_mcp_request(id, method, params, &searcher, &search_lock).await;
+        let line_out = format!("{}\n", serde_json::to_string(&resp).unwrap());
+        if stdout.write_all(line_out.as_bytes()).await.is_err() {
+            break;
+        }
+        let _ = stdout.flush().await;
+    }
+    Ok(0)
+}
+
+async fn handle_mcp_request(
+    id: Value,
+    method: &str,
+    params: &Value,
+    searcher: &Arc<Searcher>,
+    search_lock: &Arc<AsyncMutex<()>>,
+) -> Value {
+    match method {
+        "initialize" => {
+            let pv = params["protocolVersion"]
+                .as_str()
+                .unwrap_or("2025-03-26");
+            json!({
+                "jsonrpc": "2.0",
+                "id": id,
+                "result": {
+                    "protocolVersion": pv,
+                    "capabilities": { "tools": {} },
+                    "serverInfo": { "name": "magnet", "version": "0.3.0" },
+                    "instructions": MCP_INSTRUCTIONS,
+                }
+            })
+        }
+        "ping" => json!({ "jsonrpc": "2.0", "id": id, "result": {} }),
+        "tools/list" => json!({
+            "jsonrpc": "2.0",
+            "id": id,
+            "result": { "tools": mcp_tool_defs() }
+        }),
+        "tools/call" => {
+            let name = params["name"].as_str().unwrap_or("");
+            let args = &params["arguments"];
+            let res = match name {
+                "magnet_search" => mcp_search(args, searcher, search_lock).await,
+                "magnet_fetch" => mcp_fetch(args, searcher).await,
+                "magnet_health" => mcp_health(args, searcher).await,
+                other => Err(format!("Unknown tool: {other}")),
+            };
+            let payload = match res {
+                Ok(val) => json!({
+                    "content": [{ "type": "text", "text": serde_json::to_string(&val).unwrap() }],
+                    "isError": false
+                }),
+                Err(msg) => json!({
+                    "content": [{ "type": "text", "text": msg }],
+                    "isError": true
+                }),
+            };
+            json!({ "jsonrpc": "2.0", "id": id, "result": payload })
+        }
+        other => json!({
+            "jsonrpc": "2.0",
+            "id": id,
+            "error": { "code": -32601, "message": format!("Method not found: {other}") }
+        }),
+    }
+}
+
+fn mcp_tool_defs() -> Value {
+    json!([
+        {
+            "name": "magnet_search",
+            "description": "Rank pages for a query from the Kriko Magnet site registry.",
+            "inputSchema": {
+                "type": "object",
+                "required": ["query"],
+                "properties": {
+                    "query": { "type": "string", "description": "Natural-language search query." },
+                    "k": { "type": "integer", "default": 5, "minimum": 1, "maximum": 10 },
+                    "lang": { "type": ["string", "null"], "enum": ["en", "tr", null] },
+                    "fetch": { "type": "boolean", "default": true }
+                }
+            }
+        },
+        {
+            "name": "magnet_fetch",
+            "description": "Fetch one URL through the polite layer and return its extracted main text.",
+            "inputSchema": {
+                "type": "object",
+                "required": ["url"],
+                "properties": {
+                    "url": { "type": "string", "description": "Absolute http(s) URL to fetch." }
+                }
+            }
+        },
+        {
+            "name": "magnet_health",
+            "description": "Adapter health report: registry, local index, in-process ranker, open circuits.",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "probe": { "type": "boolean", "default": false }
+                }
+            }
+        }
+    ])
+}
+
+async fn mcp_search(
+    args: &Value,
+    searcher: &Arc<Searcher>,
+    lock: &Arc<AsyncMutex<()>>,
+) -> Result<Value, String> {
+    let query = args["query"].as_str().unwrap_or("").trim().to_string();
+    if query.is_empty() {
+        return Err("query must be a non-empty string".into());
+    }
+    let k = match args.get("k") {
+        None | Some(Value::Null) => 5usize,
+        Some(v) => {
+            let n = v.as_i64().ok_or("k must be an integer from 1 to 10")?;
+            if !(1..=10).contains(&n) {
+                return Err("k must be an integer from 1 to 10".into());
+            }
+            n as usize
+        }
+    };
+    let lang = match args.get("lang") {
+        None | Some(Value::Null) => None,
+        Some(v) => {
+            let l = v.as_str().ok_or("lang must be 'en' or 'tr'")?;
+            if l != "en" && l != "tr" {
+                return Err("lang must be 'en' or 'tr'".into());
+            }
+            Some(l.to_string())
+        }
+    };
+    let fetch = args.get("fetch").and_then(|v| v.as_bool()).unwrap_or(true);
+
+    let _guard = lock.lock().await;
+    let st = &searcher.fetcher.stats;
+    let b_req = st.requests.load(Ordering::Relaxed);
+    let b_bytes = st.bytes.load(Ordering::Relaxed);
+    let b_hits = st.cache_hits.load(Ordering::Relaxed);
+    let b_rob = st.robots_skips.load(Ordering::Relaxed);
+    let b_ret = st.retries.load(Ordering::Relaxed);
+
+    let payload = searcher.search(&query, k, fetch, None).await;
+    let mut rows = Vec::new();
+    for (idx, item) in payload["results"]
+        .as_array()
+        .map(Vec::as_slice)
+        .unwrap_or(&[])
+        .iter()
+        .enumerate()
+    {
+        let u = item["url"].as_str().unwrap_or("");
+        let text = item["clean_markdown"]
+            .as_str()
+            .filter(|s| !s.is_empty())
+            .or_else(|| item["snippet"].as_str())
+            .unwrap_or("");
+        rows.push(json!({
+            "rank": idx + 1,
+            "title": clip_ws(item["title"].as_str().unwrap_or(""), 160),
+            "url": u,
+            "site": base_domain(u),
+            "snippet": clip_ws(text, 280),
+            "score": (item["rank_score"].as_f64().unwrap_or(0.0) * 10000.0).round() / 10000.0,
+            "cached": item["cache_hit"].as_bool().unwrap_or(false),
+            "fetched": item["status"].as_u64() == Some(200),
+            "status": item["status"],
+            "source": item["source"],
+        }));
+    }
+
+    if let Some(ref want_lang) = lang {
+        let filtered: Vec<Value> = rows
+            .iter()
+            .filter(|r| {
+                let s = r["site"].as_str().unwrap_or("");
+                searcher.site_languages.get(s).map(String::as_str) == Some(want_lang.as_str())
+            })
+            .cloned()
+            .collect();
+        if !filtered.is_empty() {
+            rows = filtered;
+        }
+    }
+
+    let mut results = Vec::new();
+    let mut skipped = Vec::new();
+    for row in rows {
+        let st_v = &row["status"];
+        if matches!(st_v.as_str(), Some("robots" | "robots-denied")) {
+            skipped.push(json!({ "url": row["url"], "reason": "robots.txt disallows this path" }));
+        } else if let Some(code) = st_v.as_u64()
+            && code >= 400
+        {
+            skipped.push(json!({ "url": row["url"], "reason": format!("HTTP {code}") }));
+        } else if st_v.as_str() == Some("ERR") {
+            skipped.push(json!({ "url": row["url"], "reason": "fetch error" }));
+        } else {
+            results.push(row);
+        }
+    }
+    results.truncate(k);
+    for (i, r) in results.iter_mut().enumerate() {
+        r["rank"] = json!(i + 1);
+    }
+
+    Ok(json!({
+        "query": query,
+        "k": k,
+        "lang": lang,
+        "pages_fetched": fetch,
+        "elapsed_ms": payload["elapsed_ms"],
+        "plan": {
+            "language": payload["plan"]["language"],
+            "topics": payload["plan"]["topics"],
+            "sites": payload["plan"]["sites"],
+        },
+        "polite": {
+            "http_requests": st.requests.load(Ordering::Relaxed) - b_req,
+            "bytes": st.bytes.load(Ordering::Relaxed) - b_bytes,
+            "cache_hits": st.cache_hits.load(Ordering::Relaxed) - b_hits,
+            "robots_skips": st.robots_skips.load(Ordering::Relaxed) - b_rob,
+            "retries": st.retries.load(Ordering::Relaxed) - b_ret,
+            "min_host_interval_s": searcher.fetcher.min_interval_s,
+            "user_agent": USER_AGENT,
+        },
+        "results": results,
+        "skipped": skipped,
+    }))
+}
+
+async fn mcp_fetch(args: &Value, searcher: &Arc<Searcher>) -> Result<Value, String> {
+    let raw = args["url"].as_str().unwrap_or("").trim();
+    let parsed = Url::parse(raw).map_err(|_| "url must be an absolute http(s) URL".to_string())?;
+    if !matches!(parsed.scheme(), "http" | "https") || parsed.host_str().is_none() {
+        return Err("url must be an absolute http(s) URL".into());
+    }
+    Ok(searcher.fetch_one_page(raw).await)
+}
+
+async fn mcp_health(args: &Value, searcher: &Arc<Searcher>) -> Result<Value, String> {
+    let probe = args.get("probe").and_then(|v| v.as_bool()).unwrap_or(false);
+    Ok(searcher.health(probe).await)
+}
+
+fn clip_ws(text: &str, limit: usize) -> String {
+    let clean = text.split_whitespace().collect::<Vec<_>>().join(" ");
+    let count = clean.chars().count();
+    if count <= limit {
+        clean
+    } else {
+        let mut s: String = clean.chars().take(limit.saturating_sub(1)).collect();
+        while s.ends_with(' ') {
+            s.pop();
+        }
+        s.push('…');
+        s
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use rand::Rng;
+
+    #[tokio::test]
+    async fn mcp_protocol_initialize_list_health_and_validation() {
+        let dir = std::env::temp_dir().join(format!("magnet-mcp-{}", rand::rng().random::<u64>()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let cfg = SearchConfig {
+            registry_path: PathBuf::from("registry.yaml"),
+            tranco_path: dir.join("missing_tranco.txt"),
+            index_path: None,
+            cache_path: dir.join("pipe.sqlite"),
+            fetch_cache_path: dir.join("fetch.sqlite"),
+            ..Default::default()
+        };
+        let searcher = Arc::new(Searcher::open(cfg).unwrap());
+        let lock = Arc::new(AsyncMutex::new(()));
+
+        let init = handle_mcp_request(json!(1), "initialize", &json!({}), &searcher, &lock).await;
+        assert_eq!(init["result"]["serverInfo"]["name"], "magnet");
+
+        let list = handle_mcp_request(json!(2), "tools/list", &json!({}), &searcher, &lock).await;
+        assert_eq!(list["result"]["tools"].as_array().unwrap().len(), 3);
+
+        let health = handle_mcp_request(
+            json!(3),
+            "tools/call",
+            &json!({"name": "magnet_health", "arguments": {}}),
+            &searcher,
+            &lock,
+        )
+        .await;
+        assert_eq!(health["result"]["isError"], false);
+
+        let bad = handle_mcp_request(
+            json!(4),
+            "tools/call",
+            &json!({"name": "magnet_fetch", "arguments": {"url": "ftp://x.com"}}),
+            &searcher,
+            &lock,
+        )
+        .await;
+        assert_eq!(bad["result"]["isError"], true);
+
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+}

@@ -1,27 +1,19 @@
-# Python
-__pycache__/
-*.py[cod]
-.pytest_cache/
-.venv/
+# Rust & Bun build / tool outputs
+target/
+node_modules/
 
-# Rust build output
-stage1_rs/target/
-
-# Re-downloadable Tranco data (tranco_cache.py fetches these)
+# Re-downloadable Tranco data
 data/tranco_top-1m.csv.zip
 data/tranco_top100k.txt
 
-# Runtime caches and scraped page text
+# Runtime caches and local index
 *.sqlite
 *.sqlite3
 *.sqlite-*
 *.db
-data/pages/
-data/sitemaps/
 *.log
-data/health*.json
-
-# Local environment and tooling
 .env
-tools/
+.pytest_cache/
+.venv/
+stage1_rs/
 bench/
