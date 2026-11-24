@@ -393,8 +393,10 @@ impl Searcher {
                             .status_num
                             .map(|n| n.to_string())
                             .unwrap_or_else(|| fr.status_tag.clone());
-                        self.cache
-                            .set_content(&uh, &qh, &cand.url, &dom, &fr.markdown, &st_str);
+                        if st_str != "ERR" {
+                            self.cache
+                                .set_content(&uh, &qh, &cand.url, &dom, &fr.markdown, &st_str);
+                        }
                         let st_val = fr
                             .status_num
                             .map(|n| json!(n))
@@ -440,7 +442,10 @@ impl Searcher {
                 "robots_skips": disc_rob + p_rob,
             }
         });
-        if fetch_pages {
+        let has_err = results
+            .iter()
+            .any(|r| r["status"].as_str() == Some("ERR"));
+        if fetch_pages && !results.is_empty() && !has_err {
             self.cache.set_query(&qh, &payload.to_string());
         }
         payload

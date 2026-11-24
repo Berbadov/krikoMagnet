@@ -94,32 +94,38 @@ impl SiteIndex {
 
     pub fn stats(&self) -> IndexStats {
         let conn = self.conn.lock().unwrap();
-        let pages: i64 = conn
-            .query_row("SELECT COUNT(*) FROM pages", [], |r| r.get(0))
-            .unwrap_or(0);
-        let sites: i64 = conn
-            .query_row("SELECT COUNT(DISTINCT site) FROM pages", [], |r| r.get(0))
-            .unwrap_or(0);
-        let feeds: i64 = conn
-            .query_row("SELECT COUNT(*) FROM feeds", [], |r| r.get(0))
-            .unwrap_or(0);
-        let newest: Option<f64> = conn
-            .query_row("SELECT MAX(updated) FROM pages", [], |r| r.get(0))
-            .ok()
-            .flatten();
         let mut per_site = HashMap::new();
+        let mut pages = 0usize;
         if let Ok(mut stmt) =
             conn.prepare("SELECT site, COUNT(*) FROM pages GROUP BY site ORDER BY COUNT(*) DESC")
             && let Ok(rows) = stmt.query_map([], |r| Ok((r.get::<_, String>(0)?, r.get::<_, i64>(1)?)))
         {
-            for item in rows.flatten() {
-                per_site.insert(item.0, item.1 as usize);
+            for (site, cnt) in rows.flatten() {
+                let c = cnt.max(0) as usize;
+                pages += c;
+                per_site.insert(site, c);
             }
         }
+        let sites = per_site.len();
+        let feeds: i64 = conn
+            .query_row("SELECT COUNT(*) FROM feeds", [], |r| r.get(0))
+            .unwrap_or(0);
+        let newest: Option<f64> = conn
+            .query_row(
+                "SELECT CAST(value AS REAL) FROM index_meta WHERE key='updated'",
+                [],
+                |r| r.get(0),
+            )
+            .ok()
+            .or_else(|| {
+                conn.query_row("SELECT MAX(fetched_at) FROM feeds", [], |r| r.get(0))
+                    .ok()
+                    .flatten()
+            });
         let age_seconds = newest.map(|t| ((now_epoch() - t) * 10.0).round() / 10.0);
         IndexStats {
-            pages: pages as usize,
-            sites: sites as usize,
+            pages,
+            sites,
             feeds: feeds as usize,
             age_seconds,
             per_site,
@@ -210,6 +216,12 @@ impl SiteIndex {
                 )
                 .map_err(|e| format!("ins fts row: {e}"))?;
             }
+        }
+        if !rows.is_empty() {
+            let _ = tx.execute(
+                "INSERT OR REPLACE INTO index_meta(key,value) VALUES ('updated',?1)",
+                params![now.to_string()],
+            );
         }
         tx.commit().map_err(|e| format!("commit: {e}"))?;
         Ok(rows.len())
