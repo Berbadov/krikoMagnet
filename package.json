@@ -9,6 +9,7 @@
     "eval": "bun run eval/eval.ts",
     "eval:fresh": "bun run eval/eval.ts --fresh",
     "bench": "bun run eval/eval.ts --providers all --limit 50",
+    "bench:pro": "bun run eval/eval.ts --fresh --pro",
     "health": "cargo run --release -- health"
   }
 }

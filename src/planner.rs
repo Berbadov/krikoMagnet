@@ -306,6 +306,16 @@ fn domain_tokens(domain: &str) -> HashSet<String> {
         .collect()
 }
 
+pub fn is_recall_query(query: &str) -> bool {
+    let terms = query_terms(query, false);
+    terms.iter().any(|t| {
+        matches!(
+            t.as_str(),
+            "recall" | "recalls" | "recalled" | "guvensiz" | "toplatma" | "cagirma"
+        )
+    })
+}
+
 pub fn plan_sites(
     query: &str,
     reg: &Registry,
@@ -320,13 +330,7 @@ pub fn plan_sites(
     }
     let topics: HashSet<&str> = topics_vec.iter().map(|s| s.as_str()).collect();
     let topic_map: HashMap<&str, &[&str]> = TOPIC_TERMS.iter().copied().collect();
-    let recall_query = topics.contains("recalls")
-        || terms.iter().any(|t| {
-            matches!(
-                t.as_str(),
-                "recall" | "recalls" | "recalled" | "guvensiz" | "toplatma" | "cagirma"
-            )
-        });
+    let recall_query = topics.contains("recalls") || is_recall_query(query);
 
     let mut scored: Vec<(f64, &Site)> = Vec::new();
     for site in &reg.sites {

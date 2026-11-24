@@ -268,73 +268,78 @@ impl SiteIndex {
                 terms.contains(&c).then_some(c)
             })
             .collect();
-        let mut retrieval: Vec<String> = terms
+        let concepts: Vec<String> = terms
             .into_iter()
             .filter(|t| !compounds.contains(t))
             .collect();
-        for term in retrieval.clone() {
-            for alias in product_aliases(&term) {
-                if !retrieval.contains(&alias) {
-                    retrieval.push(alias);
-                }
-            }
-        }
-        if retrieval.is_empty() {
+        if concepts.is_empty() {
             return HashMap::new();
         }
 
-        let mut pairs = Vec::new();
-        if retrieval.len() == 1 {
-            pairs.push(format!("\"{}\"", retrieval[0]));
+        // Build per-concept synonym OR clauses so aliases match cleanly instead of AND-forcing all languages at once.
+        let mut concept_clauses: Vec<String> = Vec::with_capacity(concepts.len());
+        let mut model_terms: Vec<String> = Vec::new();
+        for c in &concepts {
+            let mut syns = vec![c.clone()];
+            for alias in product_aliases(c) {
+                if !syns.contains(&alias) {
+                    syns.push(alias);
+                }
+            }
+            for s in &syns {
+                if is_model_token(s) && !model_terms.contains(s) {
+                    model_terms.push(s.clone());
+                }
+            }
+            if syns.len() == 1 {
+                concept_clauses.push(format!("\"{}\"", syns[0]));
+            } else {
+                let inner = syns
+                    .iter()
+                    .map(|s| format!("\"{s}\""))
+                    .collect::<Vec<_>>()
+                    .join(" OR ");
+                concept_clauses.push(format!("({inner})"));
+            }
         }
-        'outer: for (i, first) in retrieval.iter().enumerate() {
-            for second in &retrieval[i + 1..] {
-                pairs.push(format!("(\"{first}\" AND \"{second}\")"));
-                if pairs.len() >= 12 {
-                    break 'outer;
+
+        let mut pairs = Vec::new();
+        if concept_clauses.len() == 1 {
+            pairs.push(concept_clauses[0].clone());
+        } else {
+            'outer: for (i, first) in concept_clauses.iter().enumerate() {
+                for second in &concept_clauses[i + 1..] {
+                    pairs.push(format!("({first} AND {second})"));
+                    if pairs.len() >= 12 {
+                        break 'outer;
+                    }
                 }
             }
         }
-        let all_and = retrieval
+        let all_and = concept_clauses.join(" AND ");
+        let per_site_limit = rows_per_site.clamp(60, 250) as i64;
+        let pairs_inner = pairs.join(" OR ");
+        let m_inner = model_terms
             .iter()
             .map(|t| format!("\"{t}\""))
             .collect::<Vec<_>>()
-            .join(" AND ");
-        let model_terms: Vec<String> = retrieval
-            .iter()
-            .filter(|t| is_model_token(t))
-            .cloned()
-            .collect();
-        let site_expr = site_ids
-            .iter()
-            .map(|s| format!("site:{s}"))
-            .collect::<Vec<_>>()
             .join(" OR ");
-        let limit = rows_per_site.max(rows_per_site * site_ids.len().min(8)) as i64;
+        let site_set: HashSet<&str> = site_ids.iter().map(String::as_str).collect();
 
         let conn = self.conn.lock().unwrap();
-        let fetch_rows = |inner: &str| -> Vec<(String, String, Option<String>, Option<String>, Option<String>, Option<String>)> {
-            let expr = format!("({site_expr}) AND ({inner})");
-            let total: i64 = conn
-                .query_row(
-                    "SELECT COUNT(*) FROM pages_fts WHERE pages_fts MATCH ?1",
-                    params![expr],
-                    |r| r.get(0),
-                )
-                .unwrap_or(0);
-            let sql = if total <= limit {
-                "SELECT p.site, p.url, p.title, p.snippet, p.lastmod, p.method
-                 FROM pages_fts f JOIN pages p ON p.rowid=f.rowid
-                 WHERE pages_fts MATCH ?1 LIMIT ?2"
-            } else {
-                "SELECT p.site, p.url, p.title, p.snippet, p.lastmod, p.method
-                 FROM pages_fts f JOIN pages p ON p.rowid=f.rowid
-                 WHERE pages_fts MATCH ?1 ORDER BY rank LIMIT ?2"
-            };
-            let Ok(mut stmt) = conn.prepare(sql) else {
+        let global_sql = "SELECT p.site, p.url, p.title, p.snippet, p.lastmod, p.method
+                          FROM pages_fts f JOIN pages p ON p.rowid=f.rowid
+                          WHERE pages_fts MATCH ?1 ORDER BY rank LIMIT ?2";
+        let per_site_sql = "SELECT p.site, p.url, p.title, p.snippet, p.lastmod, p.method
+                            FROM pages_fts f JOIN pages p ON p.rowid=f.rowid
+                            WHERE pages_fts MATCH ?1 ORDER BY rank LIMIT ?2";
+
+        type RowTuple = (String, String, Option<String>, Option<String>, Option<String>, Option<String>);
+        let run_q = |sql: &str, expr: &str, lim: i64| -> Vec<RowTuple> {
+            let Ok(mut stmt) = conn.prepare_cached(sql) else {
                 return Vec::new();
             };
-            let Ok(mapped) = stmt.query_map(params![expr, limit], |r| {
+            let Ok(mapped) = stmt.query_map(params![expr, lim], |r| {
                 Ok((
                     r.get::<_, String>(0)?,
                     r.get::<_, String>(1)?,
@@ -349,29 +354,80 @@ impl SiteIndex {
             mapped.flatten().collect()
         };
 
-        let all_expr = format!("({site_expr}) AND ({all_and})");
-        let total_all: i64 = conn
-            .query_row(
-                "SELECT COUNT(*) FROM pages_fts WHERE pages_fts MATCH ?1",
-                params![all_expr],
-                |r| r.get(0),
-            )
-            .unwrap_or(0);
-        let mut rows = if total_all >= 5 {
-            fetch_rows(&all_and)
-        } else {
-            let mut r = fetch_rows(&pairs.join(" OR "));
-            if r.is_empty() && !model_terms.is_empty() {
-                let m_expr = model_terms
-                    .iter()
-                    .map(|t| format!("\"{t}\""))
-                    .collect::<Vec<_>>()
-                    .join(" OR ");
-                r = fetch_rows(&m_expr);
+        let per_site_fetch = |with_model_fallback: bool| -> Vec<RowTuple> {
+            let mut acc = Vec::new();
+            for sid in site_ids {
+                let mut site_rows =
+                    run_q(per_site_sql, &format!("site:{sid} AND ({all_and})"), per_site_limit);
+                if site_rows.len() < 5 && !pairs_inner.is_empty() {
+                    let mut seen: HashSet<String> =
+                        site_rows.iter().map(|r| r.1.clone()).collect();
+                    for r in run_q(
+                        per_site_sql,
+                        &format!("site:{sid} AND ({pairs_inner})"),
+                        per_site_limit,
+                    ) {
+                        if seen.insert(r.1.clone()) {
+                            site_rows.push(r);
+                            if site_rows.len() as i64 >= per_site_limit {
+                                break;
+                            }
+                        }
+                    }
+                }
+                if with_model_fallback && site_rows.is_empty() && !m_inner.is_empty() {
+                    site_rows =
+                        run_q(per_site_sql, &format!("site:{sid} AND ({m_inner})"), per_site_limit);
+                }
+                acc.extend(site_rows);
             }
-            r
+            acc
+        };
+
+        const GLOBAL_CAP: i64 = 750;
+        let rows: Vec<RowTuple> = if site_ids.len() > 1 {
+            let all_global = run_q(global_sql, &all_and, GLOBAL_CAP);
+            let all_truncated = all_global.len() as i64 >= GLOBAL_CAP;
+            let filtered_all: Vec<RowTuple> = all_global
+                .into_iter()
+                .filter(|r| site_set.contains(r.0.as_str()))
+                .collect();
+
+            if !all_truncated && filtered_all.len() >= 3 {
+                filtered_all
+            } else if !all_truncated && !pairs_inner.is_empty() {
+                let pairs_global = run_q(global_sql, &pairs_inner, GLOBAL_CAP);
+                if (pairs_global.len() as i64) < GLOBAL_CAP {
+                    let mut out = Vec::new();
+                    let mut seen_urls = HashSet::new();
+                    for r in filtered_all.into_iter().chain(
+                        pairs_global
+                            .into_iter()
+                            .filter(|r| site_set.contains(r.0.as_str())),
+                    ) {
+                        if seen_urls.insert(r.1.clone()) {
+                            out.push(r);
+                        }
+                    }
+                    if out.is_empty() && !m_inner.is_empty() {
+                        run_q(global_sql, &m_inner, GLOBAL_CAP)
+                            .into_iter()
+                            .filter(|r| site_set.contains(r.0.as_str()))
+                            .collect()
+                    } else {
+                        out
+                    }
+                } else {
+                    per_site_fetch(true)
+                }
+            } else {
+                per_site_fetch(true)
+            }
+        } else {
+            per_site_fetch(true)
         };
         drop(conn);
+        let mut rows = rows;
 
         let now_ts = now_epoch();
         let mut grouped: HashMap<String, Vec<Candidate>> = HashMap::new();
@@ -762,6 +818,29 @@ mod tests {
         assert_eq!(hits[0].url, "https://example.com/vaillant-kombi-ariza-kodu-f28");
         assert_eq!(idx.replace_site("fixture", vec![], true).unwrap(), 0);
         assert_eq!(idx.site_pages("fixture"), 1);
+
+        // Verify concept-CNF synonym groups match exact English docs across multiple sites
+        let ca_rows = vec![IndexRow {
+            url: "https://www.consumeraffairs.com/homeowners/samsung_refrigerator.html".into(),
+            title: "Samsung Refrigerator Problems".into(),
+            snippet: "Common Samsung refrigerator complaints".into(),
+            lastmod: None,
+            method: "sitemap".into(),
+            text: "samsung refrigerator complaint problem".into(),
+        }];
+        idx.replace_site("ca", ca_rows, true).unwrap();
+        let multi = idx.query_sites(
+            &["fixture".into(), "ca".into()],
+            "samsung buzdolabı sorunu",
+            10,
+            60,
+            &HashMap::new(),
+        );
+        assert!(
+            multi.get("ca").is_some_and(|v| !v.is_empty()),
+            "expected cross-lingual concept CNF hit on ca"
+        );
+
         let _ = std::fs::remove_dir_all(&dir);
     }
 }

@@ -106,7 +106,8 @@ pub fn rank_docs(
 
     for (i, toks) in doc_tokens.iter().enumerate() {
         freq.fill(0);
-        let dl = toks.len() as f64;
+        // Floor effective length at 0.65 * avgdl so short metadata-only stubs without snippets do not dominate rich abstracts.
+        let dl = (toks.len() as f64).max(avgdl * 0.65);
         let mut matched = false;
         for t in toks {
             if let Some(&j) = qidx.get(t.as_str()) {

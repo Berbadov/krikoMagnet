@@ -17,6 +17,7 @@ use crate::http::{Fetcher, GetOpts, now_epoch};
 use crate::index::SiteIndex;
 use crate::planner::{Registry, load_registry, load_tranco};
 use crate::ranker::rank_docs;
+use crate::scout::SourceTrustStore;
 use crate::text::{ranker_query, sha16};
 
 pub const QUERY_TTL_S: f64 = 6.0 * 3600.0;
@@ -131,6 +132,7 @@ pub struct SearchConfig {
     pub index_path: Option<PathBuf>,
     pub cache_path: PathBuf,
     pub fetch_cache_path: PathBuf,
+    pub sources_path: PathBuf,
     pub page_budget_ms: u64,
     pub max_sites: usize,
     pub per_domain_limit: usize,
@@ -144,6 +146,7 @@ impl Default for SearchConfig {
             index_path: Some(SiteIndex::default_path()),
             cache_path: PipelineCache::default_path(),
             fetch_cache_path: Fetcher::default_cache_path(),
+            sources_path: SourceTrustStore::default_path(),
             page_budget_ms: 0,
             max_sites: 6,
             per_domain_limit: 2,
@@ -158,6 +161,7 @@ pub struct Searcher {
     pub index: Option<Arc<SiteIndex>>,
     pub fetcher: Arc<Fetcher>,
     pub cache: PipelineCache,
+    pub trust: Option<Arc<SourceTrustStore>>,
     pub breaker: Arc<CircuitBreaker>,
     pub sitemap_mem: Arc<Mutex<HashMap<String, (Instant, String, Vec<XmlEntry>)>>>,
     pub page_budget_ms: u64,
@@ -180,6 +184,7 @@ impl Searcher {
         };
         let fetcher = Arc::new(Fetcher::open(&cfg.fetch_cache_path)?);
         let cache = PipelineCache::open(&cfg.cache_path)?;
+        let trust = SourceTrustStore::open(&cfg.sources_path).ok().map(Arc::new);
         Ok(Self {
             registry,
             tranco,
@@ -187,6 +192,7 @@ impl Searcher {
             index,
             fetcher,
             cache,
+            trust,
             breaker: Arc::new(CircuitBreaker::new(3, 300.0)),
             sitemap_mem: Arc::new(Mutex::new(HashMap::new())),
             page_budget_ms: cfg.page_budget_ms,
@@ -286,6 +292,11 @@ impl Searcher {
             .robots_skips
             .load(std::sync::atomic::Ordering::Relaxed);
 
+        let trust_map = self
+            .trust
+            .as_ref()
+            .map(|t| t.trust_map())
+            .unwrap_or_default();
         let disc: DiscoveryResult = discover(
             query,
             &self.registry,
@@ -294,6 +305,7 @@ impl Searcher {
             self.index.as_ref(),
             &self.breaker,
             &self.sitemap_mem,
+            &trust_map,
             self.max_sites,
             160,
         )
@@ -383,6 +395,9 @@ impl Searcher {
                         if !fr.from_cache {
                             p_fetches += 1;
                             p_bytes += fr.html_bytes as u64;
+                            if let Some(ref ts) = self.trust {
+                                ts.record_fetch_verdict(&cand.url, fr.verdict);
+                            }
                         }
                         if fr.status_tag == "robots" {
                             p_rob += 1;
@@ -393,15 +408,20 @@ impl Searcher {
                             .status_num
                             .map(|n| n.to_string())
                             .unwrap_or_else(|| fr.status_tag.clone());
-                        if st_str != "ERR" {
+                        let clean_md = if fr.verdict == "soft-block" {
+                            String::new()
+                        } else {
+                            fr.markdown.clone()
+                        };
+                        if st_str != "ERR" && fr.verdict != "soft-block" {
                             self.cache
-                                .set_content(&uh, &qh, &cand.url, &dom, &fr.markdown, &st_str);
+                                .set_content(&uh, &qh, &cand.url, &dom, &clean_md, &st_str);
                         }
                         let st_val = fr
                             .status_num
                             .map(|n| json!(n))
                             .unwrap_or_else(|| json!(fr.status_tag));
-                        results.push(make_result(cand, score, &fr.markdown, st_val, t0, false, &cid));
+                        results.push(make_result(cand, score, &clean_md, st_val, t0, false, &cid));
                     }
                 }
                 let order: HashMap<&str, usize> = chosen
@@ -491,6 +511,11 @@ impl Searcher {
         }
         let chars = text.chars().count();
         let verdict = classify_fetch(res.status, &res.status_tag, chars, &text);
+        if !res.from_cache
+            && let Some(ref ts) = self.trust
+        {
+            ts.record_fetch_verdict(&res.final_url, verdict);
+        }
         let truncated = chars > 8000;
         let clipped: String = text.chars().take(8000).collect();
         json!({
@@ -529,6 +554,12 @@ impl Searcher {
             .collect();
         circuit_open.sort();
 
+        let trust_stats = self
+            .trust
+            .as_ref()
+            .map(|t| t.stats())
+            .unwrap_or_else(|| json!(null));
+
         let mut report = json!({
             "ok": true,
             "sites": self.registry.sites.len(),
@@ -536,6 +567,7 @@ impl Searcher {
             "by_language": by_lang,
             "tranco_domains": self.tranco.len(),
             "ranker": { "in_process": true },
+            "sources_trust": trust_stats,
             "index": idx_report,
             "circuit_open": circuit_open,
             "circuit": snap,
@@ -604,6 +636,7 @@ struct FetchedPage {
     status_tag: String,
     html_bytes: usize,
     markdown: String,
+    verdict: &'static str,
     from_cache: bool,
 }
 
@@ -625,6 +658,7 @@ async fn fetch_many(
                         status_tag: "robots".into(),
                         html_bytes: 0,
                         markdown: String::new(),
+                        verdict: "robots-denied",
                         from_cache: false,
                     },
                 );
@@ -640,6 +674,7 @@ async fn fetch_many(
             } else {
                 String::new()
             };
+            let verdict = classify_fetch(res.status, &res.status_tag, md.chars().count(), &md);
             (
                 u,
                 FetchedPage {
@@ -647,6 +682,7 @@ async fn fetch_many(
                     status_tag: res.status_tag,
                     html_bytes: res.body.len(),
                     markdown: md,
+                    verdict,
                     from_cache: res.from_cache,
                 },
             )

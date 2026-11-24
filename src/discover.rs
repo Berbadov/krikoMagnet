@@ -14,7 +14,7 @@ use url::{Url, form_urlencoded};
 
 use crate::http::{Fetcher, GetOpts};
 use crate::index::{SiteIndex, canonical_url};
-use crate::planner::{Method, Plan, Registry, Site, plan_sites};
+use crate::planner::{Method, Plan, Registry, Site, is_recall_query, plan_sites};
 use crate::ranker::RankInput;
 use crate::text::{
     fold, is_model_token, iso_date, long_ago, match_tokens, product_aliases, query_terms,
@@ -509,6 +509,9 @@ pub fn score_candidates(query: &str, candidates: Vec<Candidate>, max_results: us
         }
         if !numeric_terms.is_empty() && numeric_terms.iter().any(|t| toks.contains(t.as_str())) {
             score += 0.10;
+        }
+        if cand.method == "json_search" && cand.snippet.trim().is_empty() && cand.body.trim().is_empty() {
+            score = (score - 0.25).max(0.05);
         }
         cand.score = (score * 10000.0).round() / 10000.0;
         let has_model = spec_matched.iter().any(|t| is_model_token(t));
@@ -1566,6 +1569,12 @@ fn indexable(site: &Site, index: Option<&SiteIndex>) -> bool {
     idx.site_pages(&site.id) > 0
 }
 
+fn is_recall_only_site(site: &Site) -> bool {
+    site.id == "cpsc"
+        || site.id == "guvensizurun"
+        || (site.topics.len() == 1 && site.topics[0] == "recalls")
+}
+
 pub async fn discover(
     query: &str,
     reg: &Registry,
@@ -1574,16 +1583,108 @@ pub async fn discover(
     index: Option<&std::sync::Arc<SiteIndex>>,
     breaker: &std::sync::Arc<CircuitBreaker>,
     sitemap_mem: &std::sync::Arc<Mutex<HashMap<String, (Instant, String, Vec<XmlEntry>)>>>,
+    trust: &HashMap<String, f64>,
     max_sites: usize,
     max_candidates: usize,
 ) -> DiscoveryResult {
-    let plan = plan_sites(query, reg, tranco, max_sites);
-    let mut set = JoinSet::new();
+    let mut plan = plan_sites(query, reg, tranco, max_sites);
+    let recall_query = plan.topics.iter().any(|t| t == "recalls") || is_recall_query(query);
+    let idx_ref = index.map(|a| a.as_ref());
 
-    for site in plan.selected.clone() {
+    // 1. Index-first domain-agnostic retrieval across all eligible indexed sites.
+    let mut outcomes: Vec<AdapterOutcome> = Vec::new();
+    let indexed_sites: Vec<&Site> = reg
+        .sites
+        .iter()
+        .filter(|s| indexable(s, idx_ref) && !(is_recall_only_site(s) && !recall_query))
+        .collect();
+
+    if let Some(idx) = index
+        && !indexed_sites.is_empty()
+    {
+        let mut all_ids = Vec::with_capacity(indexed_sites.len());
+        let mut ages = HashMap::new();
+        let mut max_per_site = 30usize;
+        for s in &indexed_sites {
+            if let Some(d) = s.index_max_age_days {
+                ages.insert(s.id.clone(), d);
+            }
+            let mr = s
+                .methods
+                .iter()
+                .filter(|m| m.kind == "sitemap" || m.kind == "rss")
+                .filter_map(|m| m.max_results)
+                .max()
+                .unwrap_or(30);
+            max_per_site = max_per_site.max(mr);
+            all_ids.push(s.id.clone());
+        }
+        let idx_c = idx.clone();
+        let q_c = query.to_string();
+        let by_site = tokio::task::spawn_blocking(move || {
+            idx_c.query_sites(&all_ids, &q_c, max_per_site, 250, &ages)
+        })
+        .await
+        .unwrap_or_default();
+
+        for (sid, cands) in by_site {
+            let st = if cands.is_empty() { "no-results" } else { "ok" };
+            outcomes.push(AdapterOutcome {
+                site: sid,
+                method: "index".into(),
+                status: st.into(),
+                candidates: cands,
+                fetched: 0,
+                error: None,
+            });
+        }
+    }
+
+    let index_hits: usize = outcomes.iter().map(|o| o.candidates.len()).sum();
+
+    // 2. Plan & run unindexed/live adapters independently so indexed sites never crowd out live APIs (e.g. CPSC recalls).
+    let live_pool: Vec<Site> = reg
+        .sites
+        .iter()
+        .filter(|s| !indexable(s, idx_ref))
+        .cloned()
+        .collect();
+    let mut live_sites: Vec<Site> = if live_pool.is_empty() {
+        Vec::new()
+    } else {
+        let live_reg = Registry {
+            version: reg.version,
+            sites: live_pool.clone(),
+            open_web: None,
+            skipped: vec![],
+        };
+        let lp = plan_sites(query, &live_reg, tranco, max_sites);
+        lp.selected
+            .into_iter()
+            .filter(|s| {
+                if s.topics.iter().any(|t| t == "general") {
+                    plan.fallback.as_deref() == Some("general") || index_hits < 3
+                } else {
+                    true
+                }
+            })
+            .collect()
+    };
+    if index_hits < 3 {
+        for s in live_pool {
+            if s.topics.iter().any(|t| t == "general")
+                && !live_sites.iter().any(|x| x.id == s.id)
+                && (s.language == plan.language || s.language == "en")
+            {
+                live_sites.push(s);
+            }
+        }
+    }
+
+    let mut set = JoinSet::new();
+    for site in live_sites {
         let q = query.to_string();
         let f = fetcher.clone();
-        let idx_opt = index.cloned();
         let br = breaker.clone();
         let sm = sitemap_mem.clone();
         set.spawn(async move {
@@ -1595,37 +1696,6 @@ pub async fn discover(
                     candidates: Vec::new(),
                     fetched: 0,
                     error: Some("skipped: circuit open".into()),
-                }];
-            }
-            if indexable(&site, idx_opt.as_deref())
-                && let Some(idx) = idx_opt
-            {
-                let max_res = site
-                    .methods
-                    .iter()
-                    .filter(|m| m.kind == "sitemap" || m.kind == "rss")
-                    .filter_map(|m| m.max_results)
-                    .max()
-                    .unwrap_or(40);
-                let mut ages = HashMap::new();
-                if let Some(d) = site.index_max_age_days {
-                    ages.insert(site.id.clone(), d);
-                }
-                let q_clone = q.clone();
-                let sid = site.id.clone();
-                let cands = tokio::task::spawn_blocking(move || {
-                    idx.query(&[sid], &q_clone, max_res, &ages)
-                })
-                .await
-                .unwrap_or_default();
-                let st = if cands.is_empty() { "no-results" } else { "ok" };
-                return vec![AdapterOutcome {
-                    site: site.id,
-                    method: "index".into(),
-                    status: st.into(),
-                    candidates: cands,
-                    fetched: 0,
-                    error: None,
                 }];
             }
             let timeout_s = site.timeout_s.unwrap_or(SITE_TIMEOUT_S);
@@ -1660,7 +1730,6 @@ pub async fn discover(
         });
     }
 
-    let mut outcomes = Vec::new();
     while let Some(res) = set.join_next().await {
         if let Ok(list) = res {
             outcomes.extend(list);
@@ -1722,9 +1791,49 @@ pub async fn discover(
         }
     }
 
+    let site_langs: HashMap<&str, &str> = reg
+        .sites
+        .iter()
+        .map(|s| (s.id.as_str(), s.language.as_str()))
+        .collect();
+    let recall_ids: HashSet<&str> = reg
+        .sites
+        .iter()
+        .filter(|s| is_recall_only_site(s))
+        .map(|s| s.id.as_str())
+        .collect();
+    let planned_bonus: HashMap<String, f64> = plan
+        .selected
+        .iter()
+        .enumerate()
+        .map(|(i, s)| (s.id.clone(), (0.20 - i as f64 * 0.03).max(0.05)))
+        .collect();
+
     let mut candidates: Vec<Candidate> = merged.into_values().collect();
     candidates = collapse_paginated(candidates);
     candidates = score_candidates(query, candidates, max_candidates);
+
+    // Apply language affinity, planner alignment, recall authority, and probabilistic source trust AFTER score_candidates
+    for c in &mut candidates {
+        if let Some(&sl) = site_langs.get(c.source.as_str())
+            && sl == plan.language
+        {
+            c.score += if plan.language == "en" { 0.18 } else { 0.06 };
+        }
+        if let Some(&b) = planned_bonus.get(&c.source) {
+            c.score += b;
+        }
+        if recall_query && recall_ids.contains(c.source.as_str()) {
+            c.score += 0.25;
+        }
+        let dom = base_domain(&c.url);
+        if let Some(&p_trust) = trust.get(&dom) {
+            c.score += 0.06 * (p_trust - 0.5);
+        }
+        c.score = (c.score * 10000.0).round() / 10000.0;
+    }
+    candidates.sort_by(|a, b| b.score.total_cmp(&a.score));
+
     candidates = enforce_model_terms(query, candidates);
     candidates = enforce_brand_terms(query, candidates);
     candidates = enforce_product_terms(query, candidates);
@@ -1733,6 +1842,20 @@ pub async fn discover(
 
     let sources_with_results: HashSet<String> =
         candidates.iter().map(|c| c.source.clone()).collect();
+    let mut plan_sites_ordered: Vec<String> = Vec::new();
+    for c in &candidates {
+        if !plan_sites_ordered.contains(&c.source) {
+            plan_sites_ordered.push(c.source.clone());
+        }
+    }
+    for s in plan.sites {
+        if !plan_sites_ordered.contains(&s) {
+            plan_sites_ordered.push(s);
+        }
+    }
+    plan_sites_ordered.truncate(max_sites.max(6));
+    plan.sites = plan_sites_ordered;
+
     DiscoveryResult {
         plan,
         open_web_used,
@@ -2008,6 +2131,88 @@ mod tests {
         let out2 = run_search(&ex, &ex.methods[0], "anker", &fetcher).await;
         assert_eq!(out2.status, "ok");
         assert_eq!(out2.candidates[0].url, "https://example.com/recalls/2025/anker-power-banks");
+
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[tokio::test]
+    async fn index_first_finds_arbitrary_topic_without_topic_terms() {
+        let dir = std::env::temp_dir().join(format!("magnet-idxfirst-{}", rand::random::<u64>()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let idx = std::sync::Arc::new(SiteIndex::open(&dir.join("idx.sqlite")).unwrap());
+        let rows = vec![crate::index::IndexRow {
+            url: "https://plato.stanford.edu/entries/godel-incompleteness/".into(),
+            title: "Godel Incompleteness Theorems".into(),
+            snippet: "Formal arithmetic cannot prove its own consistency.".into(),
+            lastmod: Some("2026-01-15T00:00:00Z".into()),
+            method: "sitemap".into(),
+            text: "godel incompleteness theorems formal arithmetic consistency".into(),
+        }];
+        idx.replace_site("sep", rows, true).unwrap();
+
+        let reg = Registry {
+            version: 1,
+            sites: vec![Site {
+                id: "sep".into(),
+                name: "Stanford Encyclopedia".into(),
+                domain: "plato.stanford.edu".into(),
+                topics: vec!["philosophy".into()],
+                language: "en".into(),
+                priority: None,
+                timeout_s: None,
+                index_max_age_days: None,
+                index_max_children: None,
+                methods: vec![Method {
+                    kind: "sitemap".into(),
+                    url: Some("https://plato.stanford.edu/sitemap.xml".into()),
+                    urls: vec![],
+                    include_children: vec![],
+                    exclude_children: vec![],
+                    max_sitemaps: None,
+                    max_urls: None,
+                    max_results: Some(10),
+                    probes: None,
+                    link_selector: None,
+                    base_url: None,
+                    items_path: None,
+                    title: None,
+                    snippet: None,
+                    url_field: None,
+                    url_template: None,
+                    body_field: None,
+                    date: None,
+                    timeout: None,
+                    templates: vec![],
+                    max_query_terms: None,
+                }],
+            }],
+            open_web: None,
+            skipped: vec![],
+        };
+        let tr = HashMap::new();
+        let fetcher = std::sync::Arc::new(Fetcher::open(&dir.join("fetch.sqlite")).unwrap());
+        let br = std::sync::Arc::new(CircuitBreaker::new(3, 60.0));
+        let sm = std::sync::Arc::new(Mutex::new(HashMap::new()));
+        let trust = HashMap::from([("plato.stanford.edu".to_string(), 0.96)]);
+
+        let disc = discover(
+            "godel incompleteness consistency",
+            &reg,
+            &tr,
+            &fetcher,
+            Some(&idx),
+            &br,
+            &sm,
+            &trust,
+            6,
+            40,
+        )
+        .await;
+        assert_eq!(disc.candidates.len(), 1);
+        assert_eq!(
+            disc.candidates[0].url,
+            "https://plato.stanford.edu/entries/godel-incompleteness/"
+        );
 
         let _ = std::fs::remove_dir_all(&dir);
     }

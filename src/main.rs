@@ -5,13 +5,16 @@ mod index;
 mod measure;
 mod planner;
 mod ranker;
+mod scout;
 mod search;
 mod text;
 
 use std::io::Read;
 use std::path::PathBuf;
-use std::sync::Arc;
+use std::sync::{Arc, LazyLock};
 use std::sync::atomic::Ordering;
+
+use regex::Regex;
 
 use axum::extract::{Query, State};
 use axum::routing::{get, post};
@@ -29,7 +32,8 @@ use crate::index::{SiteIndex, build_index};
 use crate::measure::{
     baseline_default_path, calibrate_from_cache, load_baseline, measure_urls_sequential,
 };
-use crate::planner::load_registry;
+use crate::planner::{load_registry, load_tranco};
+use crate::scout::{SourceTrustStore, scout_domain};
 use crate::search::{SearchConfig, Searcher};
 
 const MCP_INSTRUCTIONS: &str = "Kriko Magnet searches a curated registry of high-value review, complaint, recall and repair sites (plus general reference fallback) without a search-engine provider, then extracts the page text politely (honest user agent, robots.txt, >=1s per host). Use magnet_search for product/buying questions or general lookups; use magnet_fetch to read one page (robots-disallowed URLs are refused); use magnet_health when results look empty or stale.";
@@ -93,6 +97,7 @@ fn parse_search_cfg(args: &[String], default_budget_ms: u64) -> Result<(SearchCo
             "--fetch-cache" => {
                 cfg.fetch_cache_path = PathBuf::from(next_val(args, &mut i, "--fetch-cache")?)
             }
+            "--sources" => cfg.sources_path = PathBuf::from(next_val(args, &mut i, "--sources")?),
             "--index" => cfg.index_path = Some(PathBuf::from(next_val(args, &mut i, "--index")?)),
             "--no-index" => cfg.index_path = None,
             "--budget-ms" | "--page-budget" => {
@@ -123,6 +128,7 @@ async fn run_cli(args: &[String]) -> Result<i32, String> {
         "health" => cmd_health(tail).await,
         "calibrate" => cmd_calibrate(tail),
         "measure" => cmd_measure(tail).await,
+        "scout" => cmd_scout(tail).await,
         "tranco" => cmd_tranco().await,
         _ => Err(format!("unknown subcommand '{cmd}' (run --help)")),
     }
@@ -140,6 +146,7 @@ fn print_usage() {
            magnet health [--probe]\n  \
            magnet calibrate [--fetch-cache PATH] [--out PATH]\n  \
            magnet measure <url...> [--baseline PATH]\n  \
+           magnet scout <domain...> [--file PATH] [--sample 8] [--promote] [--index] [--json]\n  \
            magnet tranco"
     );
 }
@@ -353,6 +360,16 @@ fn cmd_calibrate(args: &[String]) -> Result<i32, String> {
     }
     let reg = load_registry(&reg_path)?;
     let (baseline, estimates) = calibrate_from_cache(&cache_path, &reg, &out_path)?;
+    if let Ok(ts) = SourceTrustStore::open(&SourceTrustStore::default_path()) {
+        for e in &estimates {
+            let sid = reg
+                .sites
+                .iter()
+                .find(|s| base_domain(&s.domain) == base_domain(&e.host))
+                .map(|s| s.id.as_str());
+            ts.record_estimate(sid, e);
+        }
+    }
     if as_json {
         println!(
             "{}",
@@ -416,6 +433,108 @@ async fn cmd_measure(args: &[String]) -> Result<i32, String> {
     let baseline = load_baseline(&baseline_path);
     let est = measure_urls_sequential(&host, &urls, &fetcher, &baseline, -0.5).await;
     println!("{}", serde_json::to_string_pretty(&est).unwrap());
+    Ok(0)
+}
+
+async fn cmd_scout(args: &[String]) -> Result<i32, String> {
+    let (cfg, rest) = parse_search_cfg(args, 0)?;
+    let mut baseline_path = baseline_default_path();
+    let mut sample_limit = 8usize;
+    let mut promote = false;
+    let mut do_index = false;
+    let mut as_json = false;
+    let mut targets = Vec::new();
+    let mut i = 0;
+    while i < rest.len() {
+        match rest[i].as_str() {
+            "--baseline" => baseline_path = PathBuf::from(next_val(&rest, &mut i, "--baseline")?),
+            "--sample" => {
+                sample_limit = next_val(&rest, &mut i, "--sample")?
+                    .parse()
+                    .map_err(|_| "invalid --sample")?;
+            }
+            "--file" => {
+                let fp = next_val(&rest, &mut i, "--file")?;
+                let txt = std::fs::read_to_string(&fp).map_err(|e| format!("read {fp}: {e}"))?;
+                for line in txt.lines() {
+                    let t = line.trim();
+                    if !t.is_empty() && !t.starts_with('#') {
+                        targets.push(t.to_string());
+                    }
+                }
+            }
+            "--promote" => promote = true,
+            "--index" => do_index = true,
+            "--json" => as_json = true,
+            s if s.starts_with('-') => return Err(format!("unknown flag {s}")),
+            s => targets.push(s.to_string()),
+        }
+        i += 1;
+    }
+    if targets.is_empty() {
+        return Err("missing <domain...> or --file <path>".into());
+    }
+
+    let mut reg = load_registry(&cfg.registry_path)?;
+    let tranco = load_tranco(&cfg.tranco_path);
+    let baseline = load_baseline(&baseline_path);
+    let fetcher = Fetcher::open(&cfg.fetch_cache_path)?;
+    let trust_store = SourceTrustStore::open(&cfg.sources_path).ok();
+
+    let mut reports = Vec::new();
+    let mut promoted_ids = Vec::new();
+    for target in targets {
+        let promote_opt = promote.then_some(cfg.registry_path.as_path());
+        let rep = scout_domain(
+            &target,
+            &reg,
+            &tranco,
+            &fetcher,
+            &baseline,
+            trust_store.as_ref(),
+            sample_limit,
+            promote_opt,
+        )
+        .await;
+        if rep.action == "promoted" {
+            promoted_ids.push(rep.site_id.clone());
+            if let Ok(updated) = load_registry(&cfg.registry_path) {
+                reg = updated;
+            }
+        }
+        reports.push(rep);
+    }
+
+    if do_index
+        && !promoted_ids.is_empty()
+        && let Some(ref db) = cfg.index_path
+    {
+        let _ = build_index(&reg, &promoted_ids, db, true, 6, 4).await;
+    }
+
+    if as_json {
+        println!("{}", serde_json::to_string_pretty(&reports).unwrap());
+    } else {
+        println!(
+            "{:<28} {:<10} {:>3} {:>6} {:>15} {:>6} {:>6} {:>10}  {}",
+            "domain", "method", "n", "p_gold", "[low, high]", "burst", "dup", "action", "note"
+        );
+        for r in &reports {
+            println!(
+                "{:<28} {:<10} {:>3} {:>6.3} [{:.2}, {:.2}]   {:>6.3} {:>6.3} {:>10}  {}",
+                r.domain,
+                r.discovered_method,
+                r.estimate.pages_sampled,
+                r.estimate.p_golden,
+                r.estimate.p_low,
+                r.estimate.p_high,
+                r.estimate.shape.median_burstiness,
+                r.estimate.shape.cross_page_dup,
+                r.action,
+                r.reason
+            );
+        }
+    }
     Ok(0)
 }
 
@@ -679,7 +798,7 @@ async fn mcp_search(
             "title": clip_ws(item["title"].as_str().unwrap_or(""), 160),
             "url": u,
             "site": base_domain(u),
-            "snippet": clip_ws(text, 280),
+            "snippet": clip_ws(&clean_snippet(text), 280),
             "score": (item["rank_score"].as_f64().unwrap_or(0.0) * 10000.0).round() / 10000.0,
             "cached": item["cache_hit"].as_bool().unwrap_or(false),
             "fetched": item["status"].as_u64() == Some(200),
@@ -762,6 +881,20 @@ async fn mcp_health(args: &Value, searcher: &Arc<Searcher>) -> Result<Value, Str
     Ok(searcher.health(probe).await)
 }
 
+static MD_IMG_RE: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"!\[[^\]]*\]\([^)]*\)").expect("valid md image regex"));
+static MD_LINK_RE: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"\[([^\]]+)\]\([^)]*\)").expect("valid md link regex"));
+static MD_HEADING_RE: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"(?m)^\s*#{1,6}\s+").expect("valid md heading regex"));
+
+fn clean_snippet(text: &str) -> String {
+    let no_img = MD_IMG_RE.replace_all(text, " ");
+    let flat_links = MD_LINK_RE.replace_all(&no_img, "$1");
+    let no_headings = MD_HEADING_RE.replace_all(&flat_links, "");
+    no_headings.replace("**", "").replace("__", "")
+}
+
 fn clip_ws(text: &str, limit: usize) -> String {
     let clean = text.split_whitespace().collect::<Vec<_>>().join(" ");
     let count = clean.chars().count();
@@ -824,5 +957,12 @@ mod tests {
         assert_eq!(bad["result"]["isError"], true);
 
         let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn clean_snippet_strips_markdown_images_and_links() {
+        let raw = "![Image 1: hero](https://cdn.example.com/tv.jpg) ### Verdict The **[LG C1 OLED](https://example.com/lg)** remains great.";
+        let out = clip_ws(&clean_snippet(raw), 280);
+        assert_eq!(out, "Verdict The LG C1 OLED remains great.");
     }
 }

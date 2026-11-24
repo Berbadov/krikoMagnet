@@ -148,7 +148,7 @@ pub fn load_baseline(path: &Path) -> GoldenBaseline {
         .unwrap_or_default()
 }
 
-fn sigmoid(x: f64) -> f64 {
+pub fn sigmoid(x: f64) -> f64 {
     1.0 / (1.0 + (-x).exp())
 }
 
@@ -321,7 +321,7 @@ pub fn measure_page(url: &str, html: &str, status: Option<u16>) -> PageShape {
                 let inside_skip = node.ancestors().any(|a| {
                     matches!(
                         a.value().as_element().map(|e| e.name()),
-                        Some("script" | "style" | "noscript" | "svg" | "nav" | "footer")
+                        Some("script" | "style" | "noscript" | "svg" | "nav" | "footer" | "header" | "aside")
                     )
                 });
                 if !inside_skip {
@@ -379,8 +379,9 @@ pub fn measure_page(url: &str, html: &str, status: Option<u16>) -> PageShape {
     };
     let structured_ratio =
         (block_counts[3] + block_counts[4] + block_counts[5]) as f64 / total_blocks.max(1) as f64;
-    let yield_ratio = (clean_chars as f64 / visible_chars.max(1) as f64).min(1.5);
-    let link_density = (link_chars as f64 / visible_chars.max(1) as f64).min(1.0);
+    let eff_visible = visible_chars.max(clean_chars).max(1);
+    let yield_ratio = (clean_chars as f64 / eff_visible as f64).min(1.5);
+    let link_density = (link_chars as f64 / eff_visible as f64).min(1.0);
     let kchars = (clean_chars.max(500) as f64) / 1000.0;
     let affiliate_ratio = (aff_links as f64 / (kchars * 4.0)).min(1.0);
 
@@ -394,8 +395,12 @@ pub fn measure_page(url: &str, html: &str, status: Option<u16>) -> PageShape {
 
     let mut shingles = HashSet::new();
     let word_refs: Vec<&str> = tokens.iter().map(String::as_str).collect();
-    for w in word_refs.windows(5).step_by(2).take(128) {
-        shingles.insert(hash_shingle(w));
+    if word_refs.len() >= 5 {
+        let n_win = word_refs.len() - 4;
+        let step = (n_win / 128).max(1);
+        for w in word_refs.windows(5).step_by(step).take(128) {
+            shingles.insert(hash_shingle(w));
+        }
     }
 
     PageShape {
@@ -531,9 +536,16 @@ pub fn estimate_site(
     let access_llr = (ok_n.min(3.0) * 0.7 - fail_n * 2.5).clamp(-4.0, 2.0);
     c.insert("access".into(), access_llr);
 
-    c.insert("burstiness".into(), lower_penalty_llr(shape.median_burstiness, &baseline.burstiness, 1.3));
+    let b_llr = lower_penalty_llr(shape.median_burstiness, &baseline.burstiness, 1.3);
+    let s_llr = lower_penalty_llr(shape.skeleton_cv, &baseline.skeleton_cv, 1.3);
+    let dup_llr = if shape.pages_sampled >= 2 {
+        upper_penalty_llr(shape.cross_page_dup, &baseline.cross_page_dup, 1.2)
+    } else {
+        0.0
+    };
+    c.insert("burstiness".into(), b_llr);
     c.insert("section_cv".into(), lower_penalty_llr(shape.median_section_cv, &baseline.section_cv, 1.1));
-    c.insert("skeleton_cv".into(), lower_penalty_llr(shape.skeleton_cv, &baseline.skeleton_cv, 1.3));
+    c.insert("skeleton_cv".into(), s_llr);
     c.insert("yield".into(), lower_penalty_llr(shape.median_yield, &baseline.yield_ratio, 0.8));
     c.insert("block_entropy".into(), lower_penalty_llr(shape.median_block_entropy, &baseline.block_entropy, 0.8));
     c.insert("zlib".into(), lower_penalty_llr(shape.median_zlib_ratio, &baseline.zlib_ratio, 0.8));
@@ -541,9 +553,18 @@ pub fn estimate_site(
     c.insert("specificity".into(), lower_penalty_llr(shape.median_specificity, &baseline.specificity, 0.7));
     c.insert("trigram_rep".into(), upper_penalty_llr(shape.median_trigram_repeat, &baseline.trigram_repeat, 0.9));
     c.insert("link_density".into(), upper_penalty_llr(shape.median_link_density, &baseline.link_density, 1.1));
-    c.insert("affiliate".into(), upper_penalty_llr(shape.median_affiliate_ratio, &baseline.affiliate_ratio, 1.8));
+
+    // Couple affiliate penalty probabilistically with structural slop signals: genuine review publishers with high burstiness/skeleton variance and low duplication shouldn't be heavily penalized for deal boxes.
+    let raw_aff = upper_penalty_llr(shape.median_affiliate_ratio, &baseline.affiliate_ratio, 1.6);
+    let aff_llr = if raw_aff < 0.0 {
+        let slop_shape_prob = sigmoid(-1.5 * (b_llr + s_llr + dup_llr));
+        raw_aff * (0.25 + 0.95 * slop_shape_prob)
+    } else {
+        raw_aff
+    };
+    c.insert("affiliate".into(), aff_llr);
     if shape.pages_sampled >= 2 {
-        c.insert("cross_page_dup".into(), upper_penalty_llr(shape.cross_page_dup, &baseline.cross_page_dup, 1.2));
+        c.insert("cross_page_dup".into(), dup_llr);
     }
     if shape.median_structured_ratio > 0.05 {
         c.insert("structured_bonus".into(), (shape.median_structured_ratio * 2.5).min(0.8));
@@ -706,15 +727,17 @@ pub fn calibrate_from_cache(
     Ok((baseline, estimates))
 }
 
-pub async fn measure_urls_sequential(
+pub async fn measure_urls_sequential_with_sample(
     host: &str,
     urls: &[String],
     fetcher: &Fetcher,
     baseline: &GoldenBaseline,
     prior_log_odds: f64,
-) -> PosteriorEstimate {
+    min_promote_pages: usize,
+) -> (PosteriorEstimate, String) {
     let mut pages = Vec::new();
     let mut last_est = None;
+    let mut sample_prose = String::new();
     for url in urls {
         let res = fetcher.get(url, GetOpts::default()).await;
         if res.robots_skipped {
@@ -741,20 +764,43 @@ pub async fn measure_urls_sequential(
             };
             pages.push(p);
         } else {
-            pages.push(measure_page(url, &res.text, res.status));
+            let page = measure_page(url, &res.text, res.status);
+            if sample_prose.len() < 4000 && page.verdict == "success" {
+                let txt = extract_text(&res.text, Some(url), SOFT_MIN_CHARS);
+                if !txt.is_empty() {
+                    sample_prose.push(' ');
+                    sample_prose.extend(txt.chars().take(1200));
+                }
+            }
+            pages.push(page);
         }
         let shape = aggregate_site(host, &pages);
         let est = estimate_site(&shape, baseline, prior_log_odds);
-        let done = pages.len() >= 2 && est.decision != "uncertain";
+        let done = (est.decision == "reject"
+            && (pages.len() >= 4 || (pages.len() >= 2 && shape.access_rate == 0.0)))
+            || (est.decision == "promote" && pages.len() >= min_promote_pages.max(2));
         last_est = Some(est);
         if done {
             break;
         }
     }
-    last_est.unwrap_or_else(|| {
+    let est = last_est.unwrap_or_else(|| {
         let shape = aggregate_site(host, &pages);
         estimate_site(&shape, baseline, prior_log_odds)
-    })
+    });
+    (est, sample_prose)
+}
+
+pub async fn measure_urls_sequential(
+    host: &str,
+    urls: &[String],
+    fetcher: &Fetcher,
+    baseline: &GoldenBaseline,
+    prior_log_odds: f64,
+) -> PosteriorEstimate {
+    measure_urls_sequential_with_sample(host, urls, fetcher, baseline, prior_log_odds, 2)
+        .await
+        .0
 }
 
 #[cfg(test)]
