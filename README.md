@@ -4,8 +4,10 @@ Engine-free, polite search for the Kriko ("check before you buy") apps: given
 a product, review or troubleshooting query, it finds the exact page on the
 sites that own the answer without calling Google, Bing, SearXNG or any search
 API. A hand-verified site registry and bilingual topic map pick sources; each
-source is queried through its sitemap, RSS feed, own search page or official
-API; a local SQLite FTS5 index of sitemap/RSS metadata makes discovery a
+source is queried through its sitemap, RSS feed, own search page, official
+API or a JSON search endpoint, and topics outside the consumer lexicon fall
+back to a few general reference sources (Wikipedia, Crossref, Stack Exchange);
+a local SQLite FTS5 index of sitemap/RSS metadata makes discovery a
 lookup instead of a crawl; a Rust BM25 + Tranco + freshness ranker orders the
 candidates; and a shared polite fetch layer (robots.txt enforced, honest
 `KrikoMagnet/0.2` user agent, >=1 s per host, no impersonation, no CAPTCHA
@@ -118,7 +120,9 @@ recall).
 
 ## Limitations
 
-- **21 sites, not the web.** Queries outside the registry have no answer.
+- **21 consumer sites, not the web.** Queries outside that set fall back to a
+  small general layer (Wikipedia, Crossref, Stack Exchange, plus a best-effort
+  Common Crawl URL-index probe); anything those miss still has no answer.
 - **English and Turkish only**, with the best coverage for phones, TVs,
   computing, appliances, boilers, cars, recalls and repair.
 - **Generic Turkish phone queries are the weak spot**: newer coverage often

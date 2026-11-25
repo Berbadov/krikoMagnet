@@ -182,6 +182,12 @@ class Searcher:
             cid = item["id"]
             cand = orig[cid]
             uh = sha16(cand.url)
+            if cand.body:
+                # The adapter already returned the text (API-served), so the
+                # page itself is never fetched — some hosts disallow crawling.
+                self.cache.set(uh, qh, cand.url, cand.source, cand.body, "200")
+                results.append(self._result(cand, item["score"], cand.body, 200, t0, False, cid))
+                continue
             cached = self.cache.get(uh, qh)
             if cached is not None:
                 results.append(self._result(cand, item["score"], cached["markdown"],
@@ -198,6 +204,10 @@ class Searcher:
             fetched = await fetch_many(to_fetch, concurrency=max(4, k), stats=self.stats,
                                        fetcher=fetcher, budget_ms=remaining,
                                        min_one=bool(self.page_budget_ms))
+            if not fetched and self.page_budget_ms:
+                # A budget must not turn ranked candidates into an empty answer.
+                fetched = await fetch_many(list(pending)[:1], concurrency=1,
+                                           stats=self.stats, fetcher=fetcher)
             for url, fr in fetched.items():
                 cand, score, cid = pending[url]
                 uh = sha16(url)
