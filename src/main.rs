@@ -7,6 +7,7 @@ mod planner;
 mod ranker;
 mod scout;
 mod search;
+mod server;
 mod text;
 
 use std::io::Read;
@@ -16,11 +17,7 @@ use std::sync::{Arc, LazyLock};
 
 use regex::Regex;
 
-use axum::extract::{Query, State};
-use axum::routing::{get, post};
-use axum::{Json, Router};
 use flate2::read::DeflateDecoder;
-use serde::Deserialize;
 use serde_json::{Value, json};
 use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
 use tokio::sync::Mutex as AsyncMutex;
@@ -35,31 +32,9 @@ use crate::measure::{
 use crate::planner::{load_registry, load_tranco};
 use crate::scout::{SourceTrustStore, scout_domain};
 use crate::search::{SearchConfig, Searcher};
+use crate::server::{AppState, ServerConfig, env_num};
 
 const MCP_INSTRUCTIONS: &str = "Kriko Magnet searches a curated registry of high-value review, complaint, recall and repair sites (plus general reference fallback) without a search-engine provider, then extracts the page text politely (honest user agent, robots.txt, >=1s per host). Use magnet_search for product/buying questions or general lookups; use magnet_fetch to read one page (robots-disallowed URLs are refused); use magnet_health when results look empty or stale.";
-
-#[derive(Deserialize)]
-struct HttpSearchReq {
-    query: String,
-    #[serde(default = "default_k")]
-    k: usize,
-    #[serde(default = "default_true")]
-    fetch: bool,
-    budget_ms: Option<u64>,
-}
-
-fn default_k() -> usize {
-    3
-}
-fn default_true() -> bool {
-    true
-}
-
-#[derive(Deserialize)]
-struct HealthParams {
-    #[serde(default)]
-    probe: bool,
-}
 
 #[tokio::main]
 async fn main() {
@@ -203,8 +178,8 @@ async fn cmd_serve(args: &[String]) -> Result<i32, String> {
         .and_then(|s| s.parse().ok())
         .unwrap_or(0);
     let (cfg, rest) = parse_search_cfg(args, env_budget)?;
-    let mut host = "127.0.0.1".to_string();
-    let mut port = 8000u16;
+    let mut host = std::env::var("MAGNET_HOST").unwrap_or_else(|_| "127.0.0.1".to_string());
+    let mut port: u16 = env_num("MAGNET_PORT", 8000);
     let mut refresh_mins: f64 = std::env::var("KRIKO_REFRESH_MINUTES")
         .ok()
         .and_then(|s| s.parse().ok())
@@ -246,32 +221,7 @@ async fn cmd_serve(args: &[String]) -> Result<i32, String> {
         });
     }
 
-    let app = Router::new()
-        .route(
-            "/health",
-            get(
-                |State(s): State<Arc<Searcher>>, Query(p): Query<HealthParams>| async move {
-                    Json(s.health(p.probe).await)
-                },
-            ),
-        )
-        .route(
-            "/search",
-            post(
-                |State(s): State<Arc<Searcher>>, Json(req): Json<HttpSearchReq>| async move {
-                    Json(s.search(&req.query, req.k, req.fetch, req.budget_ms).await)
-                },
-            ),
-        )
-        .route(
-            "/cache/clear-queries",
-            post(|State(s): State<Arc<Searcher>>| async move {
-                s.cache.clear_queries();
-                Json(json!({ "ok": true }))
-            }),
-        )
-        .with_state(searcher);
-
+    let server_cfg = ServerConfig::from_env();
     let addr = format!("{host}:{port}");
     let listener = tokio::net::TcpListener::bind(&addr)
         .await
@@ -279,10 +229,11 @@ async fn cmd_serve(args: &[String]) -> Result<i32, String> {
     let bound = listener
         .local_addr()
         .map_err(|e| format!("local_addr: {e}"))?;
+    if !bound.ip().is_loopback() && server_cfg.api_token.is_none() {
+        eprintln!("warning: listening on {bound} without MAGNET_API_TOKEN; /search is open");
+    }
     eprintln!("magnet listening on http://{bound}");
-    axum::serve(listener, app)
-        .await
-        .map_err(|e| format!("serve: {e}"))?;
+    server::run(listener, AppState::new(searcher, server_cfg)).await?;
     Ok(0)
 }
 

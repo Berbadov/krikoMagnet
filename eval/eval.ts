@@ -203,10 +203,17 @@ async function startServer(
     args.push("--index", indexPath);
   }
 
+  const adminToken = crypto.randomUUID();
   const proc = Bun.spawn([bin, ...args], {
     cwd: ROOT,
     stdout: "ignore",
     stderr: "pipe",
+    env: {
+      ...process.env,
+      MAGNET_API_TOKEN: "",
+      MAGNET_ADMIN_TOKEN: adminToken,
+      MAGNET_RATE_PER_MIN: "0",
+    },
   });
 
   const reader = proc.stderr.getReader();
@@ -236,6 +243,11 @@ async function startServer(
   })();
   return {
     baseUrl,
+    clearQueries: () =>
+      fetch(`${baseUrl}/cache/clear-queries`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${adminToken}` },
+      }),
     stop: async () => {
       proc.kill();
       await proc.exited;
@@ -661,7 +673,7 @@ async function main() {
         const srv = await startServer(bin, join(tmp, "pipe.sqlite"), join(tmp, "fetch.sqlite"), budgetMs, indexPath);
         try {
           allRows.magnet = await runMagnetPass(srv.baseUrl, queries, k, false);
-          await fetch(`${srv.baseUrl}/cache/clear-queries`, { method: "POST" });
+          await srv.clearQueries();
           allRows.magnet_warm_fetch = await runMagnetPass(srv.baseUrl, queries, k, false);
           allRows.magnet_warm_cache = await runMagnetPass(srv.baseUrl, queries, k, false);
         } finally {
@@ -724,7 +736,7 @@ async function main() {
     const coldRows = await runMagnetPass(srv.baseUrl, queries, k, true);
     const cold = summarize(coldRows, "cold");
 
-    await fetch(`${srv.baseUrl}/cache/clear-queries`, { method: "POST" });
+    await srv.clearQueries();
     console.log("\nWARM-FETCH, COLD-QUERY RUN");
     const warmFetchRows = await runMagnetPass(srv.baseUrl, queries, k, false);
     const warmFetch = summarize(warmFetchRows, "warm_fetch");
