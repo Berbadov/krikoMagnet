@@ -14,6 +14,7 @@ use serde_json::json;
 use sha2::{Digest, Sha256};
 use tokio::net::TcpListener;
 
+use crate::env_num;
 use crate::search::Searcher;
 
 const MAX_QUERY_CHARS: usize = 512;
@@ -34,13 +35,6 @@ fn env_token(key: &str) -> Option<String> {
         .ok()
         .map(|s| s.trim().to_string())
         .filter(|s| !s.is_empty())
-}
-
-pub fn env_num<T: std::str::FromStr>(key: &str, default: T) -> T {
-    std::env::var(key)
-        .ok()
-        .and_then(|s| s.trim().parse().ok())
-        .unwrap_or(default)
 }
 
 impl ServerConfig {

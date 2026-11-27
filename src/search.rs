@@ -42,7 +42,8 @@ impl PipelineCache {
         }
         let conn = Connection::open(path).map_err(|e| format!("open pipeline cache: {e}"))?;
         conn.execute_batch(
-            "PRAGMA journal_mode=WAL;
+            "PRAGMA auto_vacuum=INCREMENTAL;
+             PRAGMA journal_mode=WAL;
              PRAGMA busy_timeout=30000;
              CREATE TABLE IF NOT EXISTS cache(
                  url_hash TEXT, query_hash TEXT, url TEXT, domain TEXT,
@@ -124,6 +125,81 @@ impl PipelineCache {
         let conn = self.conn.lock().unwrap();
         let _ = conn.execute("DELETE FROM qcache", []);
     }
+
+    pub fn prune(&self, vacuum: bool) -> (usize, usize) {
+        let now = now_epoch();
+        let conn = self.conn.lock().unwrap();
+        let queries = conn
+            .execute(
+                "DELETE FROM qcache WHERE cached_at < ?1",
+                params![now - self.query_ttl],
+            )
+            .unwrap_or(0);
+        let pages = conn
+            .execute(
+                "DELETE FROM cache WHERE fetched_at < ?1",
+                params![now - self.content_ttl],
+            )
+            .unwrap_or(0);
+        let compact = if vacuum {
+            "VACUUM; PRAGMA wal_checkpoint(TRUNCATE);"
+        } else {
+            "PRAGMA incremental_vacuum; PRAGMA wal_checkpoint(TRUNCATE);"
+        };
+        let _ = conn.execute_batch(compact);
+        (queries, pages)
+    }
+}
+
+#[derive(Clone, Copy)]
+pub struct PruneConfig {
+    pub fetch_max_age_s: f64,
+    pub fetch_max_bytes: u64,
+    pub interval_mins: f64,
+}
+
+impl PruneConfig {
+    pub fn from_env() -> Self {
+        Self {
+            fetch_max_age_s: crate::env_num("MAGNET_FETCH_CACHE_TTL_HOURS", 168.0) * 3600.0,
+            fetch_max_bytes: crate::env_num("MAGNET_FETCH_CACHE_MAX_MB", 512u64) * 1024 * 1024,
+            interval_mins: crate::env_num("MAGNET_PRUNE_MINS", 60.0),
+        }
+    }
+}
+
+pub fn prune_storage(
+    fetcher: &Fetcher,
+    cache: &PipelineCache,
+    cfg: &PruneConfig,
+    vacuum: bool,
+) -> Value {
+    let t0 = Instant::now();
+    let fetch = fetcher.prune(cfg.fetch_max_age_s, cfg.fetch_max_bytes, vacuum);
+    let (queries, pages) = cache.prune(vacuum);
+    json!({
+        "event": "prune",
+        "fetch_cache": fetch,
+        "query_cache_expired": queries,
+        "content_cache_expired": pages,
+        "ms": t0.elapsed().as_millis() as u64,
+    })
+}
+
+pub fn spawn_pruner(searcher: Arc<Searcher>, cfg: PruneConfig) {
+    tokio::spawn(async move {
+        loop {
+            let s = searcher.clone();
+            let run = move || prune_storage(&s.fetcher, &s.cache, &cfg, false);
+            if let Ok(report) = tokio::task::spawn_blocking(run).await {
+                eprintln!("{report}");
+            }
+            if cfg.interval_mins <= 0.0 {
+                break;
+            }
+            tokio::time::sleep(Duration::from_secs_f64(cfg.interval_mins * 60.0)).await;
+        }
+    });
 }
 
 pub struct SearchConfig {
@@ -805,6 +881,77 @@ mod tests {
         cache.clear_queries();
         assert!(cache.get_query("q1").is_none());
         assert!(cache.get_content("u1", "q1").is_some());
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn prune_expires_and_caps_fetch_and_pipeline_caches() {
+        let dir = std::env::temp_dir().join(format!("magnet-prune-{}", rand::random::<u64>()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let fetch_db = dir.join("fetch.sqlite");
+        Connection::open(&fetch_db)
+            .unwrap()
+            .execute_batch(
+                "CREATE TABLE http_cache(url TEXT PRIMARY KEY, status INTEGER, headers TEXT, body BLOB, fetched_at REAL);",
+            )
+            .unwrap();
+        let fetcher = Fetcher::open(&fetch_db).unwrap();
+        let cache = PipelineCache::open(&dir.join("pipe.sqlite")).unwrap();
+        let now = now_epoch();
+        {
+            let conn = Connection::open(&fetch_db).unwrap();
+            for (i, age_h) in [0.0, 1.0, 2.0, 500.0].iter().enumerate() {
+                conn.execute(
+                    "INSERT INTO http_cache VALUES (?1, 200, '{}', ?2, ?3)",
+                    params![
+                        format!("https://e.test/{i}"),
+                        vec![0u8; 1000],
+                        now - age_h * 3600.0
+                    ],
+                )
+                .unwrap();
+            }
+        }
+        cache.set_query("fresh", "{}");
+        cache.set_query("old", "{}");
+        cache.set_content("u", "old", "https://e.test/x", "e.test", "md", "200");
+        {
+            let conn = cache.conn.lock().unwrap();
+            conn.execute(
+                "UPDATE qcache SET cached_at = 0 WHERE query_hash = 'old'",
+                [],
+            )
+            .unwrap();
+            conn.execute("UPDATE cache SET fetched_at = 0", []).unwrap();
+        }
+
+        let cfg = PruneConfig {
+            fetch_max_age_s: 168.0 * 3600.0,
+            fetch_max_bytes: 2500,
+            interval_mins: 0.0,
+        };
+        let report = prune_storage(&fetcher, &cache, &cfg, true);
+        assert_eq!(report["fetch_cache"]["expired"], 1);
+        assert_eq!(report["fetch_cache"]["evicted"], 1);
+        assert_eq!(report["fetch_cache"]["stored_bytes"], 2004);
+        assert_eq!(report["query_cache_expired"], 1);
+        assert_eq!(report["content_cache_expired"], 1);
+        assert!(cache.get_query("fresh").is_some());
+
+        let conn = Connection::open(&fetch_db).unwrap();
+        let mut stmt = conn
+            .prepare("SELECT url FROM http_cache ORDER BY url")
+            .unwrap();
+        let left: Vec<String> = stmt
+            .query_map([], |r| r.get(0))
+            .unwrap()
+            .flatten()
+            .collect();
+        assert_eq!(left, vec!["https://e.test/0", "https://e.test/1"]);
+        let mode: i64 = conn
+            .query_row("PRAGMA auto_vacuum", [], |r| r.get(0))
+            .unwrap();
+        assert_eq!(mode, 2, "vacuum should switch legacy caches to incremental");
         let _ = std::fs::remove_dir_all(&dir);
     }
 }

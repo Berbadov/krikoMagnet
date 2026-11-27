@@ -31,8 +31,10 @@ use crate::measure::{
 };
 use crate::planner::{load_registry, load_tranco};
 use crate::scout::{SourceTrustStore, scout_domain};
-use crate::search::{SearchConfig, Searcher};
-use crate::server::{AppState, ServerConfig, env_num};
+use crate::search::{
+    PipelineCache, PruneConfig, SearchConfig, Searcher, prune_storage, spawn_pruner,
+};
+use crate::server::{AppState, ServerConfig};
 
 const MCP_INSTRUCTIONS: &str = "Kriko Magnet searches a curated registry of high-value review, complaint, recall and repair sites (plus general reference fallback) without a search-engine provider, then extracts the page text politely (honest user agent, robots.txt, >=1s per host). Use magnet_search for product/buying questions or general lookups; use magnet_fetch to read one page (robots-disallowed URLs are refused); use magnet_health when results look empty or stale.";
 
@@ -47,6 +49,13 @@ async fn main() {
         }
     };
     std::process::exit(code);
+}
+
+fn env_num<T: std::str::FromStr>(key: &str, default: T) -> T {
+    std::env::var(key)
+        .ok()
+        .and_then(|s| s.trim().parse().ok())
+        .unwrap_or(default)
 }
 
 fn next_val(args: &[String], i: &mut usize, flag: &str) -> Result<String, String> {
@@ -110,6 +119,7 @@ async fn run_cli(args: &[String]) -> Result<i32, String> {
         "measure" => cmd_measure(tail).await,
         "scout" => cmd_scout(tail).await,
         "tranco" => cmd_tranco().await,
+        "prune" => cmd_prune(tail),
         _ => Err(format!("unknown subcommand '{cmd}' (run --help)")),
     }
 }
@@ -127,8 +137,25 @@ fn print_usage() {
            magnet calibrate [--fetch-cache PATH] [--out PATH]\n  \
            magnet measure <url...> [--baseline PATH]\n  \
            magnet scout <domain...> [--file PATH] [--sample 8] [--promote] [--index] [--json]\n  \
-           magnet tranco"
+           magnet tranco\n  \
+           magnet prune [--vacuum] [--cache PATH] [--fetch-cache PATH]"
     );
+}
+
+fn cmd_prune(args: &[String]) -> Result<i32, String> {
+    let (cfg, rest) = parse_search_cfg(args, 0)?;
+    let mut vacuum = false;
+    for a in &rest {
+        match a.as_str() {
+            "--vacuum" => vacuum = true,
+            s => return Err(format!("unknown flag {s}")),
+        }
+    }
+    let fetcher = Fetcher::open(&cfg.fetch_cache_path)?;
+    let cache = PipelineCache::open(&cfg.cache_path)?;
+    let report = prune_storage(&fetcher, &cache, &PruneConfig::from_env(), vacuum);
+    println!("{}", serde_json::to_string_pretty(&report).unwrap());
+    Ok(0)
 }
 
 async fn cmd_search(args: &[String]) -> Result<i32, String> {
@@ -206,6 +233,7 @@ async fn cmd_serve(args: &[String]) -> Result<i32, String> {
     let reg_path = cfg.registry_path.clone();
     let idx_path = cfg.index_path.clone();
     let searcher = Arc::new(Searcher::open(cfg)?);
+    spawn_pruner(searcher.clone(), PruneConfig::from_env());
 
     if refresh_mins > 0.0
         && let Some(db) = idx_path
@@ -598,6 +626,7 @@ fn unzip_first_entry(zip: &[u8]) -> Result<String, String> {
 async fn cmd_mcp(args: &[String]) -> Result<i32, String> {
     let (cfg, _) = parse_search_cfg(args, 15_000)?;
     let searcher = Arc::new(Searcher::open(cfg)?);
+    spawn_pruner(searcher.clone(), PruneConfig::from_env());
     let search_lock = Arc::new(AsyncMutex::new(()));
     let mut lines = BufReader::new(tokio::io::stdin()).lines();
     let mut stdout = tokio::io::stdout();

@@ -188,6 +188,14 @@ impl FetchStats {
     }
 }
 
+#[derive(Debug, serde::Serialize)]
+pub struct FetchPruneReport {
+    pub expired: usize,
+    pub evicted: usize,
+    pub robots: usize,
+    pub stored_bytes: u64,
+}
+
 #[derive(Clone, Debug)]
 pub struct FetchResult {
     pub final_url: String,
@@ -360,7 +368,8 @@ impl Fetcher {
         }
         let conn = Connection::open(cache_path).map_err(|e| format!("open fetch cache: {e}"))?;
         conn.execute_batch(
-            "PRAGMA journal_mode=WAL;
+            "PRAGMA auto_vacuum=INCREMENTAL;
+             PRAGMA journal_mode=WAL;
              PRAGMA busy_timeout=30000;
              CREATE TABLE IF NOT EXISTS http_cache(
                  url TEXT PRIMARY KEY, status INTEGER, headers TEXT, body BLOB, fetched_at REAL);
@@ -384,6 +393,56 @@ impl Fetcher {
 
     pub fn default_cache_path() -> PathBuf {
         PathBuf::from("data").join("fetch_cache.sqlite")
+    }
+
+    pub fn prune(&self, max_age_s: f64, max_bytes: u64, vacuum: bool) -> FetchPruneReport {
+        let now = now_epoch();
+        let conn = self.conn.lock().unwrap();
+        let expired = conn
+            .execute(
+                "DELETE FROM http_cache WHERE fetched_at < ?1",
+                params![now - max_age_s],
+            )
+            .unwrap_or(0);
+        let robots = conn
+            .execute(
+                "DELETE FROM robots WHERE fetched_at < ?1",
+                params![now - self.robots_ttl],
+            )
+            .unwrap_or(0);
+        let evicted = if max_bytes > 0 {
+            conn.execute(
+                "DELETE FROM http_cache WHERE url IN (
+                     SELECT url FROM (
+                         SELECT url, SUM(length(body) + length(headers))
+                             OVER (ORDER BY fetched_at DESC, url) AS running
+                         FROM http_cache)
+                     WHERE running > ?1)",
+                params![max_bytes as i64],
+            )
+            .unwrap_or(0)
+        } else {
+            0
+        };
+        let stored_bytes: i64 = conn
+            .query_row(
+                "SELECT COALESCE(SUM(length(body) + length(headers)), 0) FROM http_cache",
+                [],
+                |r| r.get(0),
+            )
+            .unwrap_or(0);
+        let compact = if vacuum {
+            "VACUUM; PRAGMA wal_checkpoint(TRUNCATE);"
+        } else {
+            "PRAGMA incremental_vacuum; PRAGMA wal_checkpoint(TRUNCATE);"
+        };
+        let _ = conn.execute_batch(compact);
+        FetchPruneReport {
+            expired,
+            evicted,
+            robots,
+            stored_bytes: stored_bytes.max(0) as u64,
+        }
     }
 
     fn cache_get(
