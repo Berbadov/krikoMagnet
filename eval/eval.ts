@@ -43,10 +43,33 @@ type EvalRow = {
   median_chars: number;
   error?: string;
   cost_usd: number;
+  sufficient?: boolean;
+};
+
+type OpenQrel = {
+  id: string;
+  query: string;
+  url: string;
+  grade: number;
+  lang?: string;
+  clean200?: boolean;
+};
+
+type OpenScore = {
+  id: string;
+  judged_rate: number;
+  hit1: number;
+  hit5: number;
+  mrr: number;
+  ndcg: number;
+  ndcg_clean: number;
+  lang_match: number;
+  clean200: number;
 };
 
 const ROOT = resolve(import.meta.dir, "..");
 const QUERIES_PATH = join(import.meta.dir, "queries.jsonl");
+const OPEN_QRELS_PATH = join(import.meta.dir, "open_qrels.jsonl");
 const DEFAULT_BIN = join(
   ROOT,
   "target",
@@ -56,7 +79,7 @@ const DEFAULT_BIN = join(
 const DEEPSEEK_URL = "https://api.deepseek.com/v1/tools/search";
 const LINKUP_URL = "https://api.linkup.so/v1/search";
 const DEEPSEEK_COST = 0.75 / 1000;
-const LINKUP_COST = 0.006;
+const LINKUP_COST = 0.005;
 
 const OPEN_DOMAIN_QUERIES = [
   "kolmogorov complexity",
@@ -278,6 +301,115 @@ function scoreResults(q: QueryRow, urls: string[], k: number) {
   };
 }
 
+async function loadOpenQrels(): Promise<Map<string, Map<string, OpenQrel>>> {
+  const byQuery = new Map<string, Map<string, OpenQrel>>();
+  const txt = await Bun.file(OPEN_QRELS_PATH).text();
+  for (const line of txt.split(/\r?\n/)) {
+    if (!line.trim()) continue;
+    const q = JSON.parse(line) as OpenQrel;
+    const key = normalizeUrl(q.url);
+    if (!byQuery.has(q.id)) byQuery.set(q.id, new Map());
+    const m = byQuery.get(q.id)!;
+    const prev = m.get(key);
+    if (!prev || q.grade > prev.grade) m.set(key, q);
+  }
+  return byQuery;
+}
+
+/** Pooled graded relevance: gain is 2^grade - 1, unjudged URLs count as grade 0, repeated canonical
+ * URLs in the top-k earn nothing, and nDCG@k is normalised by the ideal ordering of every pooled
+ * grade for the query (only clean HTTP-200 grades for the Clean200 variant). */
+function scoreOpen(
+  row: EvalRow,
+  qrels: Map<string, Map<string, OpenQrel>>,
+  k: number,
+): OpenScore | null {
+  const pool = qrels.get(row.id);
+  if (!pool) return null;
+  const seen = new Set<string>();
+  const top = row.urls.slice(0, k).map((u) => {
+    const key = normalizeUrl(u);
+    const dup = seen.has(key);
+    seen.add(key);
+    return dup ? undefined : pool.get(key);
+  });
+  const gains = top.map((q) => q?.grade ?? 0);
+  const dcg = (gs: number[]) => gs.reduce((a, g, i) => a + (2 ** g - 1) / Math.log2(i + 2), 0);
+  const idealOf = (qs: OpenQrel[]) => dcg(qs.map((q) => q.grade).sort((a, b) => b - a).slice(0, k));
+  const ideal = idealOf([...pool.values()]);
+  const idealClean = idealOf([...pool.values()].filter((q) => q.clean200));
+  const judged = top.filter(Boolean) as OpenQrel[];
+  const lang = row.language;
+  const firstTwo = gains.findIndex((g) => g === 2);
+  return {
+    id: row.id,
+    judged_rate: top.length ? judged.length / top.length : 0,
+    hit1: gains[0] === 2 ? 1 : 0,
+    hit5: firstTwo >= 0 ? 1 : 0,
+    mrr: firstTwo >= 0 ? 1 / (firstTwo + 1) : 0,
+    ndcg: ideal ? dcg(gains) / ideal : 0,
+    ndcg_clean: idealClean ? dcg(top.map((q) => (q?.clean200 ? q.grade : 0))) / idealClean : 0,
+    lang_match: judged.length ? judged.filter((q) => q.lang === lang).length / judged.length : 0,
+    clean200: judged.length ? judged.filter((q) => q.clean200).length / judged.length : 0,
+  };
+}
+
+function openWebMarkdown(rowsByLabel: Record<string, EvalRow[]>, qrels: Map<string, Map<string, OpenQrel>>, k: number): string {
+  const lines = [
+    "### Blind Open-Web Pooled Relevance (eval/open_qrels.jsonl)",
+    "| Provider | N | Judged slots | Hit@1 (2) | Hit@5 (2, 95% CI) | MRR@5 | Pooled nDCG@5 (95% CI) | Clean200 nDCG@5 | Lang-Match | Clean HTTP-200 |",
+    "|---|---:|---:|---:|---|---:|---|---:|---:|---:|",
+  ];
+  for (const [label, rows] of Object.entries(rowsByLabel)) {
+    const scores = rows.map((r) => scoreOpen(r, qrels, k)).filter((s): s is OpenScore => s !== null);
+    if (!scores.length) continue;
+    const col = (f: (s: OpenScore) => number) => scores.map(f);
+    lines.push(
+      `| ${label} | ${scores.length} | ${(mean(col((s) => s.judged_rate)) * 100).toFixed(1)}% | ${(mean(col((s) => s.hit1)) * 100).toFixed(1)}% | ${formatCI(mean(col((s) => s.hit5)), bootstrapCI(col((s) => s.hit5)), true)} | ${mean(col((s) => s.mrr)).toFixed(3)} | ${formatCI(mean(col((s) => s.ndcg)), bootstrapCI(col((s) => s.ndcg)))} | ${mean(col((s) => s.ndcg_clean)).toFixed(3)} | ${(mean(col((s) => s.lang_match)) * 100).toFixed(1)}% | ${(mean(col((s) => s.clean200)) * 100).toFixed(1)}% |`,
+    );
+  }
+  lines.push("", "Unjudged URLs count as grade 0; a low judged-slot share means the run drifted from the pool.");
+  return lines.join("\n");
+}
+
+function sufficiencyMarkdown(rows: EvalRow[], queries: QueryRow[], qrels: Map<string, Map<string, OpenQrel>>, k: number): string {
+  const qById = new Map(queries.map((q) => [q.id, q]));
+  const cells = { tp: 0, fp: 0, fn: 0, tn: 0 };
+  for (const r of rows) {
+    if (r.sufficient === undefined) continue;
+    const closed = new Set((qById.get(r.id)?.relevant ?? []).map(normalizeUrl));
+    const pool = qrels.get(r.id);
+    if (!closed.size && !pool) continue;
+    const good = r.urls.slice(0, k).some((u) => closed.has(normalizeUrl(u)) || pool?.get(normalizeUrl(u))?.grade === 2);
+    if (r.sufficient && good) cells.tp++;
+    else if (r.sufficient) cells.fp++;
+    else if (good) cells.fn++;
+    else cells.tn++;
+  }
+  const n = cells.tp + cells.fp + cells.fn + cells.tn;
+  if (!n) return "";
+  return [
+    `### Sufficiency vs Qrels (${n} queries, good = a top-${k} URL is closed-relevant or open grade 2)`,
+    "| | good | not good |",
+    "|---|---:|---:|",
+    `| sufficient | ${cells.tp} | ${cells.fp} |`,
+    `| insufficient | ${cells.fn} | ${cells.tn} |`,
+  ].join("\n");
+}
+
+async function gradeSavedRun(path: string, k: number) {
+  const saved = JSON.parse(await Bun.file(path).text());
+  const rowsByLabel: Record<string, EvalRow[]> = saved.rows ?? { cold: saved.cold ?? [] };
+  const qrels = await loadOpenQrels();
+  const queries = await loadQueries(0);
+  const md = [openWebMarkdown(rowsByLabel, qrels, saved.k ?? k)];
+  for (const [label, rows] of Object.entries(rowsByLabel)) {
+    const s = sufficiencyMarkdown(rows, queries, qrels, saved.k ?? k);
+    if (s) md.push("", `#### ${label}`, s);
+  }
+  console.log(md.join("\n"));
+}
+
 async function runMagnetPass(
   baseUrl: string,
   queries: QueryRow[],
@@ -336,6 +468,7 @@ async function runMagnetPass(
       median_chars: median(okLens),
       error,
       cost_usd: 0,
+      sufficient: typeof payload?.sufficient === "boolean" ? payload.sufficient : undefined,
     };
     rows.push(row);
     if (verbose) {
@@ -647,6 +780,10 @@ async function main() {
   const opts = parseArgs(Bun.argv.slice(2));
   const k = Number(opts.k ?? 5);
   const limit = Number(opts.limit ?? 0);
+  if (opts["grade-open"]) {
+    await gradeSavedRun(String(opts["grade-open"]), k);
+    return;
+  }
   const bin = String(opts.bin ?? DEFAULT_BIN);
   if (!existsSync(bin)) {
     throw new Error(`binary not found: ${bin} (run: cargo build --release)`);
@@ -706,7 +843,10 @@ async function main() {
       if (allRows.deepseek) lines.push(pairedComparisonMarkdown("magnet", allRows.magnet, "deepseek", allRows.deepseek));
       if (allRows.linkup) lines.push(pairedComparisonMarkdown("magnet", allRows.magnet, "linkup", allRows.linkup));
     }
+    const qrels = await loadOpenQrels();
+    lines.push("", openWebMarkdown(allRows, qrels, k));
     if (allRows.magnet) {
+      lines.push("", sufficiencyMarkdown(allRows.magnet, queries, qrels, k));
       lines.push("", stratifiedMarkdown(allRows.magnet, queries));
     }
     const md = lines.join("\n");
@@ -747,6 +887,7 @@ async function main() {
     const warm = summarize(warmRows, "warm");
 
     const subs = proMode ? await runSubsystems(bin, srv.baseUrl, queries, indexPath) : null;
+    const qrels = await loadOpenQrels();
 
     const mdLines = [
       "| Metric | Value |",
@@ -762,6 +903,10 @@ async function main() {
       `| Extraction (median chars / <300 short rate) | ${cold.median_chars.toFixed(0)} chars / ${(cold.short_extraction_rate * 100).toFixed(1)}% |`,
       `| Fetches / query & mean KB (cold) | ${cold.fetches_mean.toFixed(1)} fetches (total ${cold.fetches_total}), ${cold.kb_mean.toFixed(0)} KB/q |`,
       `| Robots skips / block rate / cost | ${cold.robots_skips} / ${(cold.block_rate * 100).toFixed(1)}% / $${cold.cost_usd.toFixed(4)} |`,
+      "",
+      openWebMarkdown({ cold: coldRows, warm_fetch: warmFetchRows }, qrels, k),
+      "",
+      sufficiencyMarkdown(coldRows, queries, qrels, k),
       "",
       stratifiedMarkdown(coldRows, queries),
     ];
@@ -802,7 +947,10 @@ async function main() {
       for (const m of misses) console.log(`  ${m.id} ${m.query} -> ${m.urls.slice(0, 3).join(", ")}`);
     }
     if (opts.json) {
-      await Bun.write(String(opts.json), JSON.stringify({ summary: { cold, warmFetch, warm }, cold: coldRows, subsystems: subs }, null, 1));
+      await Bun.write(
+        String(opts.json),
+        JSON.stringify({ k, summary: { cold, warmFetch, warm }, rows: { cold: coldRows, warm_fetch: warmFetchRows }, subsystems: subs }, null, 1),
+      );
     }
     if (opts.markdown) await Bun.write(String(opts.markdown), `# Kriko Magnet Benchmark Report\n\n${md}\n`);
   } finally {

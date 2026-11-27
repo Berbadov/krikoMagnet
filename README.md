@@ -138,7 +138,7 @@ warm fetch cache -> warm query cache):
 
 ### Head-to-Head Provider Benchmark (`--providers all --limit 50`, `budget=15s`)
 
-Run live on the first `50` queries (`49` judged; `$0.34` total API spend for
+Run live on the first `50` queries (`49` judged; `$0.29` total API spend for
 DeepSeek + Linkup, `$0.00` for Magnet).
 
 #### Blind Open-Web Pooled Relevance (Domain-Agnostic & Language-Agnostic)
@@ -155,12 +155,30 @@ archived in [eval/open_qrels.jsonl](eval/open_qrels.jsonl)). Canonical URL
 fragments (`#1`, `#3`) are deduplicated within top-5 and normalized against the
 shared pooled ideal `IDCG@5`.
 
+Every `eval/eval.ts` run now prints this table for its Magnet passes (and for
+DeepSeek/Linkup when they run), and `--grade-open` grades a saved `--json` run
+offline with no network or keys:
+
+```bash
+bun run eval/eval.ts --providers magnet --limit 50 --budget-ms 15000 --json run.json
+bun run eval/eval.ts --grade-open run.json
+```
+
+Gain is `2^grade − 1`; unjudged URLs count as `0`, and the table reports the
+judged-slot share so drift from the pool is visible. Grading the cached
+`magnet_warm_fetch` payloads this way reproduces the row below exactly except
+nDCG@5 `0.640` / Clean200 `0.654` (vs `0.643` / `0.656`). The original
+DeepSeek/Linkup run files were not saved, so those rows can only be regenerated
+by re-running them with `DEEPSEEK_API_KEY` / `LINKUP_API_KEY`
+(`--providers all --limit 50`, about `$0.29`). Linkup is priced at `$0.005`
+per `searchResults` call; the figures below were corrected from `$0.006`.
+
 | Provider | Hit@1 (`2`) | Hit@5 (`2`, 95% CI) | MRR@5 | Pooled nDCG@5 (95% CI) | Clean200 nDCG@5 | Lang-Match | Clean HTTP-200 | p50 / p95 (ms) | Cost (`/1k`) |
 |---|---:|---|---:|---|---|---|---|---|---:|
 | **`magnet` (cold, 15s)** | `81.6%` | `91.8% [83.7–98.0%]` | `0.859` | `0.594 [0.534–0.660]` | `0.603` | `84.8%` | `100.0%` | `7930 / 15059` | `$0.00` |
 | **`magnet_warm_fetch`** | **`85.7%`** | **`98.0% [93.9–100.0%]`** | **`0.905`** | `0.643 [0.593–0.696]` | **`0.656`** | `84.7%` | **`100.0%`** | `457 / 12052` | `$0.00` |
 | **`deepseek`** | `65.3%` | `85.7% [75.5–95.9%]` | `0.730` | **`0.662 [0.592–0.732]`** | `0.594` | `61.6%` | `75.1%` | **`664 / 1015`** | `$0.75` |
-| **`linkup`** | `42.9%` | `81.6% [69.4–91.8%]` | `0.584` | `0.592 [0.518–0.666]` | `0.435` | **`89.8%`** | `65.7%` | `1632 / 2115` | `$6.00` |
+| **`linkup`** | `42.9%` | `81.6% [69.4–91.8%]` | `0.584` | `0.592 [0.518–0.666]` | `0.435` | **`89.8%`** | `65.7%` | `1632 / 2115` | `$5.00` |
 
 - `magnet_warm_cache` serves identical rankings at `1 ms` p50 / `10 ms` p95 (`459.9 QPS`, `$0.00/1k`).
 - **Paired Win / Tie / Loss (`49` judged, strict pooled `nDCG@5`):** `magnet_warm_fetch` vs `deepseek` = `21 / 1 / 27` (statistically tied inside overlapping CIs; `24 / 1 / 24` on `Clean HTTP-200 nDCG@5`); `magnet_warm_fetch` vs `linkup` = `28 / 0 / 21` (`34 / 2 / 13` on `Clean HTTP-200`).
@@ -179,7 +197,7 @@ Strictly measures exact URL recovery inside Magnet's `21` curated domains:
 | **`magnet_warm_fetch`** | `61.2%` | `91.8% [83.7–98.0%]` | `0.723` | `0.698 [0.603–0.783]` | `98.0%` | `457 / 12052` | `0.4` | `$0.00` |
 | **`magnet_warm_cache`** | `61.2%` | `91.8% [83.7–98.0%]` | `0.723` | `0.698 [0.603–0.783]` | `98.0%` | `1 / 10` | `459.9` | `$0.00` |
 | **`deepseek`** | `6.1%` | `6.1% [0.0–14.3%]` | `0.061` | `0.053 [0.000–0.119]` | `16.3%` | `664 / 1015` | `1.4` | `$0.75` |
-| **`linkup`** | `4.1%` | `12.2% [4.1–20.4%]` | `0.069` | `0.068 [0.018–0.127]` | `16.3%` | `1632 / 2115` | `0.6` | `$6.00` |
+| **`linkup`** | `4.1%` | `12.2% [4.1–20.4%]` | `0.069` | `0.068 [0.018–0.127]` | `16.3%` | `1632 / 2115` | `0.6` | `$5.00` |
 
 - Under a strict `15 s` cold HTTP timeout in `fetch_many`, aborted page fetches omit those candidates from `results` (`83.7%` closed / `91.8%` open cold vs `91.8%` closed / `98.0%` open once fetched).
 
