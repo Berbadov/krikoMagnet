@@ -2,7 +2,7 @@ use std::collections::{HashMap, HashSet};
 use std::sync::{Mutex, OnceLock};
 use std::time::{Duration, Instant};
 
-use chrono::{Datelike, DateTime, Utc};
+use chrono::{DateTime, Datelike, Utc};
 use quick_xml::Reader;
 use quick_xml::events::Event;
 use regex::Regex;
@@ -28,12 +28,57 @@ const SITEMAP_MEMORY_TTL_S: f64 = 3600.0;
 const BODY_CHARS: usize = 4000;
 
 const GENERIC_QUERY_TERMS: &[&str] = &[
-    "recall", "recalls", "review", "reviews", "test", "tests", "best", "problem", "problems",
-    "issue", "issues", "fix", "guide", "price", "buy", "vs", "comparison", "error", "errors",
-    "code", "codes", "fault", "faults", "ariza", "sorun", "service", "servis", "warranty",
-    "garanti", "replace", "replacement", "repair", "teardown", "tamir", "degisim", "yorum",
-    "inceleme", "update", "updates", "and", "or", "the", "of", "for", "with", "about", "related",
-    "information", "explain", "meaning", "definition",
+    "recall",
+    "recalls",
+    "review",
+    "reviews",
+    "test",
+    "tests",
+    "best",
+    "problem",
+    "problems",
+    "issue",
+    "issues",
+    "fix",
+    "guide",
+    "price",
+    "buy",
+    "vs",
+    "comparison",
+    "error",
+    "errors",
+    "code",
+    "codes",
+    "fault",
+    "faults",
+    "ariza",
+    "sorun",
+    "service",
+    "servis",
+    "warranty",
+    "garanti",
+    "replace",
+    "replacement",
+    "repair",
+    "teardown",
+    "tamir",
+    "degisim",
+    "yorum",
+    "inceleme",
+    "update",
+    "updates",
+    "and",
+    "or",
+    "the",
+    "of",
+    "for",
+    "with",
+    "about",
+    "related",
+    "information",
+    "explain",
+    "meaning",
+    "definition",
 ];
 
 const API_GENERIC: &[&str] = &[
@@ -42,26 +87,112 @@ const API_GENERIC: &[&str] = &[
 ];
 
 const PRODUCT_TERMS: &[&str] = &[
-    "dishwasher", "washing", "washer", "dryer", "refrigerator", "fridge", "oven", "vacuum",
-    "boiler", "kombi", "tv", "monitor", "laptop", "phone", "smartphone", "iphone", "ipad",
-    "macbook", "airpods", "treadmill", "telefon", "buzdolabi", "camasir", "bulasik", "firin",
-    "supurge", "araba", "arac", "machine", "makine", "oyuncak",
+    "dishwasher",
+    "washing",
+    "washer",
+    "dryer",
+    "refrigerator",
+    "fridge",
+    "oven",
+    "vacuum",
+    "boiler",
+    "kombi",
+    "tv",
+    "monitor",
+    "laptop",
+    "phone",
+    "smartphone",
+    "iphone",
+    "ipad",
+    "macbook",
+    "airpods",
+    "treadmill",
+    "telefon",
+    "buzdolabi",
+    "camasir",
+    "bulasik",
+    "firin",
+    "supurge",
+    "araba",
+    "arac",
+    "machine",
+    "makine",
+    "oyuncak",
 ];
 
 const BRAND_TERMS: &[&str] = &[
-    "apple", "iphone", "ipad", "macbook", "airpods", "samsung", "lg", "sony", "anker", "dyson",
-    "whirlpool", "bosch", "vaillant", "honda", "toyota", "ford", "tesla", "renault", "xiaomi",
-    "redmi", "google", "pixel", "oneplus", "oppo", "vivo", "hyundai", "kia", "bmw", "mercedes",
-    "audi", "volkswagen", "skoda", "dacia", "peugeot", "citroen", "opel", "fiat", "arcelik",
-    "beko", "philips", "panasonic", "tcl", "hisense", "miele", "siemens", "zanussi", "insignia",
-    "maytag", "kitchenaid", "ryzen", "nvidia", "amd", "intel", "sonos", "peloton", "steam",
-    "baymak", "demirdokum", "eca", "buderus", "vestel", "altus", "regal", "tefal", "arzum",
-    "fakir", "karaca",
+    "apple",
+    "iphone",
+    "ipad",
+    "macbook",
+    "airpods",
+    "samsung",
+    "lg",
+    "sony",
+    "anker",
+    "dyson",
+    "whirlpool",
+    "bosch",
+    "vaillant",
+    "honda",
+    "toyota",
+    "ford",
+    "tesla",
+    "renault",
+    "xiaomi",
+    "redmi",
+    "google",
+    "pixel",
+    "oneplus",
+    "oppo",
+    "vivo",
+    "hyundai",
+    "kia",
+    "bmw",
+    "mercedes",
+    "audi",
+    "volkswagen",
+    "skoda",
+    "dacia",
+    "peugeot",
+    "citroen",
+    "opel",
+    "fiat",
+    "arcelik",
+    "beko",
+    "philips",
+    "panasonic",
+    "tcl",
+    "hisense",
+    "miele",
+    "siemens",
+    "zanussi",
+    "insignia",
+    "maytag",
+    "kitchenaid",
+    "ryzen",
+    "nvidia",
+    "amd",
+    "intel",
+    "sonos",
+    "peloton",
+    "steam",
+    "baymak",
+    "demirdokum",
+    "eca",
+    "buderus",
+    "vestel",
+    "altus",
+    "regal",
+    "tefal",
+    "arzum",
+    "fakir",
+    "karaca",
 ];
 
 const MULTI_SUFFIX: &[&str] = &[
-    "co.uk", "com.tr", "gov.tr", "org.tr", "net.tr", "com.au", "co.jp", "co.nz", "com.br",
-    "co.in", "com.mx", "com.sg",
+    "co.uk", "com.tr", "gov.tr", "org.tr", "net.tr", "com.au", "co.jp", "co.nz", "com.br", "co.in",
+    "com.mx", "com.sg",
 ];
 
 #[derive(Clone, Debug)]
@@ -101,8 +232,10 @@ pub struct XmlEntry {
 pub fn is_asset_url(url: &str) -> bool {
     static RE: OnceLock<Regex> = OnceLock::new();
     RE.get_or_init(|| {
-        Regex::new(r"(?i)\.(?:jpe?g|png|gif|webp|svg|ico|css|js|woff2?|ttf|zip|gz|mp4|mp3|pdf)(?:$|\?)")
-            .unwrap()
+        Regex::new(
+            r"(?i)\.(?:jpe?g|png|gif|webp|svg|ico|css|js|woff2?|ttf|zip|gz|mp4|mp3|pdf)(?:$|\?)",
+        )
+        .unwrap()
     })
     .is_match(url)
 }
@@ -207,7 +340,10 @@ pub fn parse_xml(text: &str) -> (String, Vec<XmlEntry>) {
                 }
             }
             Ok(Event::Text(e)) => {
-                if in_item && !cur_tag.is_empty() && let Ok(v) = e.unescape() {
+                if in_item
+                    && !cur_tag.is_empty()
+                    && let Ok(v) = e.unescape()
+                {
                     assign_xml_field(&root_kind, &cur_tag, v.trim(), &mut cur);
                 }
             }
@@ -302,9 +438,14 @@ fn finalize_xml_entry(root_kind: &str, mut cur: XmlEntry, out: &mut Vec<XmlEntry
     }
 }
 
-pub fn select_sitemap_children(entries: &[XmlEntry], method: &Method, limit: usize) -> Vec<XmlEntry> {
+pub fn select_sitemap_children(
+    entries: &[XmlEntry],
+    method: &Method,
+    limit: usize,
+) -> Vec<XmlEntry> {
     static DATE_RE: OnceLock<Regex> = OnceLock::new();
-    let date_re = DATE_RE.get_or_init(|| Regex::new(r"(19\d{2}|20\d{2})[-_](\d{1,2})(?:[^0-9]|$)").unwrap());
+    let date_re =
+        DATE_RE.get_or_init(|| Regex::new(r"(19\d{2}|20\d{2})[-_](\d{1,2})(?:[^0-9]|$)").unwrap());
     let include: Vec<Regex> = method
         .include_children
         .iter()
@@ -350,7 +491,11 @@ fn generic_set() -> &'static HashSet<&'static str> {
     SET.get_or_init(|| GENERIC_QUERY_TERMS.iter().copied().collect())
 }
 
-pub fn score_candidates(query: &str, candidates: Vec<Candidate>, max_results: usize) -> Vec<Candidate> {
+pub fn score_candidates(
+    query: &str,
+    candidates: Vec<Candidate>,
+    max_results: usize,
+) -> Vec<Candidate> {
     if candidates.is_empty() {
         return Vec::new();
     }
@@ -401,7 +546,10 @@ pub fn score_candidates(query: &str, candidates: Vec<Candidate>, max_results: us
     let n = candidates.len() as f64;
     let mut weights: HashMap<&str, f64> = HashMap::new();
     for term in &terms {
-        let df = texts.iter().filter(|toks| toks.contains(term.as_str())).count() as f64;
+        let df = texts
+            .iter()
+            .filter(|toks| toks.contains(term.as_str()))
+            .count() as f64;
         let mut w = if df == 0.0 {
             0.0
         } else {
@@ -501,16 +649,26 @@ pub fn score_candidates(query: &str, candidates: Vec<Candidate>, max_results: us
         if ["repair", "replacement", "replace", "tamir", "degisim"]
             .iter()
             .any(|t| qfold.contains(t))
-            && ["repair", "replacement", "replace", "tamir", "degisim", "guide"]
-                .iter()
-                .any(|t| raw.contains(t))
+            && [
+                "repair",
+                "replacement",
+                "replace",
+                "tamir",
+                "degisim",
+                "guide",
+            ]
+            .iter()
+            .any(|t| raw.contains(t))
         {
             score += 0.15;
         }
         if !numeric_terms.is_empty() && numeric_terms.iter().any(|t| toks.contains(t.as_str())) {
             score += 0.10;
         }
-        if cand.method == "json_search" && cand.snippet.trim().is_empty() && cand.body.trim().is_empty() {
+        if cand.method == "json_search"
+            && cand.snippet.trim().is_empty()
+            && cand.body.trim().is_empty()
+        {
             score = (score - 0.25).max(0.05);
         }
         cand.score = (score * 10000.0).round() / 10000.0;
@@ -518,7 +676,11 @@ pub fn score_candidates(query: &str, candidates: Vec<Candidate>, max_results: us
         scored.push((cand, score, spec_matched.len(), has_model));
     }
 
-    let strict: Vec<_> = scored.iter().filter(|x| x.2 >= min_specific).cloned().collect();
+    let strict: Vec<_> = scored
+        .iter()
+        .filter(|x| x.2 >= min_specific)
+        .cloned()
+        .collect();
     let mut chosen = if !strict.is_empty() {
         strict
     } else if scored.iter().any(|x| x.3)
@@ -532,14 +694,12 @@ pub fn score_candidates(query: &str, candidates: Vec<Candidate>, max_results: us
     };
 
     chosen.sort_by(|a, b| {
-        b.1.total_cmp(&a.1)
-            .then(b.2.cmp(&a.2))
-            .then_with(|| {
-                b.0.published
-                    .as_deref()
-                    .unwrap_or("")
-                    .cmp(a.0.published.as_deref().unwrap_or(""))
-            })
+        b.1.total_cmp(&a.1).then(b.2.cmp(&a.2)).then_with(|| {
+            b.0.published
+                .as_deref()
+                .unwrap_or("")
+                .cmp(a.0.published.as_deref().unwrap_or(""))
+        })
     });
     chosen
         .into_iter()
@@ -704,9 +864,15 @@ fn latest_year(query: &str, candidates: Vec<Candidate>, topics: &[String]) -> Ve
         .filter(|c| {
             let ys = years_of(c);
             if newest >= cur_year - 1 {
-                ys.into_iter().max().map(|y| y >= newest - 1).unwrap_or(false)
+                ys.into_iter()
+                    .max()
+                    .map(|y| y >= newest - 1)
+                    .unwrap_or(false)
             } else {
-                ys.into_iter().max().map(|y| y >= newest - 1).unwrap_or(true)
+                ys.into_iter()
+                    .max()
+                    .map(|y| y >= newest - 1)
+                    .unwrap_or(true)
             }
         })
         .cloned()
@@ -760,7 +926,11 @@ fn dig<'a>(data: &'a Value, path: &str) -> Option<&'a Value> {
 fn scalar_str(v: Option<&Value>) -> String {
     match v {
         Some(Value::String(s)) => s.clone(),
-        Some(Value::Array(arr)) => arr.first().and_then(|x| x.as_str()).unwrap_or("").to_string(),
+        Some(Value::Array(arr)) => arr
+            .first()
+            .and_then(|x| x.as_str())
+            .unwrap_or("")
+            .to_string(),
         Some(Value::Number(n)) => n.to_string(),
         _ => String::new(),
     }
@@ -796,9 +966,10 @@ async fn load_xml(
     }
     let (kind, entries) = parse_xml(&res.text);
     if !kind.is_empty() {
-        mem.lock()
-            .unwrap()
-            .insert(url.to_string(), (Instant::now(), kind.clone(), entries.clone()));
+        mem.lock().unwrap().insert(
+            url.to_string(),
+            (Instant::now(), kind.clone(), entries.clone()),
+        );
     }
     (kind, entries)
 }
@@ -866,7 +1037,11 @@ async fn run_sitemap(
             continue;
         }
         let (kind, items) = load_xml(fetcher, &url, sitemap_mem).await;
-        statuses.push(if kind.is_empty() { "unparsed".into() } else { kind.clone() });
+        statuses.push(if kind.is_empty() {
+            "unparsed".into()
+        } else {
+            kind.clone()
+        });
         if kind == "sitemapindex" {
             let children = select_sitemap_children(&items, method, max_sitemaps);
             for child in children {
@@ -960,7 +1135,12 @@ async fn run_sitemap(
     AdapterOutcome {
         site: site.id.clone(),
         method: "sitemap".into(),
-        status: if ranked.is_empty() { "no-results" } else { "ok" }.into(),
+        status: if ranked.is_empty() {
+            "no-results"
+        } else {
+            "ok"
+        }
+        .into(),
         candidates: ranked,
         fetched,
         error: None,
@@ -1039,14 +1219,24 @@ async fn run_rss(
     AdapterOutcome {
         site: site.id.clone(),
         method: "rss".into(),
-        status: if ranked.is_empty() { "no-results" } else { "ok" }.into(),
+        status: if ranked.is_empty() {
+            "no-results"
+        } else {
+            "ok"
+        }
+        .into(),
         candidates: ranked,
         fetched: 1,
         error: None,
     }
 }
 
-async fn run_search(site: &Site, method: &Method, query: &str, fetcher: &Fetcher) -> AdapterOutcome {
+async fn run_search(
+    site: &Site,
+    method: &Method,
+    query: &str,
+    fetcher: &Fetcher,
+) -> AdapterOutcome {
     let url = method
         .url
         .as_deref()
@@ -1139,7 +1329,12 @@ async fn run_search(site: &Site, method: &Method, query: &str, fetcher: &Fetcher
     AdapterOutcome {
         site: site.id.clone(),
         method: "search".into(),
-        status: if ranked.is_empty() { "no-results" } else { "ok" }.into(),
+        status: if ranked.is_empty() {
+            "no-results"
+        } else {
+            "ok"
+        }
+        .into(),
         candidates: ranked,
         fetched: 1,
         error: None,
@@ -1208,7 +1403,12 @@ async fn run_api(site: &Site, method: &Method, query: &str, fetcher: &Fetcher) -
     AdapterOutcome {
         site: site.id.clone(),
         method: "api".into(),
-        status: if ranked.is_empty() { "no-results" } else { "ok" }.into(),
+        status: if ranked.is_empty() {
+            "no-results"
+        } else {
+            "ok"
+        }
+        .into(),
         candidates: ranked,
         fetched,
         error: None,
@@ -1259,7 +1459,8 @@ async fn run_json_search(
         let Ok(data) = serde_json::from_str::<Value>(&res.text) else {
             continue;
         };
-        let Some(Value::Array(items)) = dig(&data, method.items_path.as_deref().unwrap_or("")) else {
+        let Some(Value::Array(items)) = dig(&data, method.items_path.as_deref().unwrap_or(""))
+        else {
             continue;
         };
         for item in items {
@@ -1275,8 +1476,10 @@ async fn run_json_search(
                 let s = strip_html(&raw_title);
                 if s.is_empty() { unslug(&link) } else { s }
             };
-            let snippet =
-                strip_html(&scalar_str(dig(item, method.snippet.as_deref().unwrap_or("snippet"))));
+            let snippet = strip_html(&scalar_str(dig(
+                item,
+                method.snippet.as_deref().unwrap_or("snippet"),
+            )));
             let body = if let Some(ref bf) = method.body_field {
                 strip_html(&scalar_str(dig(item, bf)))
                     .chars()
@@ -1285,10 +1488,7 @@ async fn run_json_search(
             } else {
                 String::new()
             };
-            let pub_date = method
-                .date
-                .as_deref()
-                .and_then(|dp| iso_any(dig(item, dp)));
+            let pub_date = method.date.as_deref().and_then(|dp| iso_any(dig(item, dp)));
             cands.push(Candidate {
                 url: link,
                 title: title.chars().take(300).collect(),
@@ -1305,7 +1505,12 @@ async fn run_json_search(
     AdapterOutcome {
         site: site.id.clone(),
         method: "json_search".into(),
-        status: if ranked.is_empty() { "no-results" } else { "ok" }.into(),
+        status: if ranked.is_empty() {
+            "no-results"
+        } else {
+            "ok"
+        }
+        .into(),
         candidates: ranked,
         fetched,
         error: None,
@@ -1347,7 +1552,12 @@ fn run_url_pattern(site: &Site, method: &Method, query: &str) -> AdapterOutcome 
     AdapterOutcome {
         site: site.id.clone(),
         method: "url_pattern".into(),
-        status: if ranked.is_empty() { "no-results" } else { "ok" }.into(),
+        status: if ranked.is_empty() {
+            "no-results"
+        } else {
+            "ok"
+        }
+        .into(),
         candidates: ranked,
         fetched: 0,
         error: None,
@@ -1451,7 +1661,12 @@ fn open_web_terms(query: &str) -> Vec<String> {
     out
 }
 
-async fn run_open_web(query: &str, reg: &Registry, plan: &Plan, fetcher: &Fetcher) -> Vec<Candidate> {
+async fn run_open_web(
+    query: &str,
+    reg: &Registry,
+    plan: &Plan,
+    fetcher: &Fetcher,
+) -> Vec<Candidate> {
     if plan.fallback.as_deref() != Some("general") {
         return Vec::new();
     }
@@ -1494,7 +1709,10 @@ async fn run_open_web(query: &str, reg: &Registry, plan: &Plan, fetcher: &Fetche
         for domain in domains {
             for term in &terms {
                 let pattern = format!("{domain}/*{term}*");
-                let u = format!("{index_url}?url={}&output=json&limit=20", q_encode(&pattern));
+                let u = format!(
+                    "{index_url}?url={}&output=json&limit=20",
+                    q_encode(&pattern)
+                );
                 let res = fetcher
                     .get(
                         &u,
@@ -1511,7 +1729,12 @@ async fn run_open_web(query: &str, reg: &Registry, plan: &Plan, fetcher: &Fetche
                     }
                     return found;
                 }
-                for line in res.text.lines().map(str::trim).filter(|l| l.starts_with('{')) {
+                for line in res
+                    .text
+                    .lines()
+                    .map(str::trim)
+                    .filter(|l| l.starts_with('{'))
+                {
                     let Ok(rec) = serde_json::from_str::<Value>(line) else {
                         continue;
                     };
@@ -1985,9 +2208,18 @@ mod tests {
             body: String::new(),
         };
         let cands = vec![
-            mk("https://www.rtings.com/tv/reviews/lg/c1-oled", "tv reviews lg c1 oled"),
-            mk("https://www.rtings.com/tv/learn/burn-in", "tv learn oled burn in"),
-            mk("https://www.rtings.com/running-shoes/c1", "running shoes c1"),
+            mk(
+                "https://www.rtings.com/tv/reviews/lg/c1-oled",
+                "tv reviews lg c1 oled",
+            ),
+            mk(
+                "https://www.rtings.com/tv/learn/burn-in",
+                "tv learn oled burn in",
+            ),
+            mk(
+                "https://www.rtings.com/running-shoes/c1",
+                "running shoes c1",
+            ),
         ];
         let model = enforce_model_terms("lg c1 burn in", cands);
         assert_eq!(model.len(), 1);
@@ -1997,8 +2229,14 @@ mod tests {
         let prod = enforce_product_terms(
             "whirlpool dishwasher not draining",
             vec![
-                mk("https://example.com/whirlpool-dishwashers", "Whirlpool dishwashers"),
-                mk("https://example.com/whirlpool-fridge", "Whirlpool refrigerator"),
+                mk(
+                    "https://example.com/whirlpool-dishwashers",
+                    "Whirlpool dishwashers",
+                ),
+                mk(
+                    "https://example.com/whirlpool-fridge",
+                    "Whirlpool refrigerator",
+                ),
             ],
         );
         assert_eq!(prod.len(), 1);
@@ -2007,8 +2245,14 @@ mod tests {
         let intent = enforce_intent_terms(
             "lg washing machine review",
             vec![
-                mk("https://example.com/lg-washing-machine-repair", "LG washing machine repair"),
-                mk("https://example.com/lg-washing-machine-review", "LG washing machine review"),
+                mk(
+                    "https://example.com/lg-washing-machine-repair",
+                    "LG washing machine repair",
+                ),
+                mk(
+                    "https://example.com/lg-washing-machine-review",
+                    "LG washing machine review",
+                ),
             ],
         );
         assert_eq!(intent.len(), 1);
@@ -2029,7 +2273,8 @@ mod tests {
                 url: &'a str,
                 _h: &'a HashMap<String, String>,
                 _t: Duration,
-            ) -> Pin<Box<dyn Future<Output = Result<RawResponse, String>> + Send + 'a>> {
+            ) -> Pin<Box<dyn Future<Output = Result<RawResponse, String>> + Send + 'a>>
+            {
                 Box::pin(async move {
                     let body = self.0.get(url).cloned().unwrap_or_default();
                     Ok(RawResponse {
@@ -2044,17 +2289,24 @@ mod tests {
 
         let dir = std::env::temp_dir().join(format!("magnet-disc-{}", rand::random::<u64>()));
         let mut map = HashMap::new();
-        map.insert("https://api.example.test/robots.txt".into(), "User-agent: *\nAllow: /\n".into());
+        map.insert(
+            "https://api.example.test/robots.txt".into(),
+            "User-agent: *\nAllow: /\n".into(),
+        );
         map.insert(
             "https://api.example.test/search?q=kolmogorov+complexity&limit=10".into(),
             r#"{"pages":[{"key":"Kolmogorov_complexity","title":"Kolmogorov complexity","excerpt":"<b>Kolmogorov</b> complexity measure"}]}"#.into(),
         );
-        map.insert("https://example.com/robots.txt".into(), "User-agent: *\nAllow: /\n".into());
+        map.insert(
+            "https://example.com/robots.txt".into(),
+            "User-agent: *\nAllow: /\n".into(),
+        );
         map.insert(
             "https://example.com/search?q=anker".into(),
             r#"<html><body><a href="/recalls/2025/anker-power-banks">Anker Power Banks Recall</a></body></html>"#.into(),
         );
-        let fetcher = Fetcher::with_transport(&dir.join("f.sqlite"), Box::new(Stub(map)), 2, 0.0).unwrap();
+        let fetcher =
+            Fetcher::with_transport(&dir.join("f.sqlite"), Box::new(Stub(map)), 2, 0.0).unwrap();
 
         let wiki = Site {
             id: "wikipedia".into(),
@@ -2092,7 +2344,10 @@ mod tests {
         };
         let out = run_json_search(&wiki, &wiki.methods[0], "kolmogorov complexity", &fetcher).await;
         assert_eq!(out.status, "ok");
-        assert_eq!(out.candidates[0].url, "https://en.wikipedia.org/wiki/Kolmogorov_complexity");
+        assert_eq!(
+            out.candidates[0].url,
+            "https://en.wikipedia.org/wiki/Kolmogorov_complexity"
+        );
 
         let ex = Site {
             id: "ex".into(),
@@ -2130,7 +2385,10 @@ mod tests {
         };
         let out2 = run_search(&ex, &ex.methods[0], "anker", &fetcher).await;
         assert_eq!(out2.status, "ok");
-        assert_eq!(out2.candidates[0].url, "https://example.com/recalls/2025/anker-power-banks");
+        assert_eq!(
+            out2.candidates[0].url,
+            "https://example.com/recalls/2025/anker-power-banks"
+        );
 
         let _ = std::fs::remove_dir_all(&dir);
     }

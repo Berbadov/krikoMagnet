@@ -11,8 +11,8 @@ mod text;
 
 use std::io::Read;
 use std::path::PathBuf;
-use std::sync::{Arc, LazyLock};
 use std::sync::atomic::Ordering;
+use std::sync::{Arc, LazyLock};
 
 use regex::Regex;
 
@@ -82,7 +82,10 @@ fn next_val(args: &[String], i: &mut usize, flag: &str) -> Result<String, String
     Ok(args[*i].clone())
 }
 
-fn parse_search_cfg(args: &[String], default_budget_ms: u64) -> Result<(SearchConfig, Vec<String>), String> {
+fn parse_search_cfg(
+    args: &[String],
+    default_budget_ms: u64,
+) -> Result<(SearchConfig, Vec<String>), String> {
     let mut cfg = SearchConfig {
         page_budget_ms: default_budget_ms,
         ..Default::default()
@@ -91,7 +94,9 @@ fn parse_search_cfg(args: &[String], default_budget_ms: u64) -> Result<(SearchCo
     let mut i = 0;
     while i < args.len() {
         match args[i].as_str() {
-            "--registry" => cfg.registry_path = PathBuf::from(next_val(args, &mut i, "--registry")?),
+            "--registry" => {
+                cfg.registry_path = PathBuf::from(next_val(args, &mut i, "--registry")?)
+            }
             "--tranco" => cfg.tranco_path = PathBuf::from(next_val(args, &mut i, "--tranco")?),
             "--cache" => cfg.cache_path = PathBuf::from(next_val(args, &mut i, "--cache")?),
             "--fetch-cache" => {
@@ -159,7 +164,11 @@ async fn cmd_search(args: &[String]) -> Result<i32, String> {
     let mut i = 0;
     while i < rest.len() {
         match rest[i].as_str() {
-            "-k" | "--k" => k = next_val(&rest, &mut i, "-k")?.parse().map_err(|_| "invalid -k")?,
+            "-k" | "--k" => {
+                k = next_val(&rest, &mut i, "-k")?
+                    .parse()
+                    .map_err(|_| "invalid -k")?
+            }
             "--no-fetch" => fetch_pages = false,
             s => query_parts.push(s.to_string()),
         }
@@ -181,7 +190,11 @@ async fn cmd_fetch(args: &[String]) -> Result<i32, String> {
     let searcher = Searcher::open(cfg)?;
     let out = searcher.fetch_one_page(url).await;
     println!("{}", serde_json::to_string_pretty(&out).unwrap());
-    Ok(if out["ok"].as_bool().unwrap_or(false) { 0 } else { 1 })
+    Ok(if out["ok"].as_bool().unwrap_or(false) {
+        0
+    } else {
+        1
+    })
 }
 
 async fn cmd_serve(args: &[String]) -> Result<i32, String> {
@@ -200,7 +213,11 @@ async fn cmd_serve(args: &[String]) -> Result<i32, String> {
     while i < rest.len() {
         match rest[i].as_str() {
             "--host" => host = next_val(&rest, &mut i, "--host")?,
-            "--port" => port = next_val(&rest, &mut i, "--port")?.parse().map_err(|_| "invalid --port")?,
+            "--port" => {
+                port = next_val(&rest, &mut i, "--port")?
+                    .parse()
+                    .map_err(|_| "invalid --port")?
+            }
             "--refresh-mins" => {
                 refresh_mins = next_val(&rest, &mut i, "--refresh-mins")?
                     .parse()
@@ -232,15 +249,19 @@ async fn cmd_serve(args: &[String]) -> Result<i32, String> {
     let app = Router::new()
         .route(
             "/health",
-            get(|State(s): State<Arc<Searcher>>, Query(p): Query<HealthParams>| async move {
-                Json(s.health(p.probe).await)
-            }),
+            get(
+                |State(s): State<Arc<Searcher>>, Query(p): Query<HealthParams>| async move {
+                    Json(s.health(p.probe).await)
+                },
+            ),
         )
         .route(
             "/search",
-            post(|State(s): State<Arc<Searcher>>, Json(req): Json<HttpSearchReq>| async move {
-                Json(s.search(&req.query, req.k, req.fetch, req.budget_ms).await)
-            }),
+            post(
+                |State(s): State<Arc<Searcher>>, Json(req): Json<HttpSearchReq>| async move {
+                    Json(s.search(&req.query, req.k, req.fetch, req.budget_ms).await)
+                },
+            ),
         )
         .route(
             "/cache/clear-queries",
@@ -255,7 +276,9 @@ async fn cmd_serve(args: &[String]) -> Result<i32, String> {
     let listener = tokio::net::TcpListener::bind(&addr)
         .await
         .map_err(|e| format!("bind {addr}: {e}"))?;
-    let bound = listener.local_addr().map_err(|e| format!("local_addr: {e}"))?;
+    let bound = listener
+        .local_addr()
+        .map_err(|e| format!("local_addr: {e}"))?;
     eprintln!("magnet listening on http://{bound}");
     axum::serve(listener, app)
         .await
@@ -277,7 +300,11 @@ async fn cmd_index(args: &[String]) -> Result<i32, String> {
             "--db" => db = PathBuf::from(next_val(args, &mut i, "--db")?),
             "--registry" => reg_path = PathBuf::from(next_val(args, &mut i, "--registry")?),
             "--site" => sites.push(next_val(args, &mut i, "--site")?),
-            "--recent" => recent = next_val(args, &mut i, "--recent")?.parse().map_err(|_| "invalid --recent")?,
+            "--recent" => {
+                recent = next_val(args, &mut i, "--recent")?
+                    .parse()
+                    .map_err(|_| "invalid --recent")?
+            }
             "--concurrency" => {
                 concurrency = next_val(args, &mut i, "--concurrency")?
                     .parse()
@@ -553,7 +580,10 @@ async fn cmd_tranco() -> Result<i32, String> {
     if !resp.status().is_success() {
         return Err(format!("tranco HTTP {}", resp.status()));
     }
-    let bytes = resp.bytes().await.map_err(|e| format!("tranco bytes: {e}"))?;
+    let bytes = resp
+        .bytes()
+        .await
+        .map_err(|e| format!("tranco bytes: {e}"))?;
     let csv_txt = unzip_first_entry(&bytes)?;
     let mut domains = Vec::with_capacity(100_000);
     for line in csv_txt.lines() {
@@ -585,13 +615,16 @@ fn unzip_first_entry(zip: &[u8]) -> Result<String, String> {
         return Err("invalid zip: missing central dir".into());
     }
     let method = u16::from_le_bytes(zip[cd_offset + 10..cd_offset + 12].try_into().unwrap());
-    let comp_sz = u32::from_le_bytes(zip[cd_offset + 20..cd_offset + 24].try_into().unwrap()) as usize;
-    let lfh_off = u32::from_le_bytes(zip[cd_offset + 42..cd_offset + 46].try_into().unwrap()) as usize;
+    let comp_sz =
+        u32::from_le_bytes(zip[cd_offset + 20..cd_offset + 24].try_into().unwrap()) as usize;
+    let lfh_off =
+        u32::from_le_bytes(zip[cd_offset + 42..cd_offset + 46].try_into().unwrap()) as usize;
     if zip.get(lfh_off..lfh_off + 4) != Some(b"PK\x03\x04") {
         return Err("invalid zip: missing local header".into());
     }
     let name_len = u16::from_le_bytes(zip[lfh_off + 26..lfh_off + 28].try_into().unwrap()) as usize;
-    let extra_len = u16::from_le_bytes(zip[lfh_off + 28..lfh_off + 30].try_into().unwrap()) as usize;
+    let extra_len =
+        u16::from_le_bytes(zip[lfh_off + 28..lfh_off + 30].try_into().unwrap()) as usize;
     let data_start = lfh_off + 30 + name_len + extra_len;
     let slice = zip
         .get(data_start..data_start + comp_sz)
@@ -650,9 +683,7 @@ async fn handle_mcp_request(
 ) -> Value {
     match method {
         "initialize" => {
-            let pv = params["protocolVersion"]
-                .as_str()
-                .unwrap_or("2025-03-26");
+            let pv = params["protocolVersion"].as_str().unwrap_or("2025-03-26");
             json!({
                 "jsonrpc": "2.0",
                 "id": id,

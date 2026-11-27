@@ -116,10 +116,8 @@ fn push_unique_prose(cleaned: String, seen: &mut HashSet<String>, out: &mut Vec<
     // Check 4-word overlap so overlapping JSON summary/blurb/meta strings don't inflate trigram_repeat.
     let words: Vec<&str> = key.split_whitespace().collect();
     if words.len() >= 8 {
-        let cur_grams: HashSet<(&str, &str, &str, &str)> = words
-            .windows(4)
-            .map(|w| (w[0], w[1], w[2], w[3]))
-            .collect();
+        let cur_grams: HashSet<(&str, &str, &str, &str)> =
+            words.windows(4).map(|w| (w[0], w[1], w[2], w[3])).collect();
         if !cur_grams.is_empty() {
             for prev in out.iter() {
                 let prev_low = prev.to_lowercase();
@@ -144,7 +142,9 @@ fn collect_json_value_prose(val: &Value, seen: &mut HashSet<String>, out: &mut V
         Value::Object(map) => {
             for (k, v) in map {
                 let k_low = k.to_lowercase();
-                if PROSE_JSON_KEYS.iter().any(|pk| k_low == pk.to_lowercase() || k_low.ends_with(&pk.to_lowercase()))
+                if PROSE_JSON_KEYS
+                    .iter()
+                    .any(|pk| k_low == pk.to_lowercase() || k_low.ends_with(&pk.to_lowercase()))
                     && let Some(s) = v.as_str()
                     && let Some(cleaned) = accept_prose_snippet(s)
                 {
@@ -319,7 +319,12 @@ pub fn extract_text(html: &str, url: Option<&str>, min_chars: usize) -> String {
     best
 }
 
-pub fn classify_fetch(status: Option<u16>, status_tag: &str, clean_chars: usize, text: &str) -> &'static str {
+pub fn classify_fetch(
+    status: Option<u16>,
+    status_tag: &str,
+    clean_chars: usize,
+    text: &str,
+) -> &'static str {
     if status_tag == "robots-denied" || status_tag == "robots" {
         return "robots-denied";
     }
@@ -361,7 +366,10 @@ mod tests {
         assert!(!out.contains("var secret"));
         assert_eq!(classify_fetch(Some(200), "200", out.len(), &out), "success");
         assert_eq!(classify_fetch(Some(403), "403", 0, ""), "hard-block");
-        assert_eq!(classify_fetch(Some(200), "200", 50, "Just a moment..."), "soft-block");
+        assert_eq!(
+            classify_fetch(Some(200), "200", 50, "Just a moment..."),
+            "soft-block"
+        );
     }
 
     #[test]
@@ -373,10 +381,23 @@ mod tests {
             <div data-review-props="{&quot;blurb&quot;:&quot;The LG C1 has a low risk of permanent burn-in under varied daily viewing, though static news tickers at maximum OLED light increase red subpixel wear over thousands of hours.&quot;,&quot;verdict&quot;:&quot;Overall picture quality and HDMI 2.1 gaming responsiveness make the LG C1 an outstanding reference display for mixed home theater setups.&quot;}"></div>
             <footer>Privacy Policy Terms Contact Us</footer>
             </body></html>"#;
-        let out = extract_text(html, Some("https://www.rtings.com/tv/reviews/lg/c1-oled"), SOFT_MIN_CHARS);
-        assert!(!out.contains("TVs Headphones Monitors"), "nav chrome leaked: {out}");
-        assert!(out.contains("permanent burn-in"), "missing SSR blurb: {out}");
-        assert!(out.contains("dark-room contrast"), "missing JSON-LD reviewBody: {out}");
+        let out = extract_text(
+            html,
+            Some("https://www.rtings.com/tv/reviews/lg/c1-oled"),
+            SOFT_MIN_CHARS,
+        );
+        assert!(
+            !out.contains("TVs Headphones Monitors"),
+            "nav chrome leaked: {out}"
+        );
+        assert!(
+            out.contains("permanent burn-in"),
+            "missing SSR blurb: {out}"
+        );
+        assert!(
+            out.contains("dark-room contrast"),
+            "missing JSON-LD reviewBody: {out}"
+        );
         assert_eq!(classify_fetch(Some(200), "200", out.len(), &out), "success");
     }
 

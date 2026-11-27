@@ -70,7 +70,8 @@ impl SourceTrustStore {
             .ok()
             .flatten();
         let (alpha, beta, ok_n, blk_n) = prev.unwrap_or((2.0, 2.0, 0, 0));
-        let access_adj = ((alpha / (alpha + beta)).ln() - (beta / (alpha + beta)).ln()).clamp(-3.0, 1.5);
+        let access_adj =
+            ((alpha / (alpha + beta)).ln() - (beta / (alpha + beta)).ln()).clamp(-3.0, 1.5);
         let p_trust = sigmoid(est.log_odds + access_adj * 0.6);
         let _ = conn.execute(
             "INSERT OR REPLACE INTO sources(host, site_id, alpha, beta, shape_log_odds, p_trust, decision, pages_sampled, ok_fetches, blocked_fetches, reason, updated)
@@ -122,7 +123,8 @@ impl SourceTrustStore {
             beta = (beta + 1.5).min(80.0);
             blk_n += 1;
         }
-        let access_adj = ((alpha / (alpha + beta)).ln() - (beta / (alpha + beta)).ln()).clamp(-3.0, 1.5);
+        let access_adj =
+            ((alpha / (alpha + beta)).ln() - (beta / (alpha + beta)).ln()).clamp(-3.0, 1.5);
         let p_trust = sigmoid(shape_ll + access_adj * 0.6);
         let dec = if p_trust <= 0.22 && blk_n >= 3 {
             "reject".to_string()
@@ -152,7 +154,8 @@ impl SourceTrustStore {
         let mut out = HashMap::new();
         let conn = self.conn.lock().unwrap();
         if let Ok(mut stmt) = conn.prepare("SELECT host, p_trust FROM sources")
-            && let Ok(rows) = stmt.query_map([], |r| Ok((r.get::<_, String>(0)?, r.get::<_, f64>(1)?)))
+            && let Ok(rows) =
+                stmt.query_map([], |r| Ok((r.get::<_, String>(0)?, r.get::<_, f64>(1)?)))
         {
             for (h, p) in rows.flatten() {
                 let b = base_domain(&h);
@@ -171,10 +174,18 @@ impl SourceTrustStore {
             .query_row("SELECT COUNT(*) FROM sources", [], |r| r.get(0))
             .unwrap_or(0);
         let promoted: i64 = conn
-            .query_row("SELECT COUNT(*) FROM sources WHERE decision='promote'", [], |r| r.get(0))
+            .query_row(
+                "SELECT COUNT(*) FROM sources WHERE decision='promote'",
+                [],
+                |r| r.get(0),
+            )
             .unwrap_or(0);
         let rejected: i64 = conn
-            .query_row("SELECT COUNT(*) FROM sources WHERE decision='reject'", [], |r| r.get(0))
+            .query_row(
+                "SELECT COUNT(*) FROM sources WHERE decision='reject'",
+                [],
+                |r| r.get(0),
+            )
             .unwrap_or(0);
         json!({
             "tracked": total,
@@ -218,12 +229,18 @@ pub fn extract_sitemap_directives(robots_body: &str) -> Vec<String> {
 fn score_child_sitemap(url: &str) -> i32 {
     let low = url.to_ascii_lowercase();
     let mut score = 0i32;
-    for good in ["post", "article", "review", "guide", "wiki", "news", "blog", "content", "2026", "2025", "2024"] {
+    for good in [
+        "post", "article", "review", "guide", "wiki", "news", "blog", "content", "2026", "2025",
+        "2024",
+    ] {
         if low.contains(good) {
             score += 10;
         }
     }
-    for bad in ["tag", "author", "category", "archive", "image", "video", "product", "shop", "store", "forum"] {
+    for bad in [
+        "tag", "author", "category", "archive", "image", "video", "product", "shop", "store",
+        "forum",
+    ] {
         if low.contains(bad) {
             score -= 15;
         }
@@ -245,12 +262,28 @@ fn is_candidate_content_url(raw: &str, domain: &str) -> bool {
     if path.is_empty() || path == "/" {
         return false;
     }
-    for ext in [".jpg", ".jpeg", ".png", ".gif", ".webp", ".svg", ".pdf", ".xml", ".css", ".js"] {
+    for ext in [
+        ".jpg", ".jpeg", ".png", ".gif", ".webp", ".svg", ".pdf", ".xml", ".css", ".js",
+    ] {
         if path.ends_with(ext) {
             return false;
         }
     }
-    for skip in ["/tag/", "/tags/", "/author/", "/category/", "/categories/", "/search", "/login", "/register", "/cart", "/checkout", "/account", "/page/", "/wp-content/"] {
+    for skip in [
+        "/tag/",
+        "/tags/",
+        "/author/",
+        "/category/",
+        "/categories/",
+        "/search",
+        "/login",
+        "/register",
+        "/cart",
+        "/checkout",
+        "/account",
+        "/page/",
+        "/wp-content/",
+    ] {
         if path.contains(skip) {
             return false;
         }
@@ -565,7 +598,9 @@ pub async fn scout_domain(
                     }
                 }
                 if !urls.is_empty() {
-                    used_sitemaps = vec![format!("{origin}/wp-json/wp/v2/posts?search={{query}}&per_page=12")];
+                    used_sitemaps = vec![format!(
+                        "{origin}/wp-json/wp/v2/posts?search={{query}}&per_page=12"
+                    )];
                     method_kind = "json_search".into();
                 }
             }
@@ -657,12 +692,20 @@ fn maybe_persist_registry(
     let Some(path) = promote_path else {
         return rep;
     };
-    if reg.sites.iter().any(|s| base_domain(&s.domain) == rep.domain) {
+    if reg
+        .sites
+        .iter()
+        .any(|s| base_domain(&s.domain) == rep.domain)
+    {
         rep.action = "already-registered".into();
         return rep;
     }
     if rep.estimate.decision == "reject" {
-        if reg.skipped.iter().any(|s| base_domain(&s.domain) == rep.domain) {
+        if reg
+            .skipped
+            .iter()
+            .any(|s| base_domain(&s.domain) == rep.domain)
+        {
             rep.action = "already-skipped".into();
             return rep;
         }
@@ -688,7 +731,8 @@ fn maybe_persist_registry(
 }
 
 pub fn append_site_yaml(path: &Path, rep: &ScoutReport) -> Result<(), String> {
-    let orig = std::fs::read_to_string(path).map_err(|e| format!("read {}: {e}", path.display()))?;
+    let orig =
+        std::fs::read_to_string(path).map_err(|e| format!("read {}: {e}", path.display()))?;
     let mut entry = format!(
         "\n  - id: {}\n    name: {}\n    domain: {}\n    topics: [general]\n    language: {}\n    methods:\n      - type: {}\n",
         rep.site_id, rep.domain, rep.domain, rep.language, rep.discovered_method
@@ -704,8 +748,15 @@ pub fn append_site_yaml(path: &Path, rep: &ScoutReport) -> Result<(), String> {
             entry.push_str(&format!("          - {u}\n"));
         }
         if !rep.include_children.is_empty() {
-            let quoted: Vec<String> = rep.include_children.iter().map(|s| format!("\"{s}\"")).collect();
-            entry.push_str(&format!("        include_children: [{}]\n", quoted.join(", ")));
+            let quoted: Vec<String> = rep
+                .include_children
+                .iter()
+                .map(|s| format!("\"{s}\""))
+                .collect();
+            entry.push_str(&format!(
+                "        include_children: [{}]\n",
+                quoted.join(", ")
+            ));
             entry.push_str("        max_sitemaps: 3\n");
         }
         entry.push_str("        max_urls: 15000\n        max_results: 30\n");
@@ -734,7 +785,8 @@ pub fn append_site_yaml(path: &Path, rep: &ScoutReport) -> Result<(), String> {
 }
 
 pub fn append_skipped_yaml(path: &Path, domain: &str, reason: &str) -> Result<(), String> {
-    let orig = std::fs::read_to_string(path).map_err(|e| format!("read {}: {e}", path.display()))?;
+    let orig =
+        std::fs::read_to_string(path).map_err(|e| format!("read {}: {e}", path.display()))?;
     let safe_reason = reason.replace('"', "'");
     let block = format!("\n  - domain: {domain}\n    reason: \"{safe_reason}\"");
     let updated = if orig.contains("\nskipped:") {
@@ -809,7 +861,9 @@ mod tests {
             vec!["https://a.example/sitemap.xml"]
         );
 
-        let urls: Vec<String> = (0..100).map(|i| format!("https://a.example/p/{i}")).collect();
+        let urls: Vec<String> = (0..100)
+            .map(|i| format!("https://a.example/p/{i}"))
+            .collect();
         let samp = select_diverse_sample(&urls, 5);
         assert_eq!(samp.len(), 5);
         assert!(samp[0] != samp[4] && samp[4].contains("/p/9"));

@@ -33,12 +33,12 @@ pub fn now_epoch() -> f64 {
 pub fn host_of(raw_url: &str) -> String {
     Url::parse(raw_url)
         .ok()
-        .and_then(|u| u.host_str().map(|h| {
-            match u.port() {
+        .and_then(|u| {
+            u.host_str().map(|h| match u.port() {
                 Some(p) => format!("{}:{}", h.to_ascii_lowercase(), p),
                 None => h.to_ascii_lowercase(),
-            }
-        }))
+            })
+        })
         .unwrap_or_default()
 }
 
@@ -386,7 +386,11 @@ impl Fetcher {
         PathBuf::from("data").join("fetch_cache.sqlite")
     }
 
-    fn cache_get(&self, url: &str, ttl: Option<f64>) -> Option<(i64, HashMap<String, String>, Vec<u8>)> {
+    fn cache_get(
+        &self,
+        url: &str,
+        ttl: Option<f64>,
+    ) -> Option<(i64, HashMap<String, String>, Vec<u8>)> {
         let conn = self.conn.lock().unwrap();
         let row: Option<(i64, String, Vec<u8>, f64)> = conn
             .query_row(
@@ -696,7 +700,9 @@ mod tests {
                 if let Some(q) = queue
                     && !q.is_empty()
                 {
-                    let item = if q.len() > 1 { q.remove(0) } else {
+                    let item = if q.len() > 1 {
+                        q.remove(0)
+                    } else {
                         RawResponse {
                             status: q[0].status,
                             body: q[0].body.clone(),

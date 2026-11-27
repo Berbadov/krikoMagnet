@@ -351,7 +351,15 @@ impl Searcher {
         if !fetch_pages {
             for (cid, score) in chosen {
                 if let Some(cand) = orig.get(&cid) {
-                    results.push(make_result(cand, score, "", json!("not-fetched"), t0, false, &cid));
+                    results.push(make_result(
+                        cand,
+                        score,
+                        "",
+                        json!("not-fetched"),
+                        t0,
+                        false,
+                        &cid,
+                    ));
                 }
             }
         } else {
@@ -362,7 +370,15 @@ impl Searcher {
                     let dom = url_host(&cand.url);
                     self.cache
                         .set_content(&uh, &qh, &cand.url, &dom, &cand.body, "200");
-                    results.push(make_result(cand, *score, &cand.body, json!(200), t0, false, cid));
+                    results.push(make_result(
+                        cand,
+                        *score,
+                        &cand.body,
+                        json!(200),
+                        t0,
+                        false,
+                        cid,
+                    ));
                     continue;
                 }
                 if let Some((md, st)) = self.cache.get_content(&uh, &qh) {
@@ -462,9 +478,7 @@ impl Searcher {
                 "robots_skips": disc_rob + p_rob,
             }
         });
-        let has_err = results
-            .iter()
-            .any(|r| r["status"].as_str() == Some("ERR"));
+        let has_err = results.iter().any(|r| r["status"].as_str() == Some("ERR"));
         if fetch_pages && !results.is_empty() && !has_err {
             self.cache.set_query(&qh, &payload.to_string());
         }
@@ -584,7 +598,10 @@ impl Searcher {
                     let t0 = Instant::now();
                     let q = health_query_for(&site.id);
                     let (method, status, links) = if let Some(ref idx) = idx_opt
-                        && site.methods.iter().any(|m| m.kind == "sitemap" || m.kind == "rss")
+                        && site
+                            .methods
+                            .iter()
+                            .any(|m| m.kind == "sitemap" || m.kind == "rss")
                         && idx.site_pages(&site.id) > 0
                     {
                         let sid = site.id.clone();
@@ -594,12 +611,22 @@ impl Searcher {
                         })
                         .await
                         .unwrap_or_default();
-                        ("index".to_string(), if cands.is_empty() { "no-results" } else { "ok" }.to_string(), cands.len())
+                        (
+                            "index".to_string(),
+                            if cands.is_empty() { "no-results" } else { "ok" }.to_string(),
+                            cands.len(),
+                        )
                     } else {
                         let outcomes = run_site(&site, q, &f, &sm).await;
                         let links: usize = outcomes.iter().map(|o| o.candidates.len()).sum();
-                        let m = outcomes.first().map(|o| o.method.clone()).unwrap_or_else(|| "?".into());
-                        let st = outcomes.last().map(|o| o.status.clone()).unwrap_or_else(|| "no-method".into());
+                        let m = outcomes
+                            .first()
+                            .map(|o| o.method.clone())
+                            .unwrap_or_else(|| "?".into());
+                        let st = outcomes
+                            .last()
+                            .map(|o| o.status.clone())
+                            .unwrap_or_else(|| "no-method".into());
                         (m, st, links)
                     };
                     json!({
@@ -669,8 +696,8 @@ async fn fetch_many(
                 tokio::task::spawn_blocking(move || {
                     extract_text(&html, Some(&url_for_ext), SOFT_MIN_CHARS)
                 })
-                    .await
-                    .unwrap_or_default()
+                .await
+                .unwrap_or_default()
             } else {
                 String::new()
             };
@@ -762,7 +789,14 @@ mod tests {
         let cache = PipelineCache::open(&dir.join("pipe.sqlite")).unwrap();
         cache.set_query("q1", r#"{"ok":true}"#);
         assert_eq!(cache.get_query("q1").as_deref(), Some(r#"{"ok":true}"#));
-        cache.set_content("u1", "q1", "https://example.com/a", "example.com", "body", "200");
+        cache.set_content(
+            "u1",
+            "q1",
+            "https://example.com/a",
+            "example.com",
+            "body",
+            "200",
+        );
         assert_eq!(
             cache.get_content("u1", "q1"),
             Some(("body".to_string(), "200".to_string()))

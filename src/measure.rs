@@ -108,18 +108,54 @@ impl Default for GoldenBaseline {
         Self {
             sites_calibrated: 0,
             pages_calibrated: 0,
-            yield_ratio: FeatureStats { mean: 0.55, std: 0.25 },
-            block_entropy: FeatureStats { mean: 0.62, std: 0.18 },
-            section_cv: FeatureStats { mean: 0.65, std: 0.30 },
-            burstiness: FeatureStats { mean: 0.78, std: 0.28 },
-            zlib_ratio: FeatureStats { mean: 0.42, std: 0.08 },
-            mattr: FeatureStats { mean: 0.80, std: 0.07 },
-            trigram_repeat: FeatureStats { mean: 0.04, std: 0.04 },
-            specificity: FeatureStats { mean: 0.10, std: 0.06 },
-            link_density: FeatureStats { mean: 0.15, std: 0.15 },
-            affiliate_ratio: FeatureStats { mean: 0.01, std: 0.03 },
-            cross_page_dup: FeatureStats { mean: 0.03, std: 0.05 },
-            skeleton_cv: FeatureStats { mean: 0.45, std: 0.28 },
+            yield_ratio: FeatureStats {
+                mean: 0.55,
+                std: 0.25,
+            },
+            block_entropy: FeatureStats {
+                mean: 0.62,
+                std: 0.18,
+            },
+            section_cv: FeatureStats {
+                mean: 0.65,
+                std: 0.30,
+            },
+            burstiness: FeatureStats {
+                mean: 0.78,
+                std: 0.28,
+            },
+            zlib_ratio: FeatureStats {
+                mean: 0.42,
+                std: 0.08,
+            },
+            mattr: FeatureStats {
+                mean: 0.80,
+                std: 0.07,
+            },
+            trigram_repeat: FeatureStats {
+                mean: 0.04,
+                std: 0.04,
+            },
+            specificity: FeatureStats {
+                mean: 0.10,
+                std: 0.06,
+            },
+            link_density: FeatureStats {
+                mean: 0.15,
+                std: 0.15,
+            },
+            affiliate_ratio: FeatureStats {
+                mean: 0.01,
+                std: 0.03,
+            },
+            cross_page_dup: FeatureStats {
+                mean: 0.03,
+                std: 0.05,
+            },
+            skeleton_cv: FeatureStats {
+                mean: 0.45,
+                std: 0.28,
+            },
         }
     }
 }
@@ -185,7 +221,10 @@ fn zlib_compress_ratio(text: &str) -> f64 {
         if enc.write_all(raw).is_err() {
             return 1.0;
         }
-        return enc.finish().map(|c| c.len() as f64 / raw.len() as f64).unwrap_or(1.0);
+        return enc
+            .finish()
+            .map(|c| c.len() as f64 / raw.len() as f64)
+            .unwrap_or(1.0);
     }
     let mut sum = 0.0;
     let mut n = 0usize;
@@ -295,7 +334,9 @@ pub fn measure_page(url: &str, html: &str, status: Option<u16>) -> PageShape {
         .unwrap_or_else(|| base_domain(url));
     let clean_md = extract_text(html, Some(url), SOFT_MIN_CHARS);
     let clean_chars = clean_md.chars().count();
-    let status_tag = status.map(|s| s.to_string()).unwrap_or_else(|| "ERR".into());
+    let status_tag = status
+        .map(|s| s.to_string())
+        .unwrap_or_else(|| "ERR".into());
     let verdict = classify_fetch(status, &status_tag, clean_chars, &clean_md).to_string();
 
     let doc = Html::parse_document(html);
@@ -321,7 +362,16 @@ pub fn measure_page(url: &str, html: &str, status: Option<u16>) -> PageShape {
                 let inside_skip = node.ancestors().any(|a| {
                     matches!(
                         a.value().as_element().map(|e| e.name()),
-                        Some("script" | "style" | "noscript" | "svg" | "nav" | "footer" | "header" | "aside")
+                        Some(
+                            "script"
+                                | "style"
+                                | "noscript"
+                                | "svg"
+                                | "nav"
+                                | "footer"
+                                | "header"
+                                | "aside"
+                        )
                     )
                 });
                 if !inside_skip {
@@ -474,7 +524,11 @@ pub fn aggregate_site(host: &str, pages: &[PageShape]) -> SiteShape {
             }
         }
     }
-    let cross_page_dup = if pairs > 0 { dup_sum / pairs as f64 } else { 0.0 };
+    let cross_page_dup = if pairs > 0 {
+        dup_sum / pairs as f64
+    } else {
+        0.0
+    };
 
     let hd_cv = cv_of(&collect(|p| p.heading_count as f64));
     let li_cv = cv_of(&collect(|p| p.list_count as f64));
@@ -544,15 +598,39 @@ pub fn estimate_site(
         0.0
     };
     c.insert("burstiness".into(), b_llr);
-    c.insert("section_cv".into(), lower_penalty_llr(shape.median_section_cv, &baseline.section_cv, 1.1));
+    c.insert(
+        "section_cv".into(),
+        lower_penalty_llr(shape.median_section_cv, &baseline.section_cv, 1.1),
+    );
     c.insert("skeleton_cv".into(), s_llr);
-    c.insert("yield".into(), lower_penalty_llr(shape.median_yield, &baseline.yield_ratio, 0.8));
-    c.insert("block_entropy".into(), lower_penalty_llr(shape.median_block_entropy, &baseline.block_entropy, 0.8));
-    c.insert("zlib".into(), lower_penalty_llr(shape.median_zlib_ratio, &baseline.zlib_ratio, 0.8));
-    c.insert("mattr".into(), lower_penalty_llr(shape.median_mattr, &baseline.mattr, 0.5));
-    c.insert("specificity".into(), lower_penalty_llr(shape.median_specificity, &baseline.specificity, 0.7));
-    c.insert("trigram_rep".into(), upper_penalty_llr(shape.median_trigram_repeat, &baseline.trigram_repeat, 0.9));
-    c.insert("link_density".into(), upper_penalty_llr(shape.median_link_density, &baseline.link_density, 1.1));
+    c.insert(
+        "yield".into(),
+        lower_penalty_llr(shape.median_yield, &baseline.yield_ratio, 0.8),
+    );
+    c.insert(
+        "block_entropy".into(),
+        lower_penalty_llr(shape.median_block_entropy, &baseline.block_entropy, 0.8),
+    );
+    c.insert(
+        "zlib".into(),
+        lower_penalty_llr(shape.median_zlib_ratio, &baseline.zlib_ratio, 0.8),
+    );
+    c.insert(
+        "mattr".into(),
+        lower_penalty_llr(shape.median_mattr, &baseline.mattr, 0.5),
+    );
+    c.insert(
+        "specificity".into(),
+        lower_penalty_llr(shape.median_specificity, &baseline.specificity, 0.7),
+    );
+    c.insert(
+        "trigram_rep".into(),
+        upper_penalty_llr(shape.median_trigram_repeat, &baseline.trigram_repeat, 0.9),
+    );
+    c.insert(
+        "link_density".into(),
+        upper_penalty_llr(shape.median_link_density, &baseline.link_density, 1.1),
+    );
 
     // Couple affiliate penalty probabilistically with structural slop signals: genuine review publishers with high burstiness/skeleton variance and low duplication shouldn't be heavily penalized for deal boxes.
     let raw_aff = upper_penalty_llr(shape.median_affiliate_ratio, &baseline.affiliate_ratio, 1.6);
@@ -567,7 +645,10 @@ pub fn estimate_site(
         c.insert("cross_page_dup".into(), dup_llr);
     }
     if shape.median_structured_ratio > 0.05 {
-        c.insert("structured_bonus".into(), (shape.median_structured_ratio * 2.5).min(0.8));
+        c.insert(
+            "structured_bonus".into(),
+            (shape.median_structured_ratio * 2.5).min(0.8),
+        );
     }
 
     let evidence: f64 = c.values().sum();
@@ -603,7 +684,10 @@ pub fn estimate_site(
 
 fn feature_stats(vals: &[f64]) -> FeatureStats {
     if vals.is_empty() {
-        return FeatureStats { mean: 0.0, std: 0.1 };
+        return FeatureStats {
+            mean: 0.0,
+            std: 0.1,
+        };
     }
     let med = median_of(vals);
     let devs: Vec<f64> = vals.iter().map(|&x| (x - med).abs()).collect();
@@ -622,7 +706,8 @@ pub fn calibrate_from_cache(
     reg: &Registry,
     out_path: &Path,
 ) -> Result<(GoldenBaseline, Vec<PosteriorEstimate>), String> {
-    let conn = Connection::open(cache_path).map_err(|e| format!("open {}: {e}", cache_path.display()))?;
+    let conn =
+        Connection::open(cache_path).map_err(|e| format!("open {}: {e}", cache_path.display()))?;
     let mut stmt = conn
         .prepare(
             "SELECT url, headers, body FROM http_cache
@@ -630,11 +715,8 @@ pub fn calibrate_from_cache(
         )
         .map_err(|e| format!("query http_cache: {e}"))?;
 
-    let golden_domains: HashSet<String> = reg
-        .sites
-        .iter()
-        .map(|s| base_domain(&s.domain))
-        .collect();
+    let golden_domains: HashSet<String> =
+        reg.sites.iter().map(|s| base_domain(&s.domain)).collect();
 
     let mut by_host: HashMap<String, Vec<PageShape>> = HashMap::new();
     let rows = stmt
@@ -852,9 +934,21 @@ mod tests {
         let s_shape = aggregate_site(
             "slop.example",
             &[
-                measure_page("https://slop.example/best-toaster", &mk_slop("toaster"), Some(200)),
-                measure_page("https://slop.example/best-blender", &mk_slop("blender"), Some(200)),
-                measure_page("https://slop.example/best-kettle", &mk_slop("kettle"), Some(200)),
+                measure_page(
+                    "https://slop.example/best-toaster",
+                    &mk_slop("toaster"),
+                    Some(200),
+                ),
+                measure_page(
+                    "https://slop.example/best-blender",
+                    &mk_slop("blender"),
+                    Some(200),
+                ),
+                measure_page(
+                    "https://slop.example/best-kettle",
+                    &mk_slop("kettle"),
+                    Some(200),
+                ),
             ],
         );
         let s_est = estimate_site(&s_shape, &baseline, -0.5);

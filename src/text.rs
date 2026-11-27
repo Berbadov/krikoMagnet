@@ -7,12 +7,11 @@ use sha2::{Digest, Sha256};
 use unicode_normalization::{UnicodeNormalization, char::is_combining_mark};
 
 const STOPWORDS: &[&str] = &[
-    "a", "an", "and", "are", "as", "at", "be", "best", "by", "can", "do",
-    "does", "for", "from", "how", "i", "in", "is", "it", "my", "of", "on",
-    "or", "review", "reviews", "the", "to", "vs", "what", "when", "where",
-    "which", "with", "test", "price", "fiyat", "nasil", "nedir", "mi", "mu",
-    "bir", "ve", "ile", "icin", "en", "iyi", "hangi", "ne",
-    "2023", "2024", "2025", "2026", "not", "after", "before",
+    "a", "an", "and", "are", "as", "at", "be", "best", "by", "can", "do", "does", "for", "from",
+    "how", "i", "in", "is", "it", "my", "of", "on", "or", "review", "reviews", "the", "to", "vs",
+    "what", "when", "where", "which", "with", "test", "price", "fiyat", "nasil", "nedir", "mi",
+    "mu", "bir", "ve", "ile", "icin", "en", "iyi", "hangi", "ne", "2023", "2024", "2025", "2026",
+    "not", "after", "before",
 ];
 
 const PRODUCT_GROUPS: &[&[&str]] = &[
@@ -104,7 +103,9 @@ pub fn tokenize(text: &str) -> Vec<String> {
 pub fn is_model_token(token: &str) -> bool {
     let len = token.len();
     (2..=8).contains(&len)
-        && token.bytes().all(|b| b.is_ascii_lowercase() || b.is_ascii_digit())
+        && token
+            .bytes()
+            .all(|b| b.is_ascii_lowercase() || b.is_ascii_digit())
         && token.bytes().any(|b| b.is_ascii_lowercase())
         && token.bytes().any(|b| b.is_ascii_digit())
 }

@@ -14,7 +14,9 @@ use crate::discover::{
 };
 use crate::http::{Fetcher, GetOpts, now_epoch};
 use crate::planner::{Registry, Site};
-use crate::text::{is_model_token, iso_date, product_aliases, query_terms, ranker_text, stem_token, unslug};
+use crate::text::{
+    is_model_token, iso_date, product_aliases, query_terms, ranker_text, stem_token, unslug,
+};
 
 const SCHEMA_VERSION: &str = "2";
 const SCHEMA_SQL: &str = "
@@ -98,7 +100,8 @@ impl SiteIndex {
         let mut pages = 0usize;
         if let Ok(mut stmt) =
             conn.prepare("SELECT site, COUNT(*) FROM pages GROUP BY site ORDER BY COUNT(*) DESC")
-            && let Ok(rows) = stmt.query_map([], |r| Ok((r.get::<_, String>(0)?, r.get::<_, i64>(1)?)))
+            && let Ok(rows) =
+                stmt.query_map([], |r| Ok((r.get::<_, String>(0)?, r.get::<_, i64>(1)?)))
         {
             for (site, cnt) in rows.flatten() {
                 let c = cnt.max(0) as usize;
@@ -132,7 +135,12 @@ impl SiteIndex {
         }
     }
 
-    pub fn replace_site(&self, site_id: &str, rows: Vec<IndexRow>, full: bool) -> Result<usize, String> {
+    pub fn replace_site(
+        &self,
+        site_id: &str,
+        rows: Vec<IndexRow>,
+        full: bool,
+    ) -> Result<usize, String> {
         let mut dedup: HashMap<String, IndexRow> = HashMap::new();
         for row in rows {
             dedup.insert(row.url.clone(), row);
@@ -153,7 +161,9 @@ impl SiteIndex {
             tx.execute("DELETE FROM pages WHERE site=?1", params![site_id])
                 .map_err(|e| format!("del pages: {e}"))?;
             let base: i64 = tx
-                .query_row("SELECT COALESCE(MAX(rowid), 0) FROM pages", [], |r| r.get(0))
+                .query_row("SELECT COALESCE(MAX(rowid), 0) FROM pages", [], |r| {
+                    r.get(0)
+                })
                 .unwrap_or(0);
             let mut ins_p = tx
                 .prepare(
@@ -334,7 +344,14 @@ impl SiteIndex {
                             FROM pages_fts f JOIN pages p ON p.rowid=f.rowid
                             WHERE pages_fts MATCH ?1 ORDER BY rank LIMIT ?2";
 
-        type RowTuple = (String, String, Option<String>, Option<String>, Option<String>, Option<String>);
+        type RowTuple = (
+            String,
+            String,
+            Option<String>,
+            Option<String>,
+            Option<String>,
+            Option<String>,
+        );
         let run_q = |sql: &str, expr: &str, lim: i64| -> Vec<RowTuple> {
             let Ok(mut stmt) = conn.prepare_cached(sql) else {
                 return Vec::new();
@@ -357,11 +374,13 @@ impl SiteIndex {
         let per_site_fetch = |with_model_fallback: bool| -> Vec<RowTuple> {
             let mut acc = Vec::new();
             for sid in site_ids {
-                let mut site_rows =
-                    run_q(per_site_sql, &format!("site:{sid} AND ({all_and})"), per_site_limit);
+                let mut site_rows = run_q(
+                    per_site_sql,
+                    &format!("site:{sid} AND ({all_and})"),
+                    per_site_limit,
+                );
                 if site_rows.len() < 5 && !pairs_inner.is_empty() {
-                    let mut seen: HashSet<String> =
-                        site_rows.iter().map(|r| r.1.clone()).collect();
+                    let mut seen: HashSet<String> = site_rows.iter().map(|r| r.1.clone()).collect();
                     for r in run_q(
                         per_site_sql,
                         &format!("site:{sid} AND ({pairs_inner})"),
@@ -376,8 +395,11 @@ impl SiteIndex {
                     }
                 }
                 if with_model_fallback && site_rows.is_empty() && !m_inner.is_empty() {
-                    site_rows =
-                        run_q(per_site_sql, &format!("site:{sid} AND ({m_inner})"), per_site_limit);
+                    site_rows = run_q(
+                        per_site_sql,
+                        &format!("site:{sid} AND ({m_inner})"),
+                        per_site_limit,
+                    );
                 }
                 acc.extend(site_rows);
             }
@@ -444,7 +466,9 @@ impl SiteIndex {
             }
             grouped.entry(site_id.clone()).or_default().push(Candidate {
                 url: url.clone(),
-                title: title.filter(|s| !s.is_empty()).unwrap_or_else(|| unslug(&url)),
+                title: title
+                    .filter(|s| !s.is_empty())
+                    .unwrap_or_else(|| unslug(&url)),
                 snippet: snippet.unwrap_or_default(),
                 published: iso_date(lastmod.as_deref()),
                 source: site_id,
@@ -491,7 +515,9 @@ impl SiteIndex {
 
 fn migrate(conn: &Connection) -> Result<(), String> {
     let ver: Option<String> = conn
-        .query_row("SELECT value FROM index_meta WHERE key='schema'", [], |r| r.get(0))
+        .query_row("SELECT value FROM index_meta WHERE key='schema'", [], |r| {
+            r.get(0)
+        })
         .optional()
         .map_err(|e| format!("meta: {e}"))?;
     if ver.as_deref() == Some(SCHEMA_VERSION) {
@@ -533,7 +559,11 @@ pub fn canonical_url(raw: &str) -> String {
     )
 }
 
-pub fn rows_from_entries(site: &Site, entries: &[crate::discover::XmlEntry], kind: &str) -> Vec<IndexRow> {
+pub fn rows_from_entries(
+    site: &Site,
+    entries: &[crate::discover::XmlEntry],
+    kind: &str,
+) -> Vec<IndexRow> {
     let domain = site.domain.to_ascii_lowercase();
     let tag_re = Regex::new(r"<[^>]+>").unwrap();
     let mut rows = Vec::new();
@@ -755,7 +785,11 @@ pub async fn build_index(
         .sites
         .iter()
         .filter(|s| sites_filter.is_empty() || sites_filter.contains(&s.id))
-        .filter(|s| s.methods.iter().any(|m| m.kind == "sitemap" || m.kind == "rss"))
+        .filter(|s| {
+            s.methods
+                .iter()
+                .any(|m| m.kind == "sitemap" || m.kind == "rss")
+        })
         .cloned()
         .collect();
 
@@ -813,9 +847,17 @@ mod tests {
         let rows = rows_from_entries(&site, &entries, "urlset");
         assert_eq!(rows.len(), 1);
         assert_eq!(idx.replace_site("fixture", rows, true).unwrap(), 1);
-        let hits = idx.query(&["fixture".into()], "vaillant kombi arıza kodu", 10, &HashMap::new());
+        let hits = idx.query(
+            &["fixture".into()],
+            "vaillant kombi arıza kodu",
+            10,
+            &HashMap::new(),
+        );
         assert_eq!(hits.len(), 1);
-        assert_eq!(hits[0].url, "https://example.com/vaillant-kombi-ariza-kodu-f28");
+        assert_eq!(
+            hits[0].url,
+            "https://example.com/vaillant-kombi-ariza-kodu-f28"
+        );
         assert_eq!(idx.replace_site("fixture", vec![], true).unwrap(), 0);
         assert_eq!(idx.site_pages("fixture"), 1);
 
