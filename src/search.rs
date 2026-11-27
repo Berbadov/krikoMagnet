@@ -8,6 +8,7 @@ use serde_json::{Value, json};
 use tokio::task::JoinSet;
 use url::Url;
 
+use crate::confidence::assess;
 use crate::discover::{
     Candidate, CircuitBreaker, DiscoveryResult, SitemapMem, base_domain, discover,
     health_query_for, run_site, to_rank_inputs,
@@ -352,6 +353,12 @@ impl Searcher {
                 }
             }
             payload["elapsed_ms"] = json!(ms);
+            let verdict = assess(
+                query,
+                payload["results"].as_array().map_or(&[], Vec::as_slice),
+                true,
+            );
+            merge(&mut payload, verdict);
             return payload;
         }
 
@@ -534,8 +541,9 @@ impl Searcher {
             }
         }
 
+        let verdict = assess(query, &results, fetch_pages);
         let elapsed_ms = (t0.elapsed().as_secs_f64() * 1000.0 * 1000.0).round() / 1000.0;
-        let payload = json!({
+        let mut payload = json!({
             "query": query,
             "elapsed_ms": elapsed_ms,
             "results": results,
@@ -557,6 +565,7 @@ impl Searcher {
                 "robots_skips": disc_rob + p_rob,
             }
         });
+        merge(&mut payload, verdict);
         let has_err = results.iter().any(|r| r["status"].as_str() == Some("ERR"));
         if fetch_pages && !results.is_empty() && !has_err {
             self.cache.set_query(&qh, &payload.to_string());
@@ -850,6 +859,12 @@ fn make_result(
         "cache_hit": cache_hit,
         "candidate_id": candidate_id,
     })
+}
+
+fn merge(payload: &mut Value, extra: Value) {
+    if let (Some(dst), Value::Object(src)) = (payload.as_object_mut(), extra) {
+        dst.extend(src);
+    }
 }
 
 fn url_host(raw: &str) -> String {

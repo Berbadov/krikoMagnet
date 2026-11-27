@@ -1,3 +1,4 @@
+mod confidence;
 mod discover;
 mod extract;
 mod http;
@@ -891,6 +892,9 @@ async fn mcp_search(
         "lang": lang,
         "pages_fetched": fetch,
         "elapsed_ms": payload["elapsed_ms"],
+        "sufficient": payload["sufficient"],
+        "confidence": payload["confidence"],
+        "reason": payload["reason"],
         "plan": {
             "language": payload["plan"]["language"],
             "topics": payload["plan"]["topics"],

@@ -59,6 +59,49 @@ bun run bench:pro
 bun run bench -- --dry-run
 ```
 
+## Sufficiency Signal
+
+Every search response (HTTP, CLI and `magnet_search`) carries a calibrated
+"nothing good found" verdict so callers know when to fall back to a paid
+search API:
+
+```json
+{ "sufficient": false, "confidence": 0.222,
+  "reason": "results only partly cover the query terms",
+  "confidence_signals": { "results": 5, "usable": 5, "matching": 0,
+    "best_coverage": 0.667, "concepts": 3, "identity_terms": ["lg", "c1"] } }
+```
+
+How it is computed ([src/confidence.rs](src/confidence.rs)):
+
+1. **Concepts** are the query terms minus stopwords and generic intent words
+   (`review`, `recall`, `inceleme`, ...), stemmed, each with its TR/EN product
+   aliases. **Identity concepts** are brands, model codes (`c1`, `f28`,
+   `1000xm5`) and bare numbers (`iphone 18`).
+2. A result is **usable** when it was fetched with HTTP 200 and at least 300
+   extracted characters (any result when `fetch=false`).
+3. A usable result **matches** when every identity concept appears in its URL,
+   title, snippet or first 500 extracted characters, and at least 75% of all
+   concepts appear in those fields plus the first 4000 extracted characters.
+4. `confidence = best_coverage × min(1, (matches + 1) / 3)`; one strong match
+   scores `0.667`, two or more score their coverage.
+5. `sufficient = matches ≥ 1 and confidence ≥ 0.5`. When it is false, `reason`
+   says why: `no results`, `no result could be fetched and extracted`,
+   `no result names the brand, model or number in the query`, or
+   `results only partly cover the query terms`.
+
+Calibration on the cached top-5 payloads of the 66 eval queries, labelled with
+[eval/queries.jsonl](eval/queries.jsonl) and
+[eval/open_qrels.jsonl](eval/open_qrels.jsonl):
+
+| Set | Expected | Result |
+|---|---|---|
+| Queries with a judged grade-1/2 hit (`59`) | sufficient | `57` (`96.6%`); misses: `lg c1 yanık` (no alias for `yanık`), `vaillant ecotec fault code f28` |
+| Query scored against another query's results (`66`) | insufficient | `64`; one of the two accepts (TR `iphone ekran değişimi` ← EN iPhone screen-replacement pages) is actually relevant |
+| Same-brand near misses, e.g. `lg c2` ← `lg c1` pages (`18`) | insufficient | `17` (`lg c1 burn in` ← `lg c2` pages accepts: titles compare both) |
+
+`bun run eval` re-checks `sufficient` against the qrels on a live run.
+
 ## Benchmarks
 
 Measured on branch `rewrite/rust` (`magnet v0.3.0`, release build) across the

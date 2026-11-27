@@ -120,7 +120,7 @@ const PRODUCT_TERMS: &[&str] = &[
     "oyuncak",
 ];
 
-const BRAND_TERMS: &[&str] = &[
+pub const BRAND_TERMS: &[&str] = &[
     "apple",
     "iphone",
     "ipad",
@@ -484,7 +484,7 @@ pub fn select_sitemap_children(
     selected
 }
 
-fn generic_set() -> &'static HashSet<&'static str> {
+pub fn generic_set() -> &'static HashSet<&'static str> {
     static SET: OnceLock<HashSet<&'static str>> = OnceLock::new();
     SET.get_or_init(|| GENERIC_QUERY_TERMS.iter().copied().collect())
 }
