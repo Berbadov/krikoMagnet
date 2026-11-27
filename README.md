@@ -81,11 +81,12 @@ How it is computed ([src/confidence.rs](src/confidence.rs)):
 2. A result is **usable** when it was fetched with HTTP 200 and at least 300
    extracted characters (any result when `fetch=false`).
 3. A usable result **matches** when every identity concept appears in its URL,
-   title, snippet or first 500 extracted characters, and at least 75% of all
+   title, snippet or first 500 extracted characters, and at least 66% of all
    concepts appear in those fields plus the first 4000 extracted characters.
-4. `confidence = best_coverage × min(1, (matches + 1) / 3)`; one strong match
-   scores `0.667`, two or more score their coverage.
-5. `sufficient = matches ≥ 1 and confidence ≥ 0.5`. When it is false, `reason`
+4. `confidence = best_coverage × min(1, (matches + 1) / 3)`; one full match
+   scores `0.667`, two or more score their coverage. It is a graded score for
+   callers that want their own cut-off.
+5. `sufficient = matches ≥ 1`. When it is false, `reason`
    says why: `no results`, `no result could be fetched and extracted`,
    `no result names the brand, model or number in the query`, or
    `results only partly cover the query terms`.
@@ -96,9 +97,13 @@ Calibration on the cached top-5 payloads of the 66 eval queries, labelled with
 
 | Set | Expected | Result |
 |---|---|---|
-| Queries with a judged grade-1/2 hit (`59`) | sufficient | `57` (`96.6%`); misses: `lg c1 yanık` (no alias for `yanık`), `vaillant ecotec fault code f28` |
-| Query scored against another query's results (`66`) | insufficient | `64`; one of the two accepts (TR `iphone ekran değişimi` ← EN iPhone screen-replacement pages) is actually relevant |
-| Same-brand near misses, e.g. `lg c2` ← `lg c1` pages (`18`) | insufficient | `17` (`lg c1 burn in` ← `lg c2` pages accepts: titles compare both) |
+| Queries with a judged grade-1/2 hit (`59`) | sufficient | `59` (`100%`) |
+| Query scored against another query's results (`66`) | insufficient | `63`; two of the three accepts are relevant cross-language pairs (`iphone ekran değişimi` ← iPhone screen-replacement pages, `vaillant ecotec fault code f28` ← Turkish Vaillant F28 pages), one is borderline (`vaillant boiler pressure too low` ← Vaillant "pressure too high" pages) |
+| Same-brand near misses, e.g. `lg c2` ← `lg c1` pages (`18`) | insufficient | `16`; both accepts are the LG C1/C2 burn-in pair, whose titles compare the two models |
+
+Keeping only each positive query's top result, `57/59` stay sufficient. A `75%`
+coverage threshold rejects one more near miss but also marks the exact Vaillant
+F28 fault-code page insufficient for `vaillant ecotec fault code f28`.
 
 `bun run eval` re-checks `sufficient` against the qrels on a live run.
 

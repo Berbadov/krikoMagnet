@@ -11,8 +11,7 @@ use crate::text::{
 
 const BODY_CHARS: usize = 4000;
 const HEAD_CHARS: usize = 500;
-pub const MIN_COVERAGE: f64 = 0.75;
-pub const SUFFICIENT_AT: f64 = 0.5;
+pub const MIN_COVERAGE: f64 = 0.66;
 
 struct Concept {
     syns: Vec<String>,
@@ -93,8 +92,8 @@ fn tokens(r: &Value, body_chars: usize) -> HashSet<String> {
 /// identity holds and coverage >= `MIN_COVERAGE`.
 ///
 /// `confidence = best_coverage * min(1, (matches + 1) / 3)` over identity-matching results, so
-/// one strong match scores 0.67 and two or more score their coverage. The response is
-/// `sufficient` when at least one result matches and confidence >= `SUFFICIENT_AT`.
+/// one full match scores 0.67 and two or more score their coverage. The response is
+/// `sufficient` when at least one result matches.
 pub fn assess(query: &str, results: &[Value], fetched: bool) -> Value {
     let concepts = concepts(query);
     let mut usable_n = 0usize;
@@ -129,7 +128,7 @@ pub fn assess(query: &str, results: &[Value], fetched: bool) -> Value {
     }
     let support = ((matches + 1) as f64 / 3.0).min(1.0);
     let confidence = (best_cov * support * 1000.0).round() / 1000.0;
-    let sufficient = matches > 0 && confidence >= SUFFICIENT_AT;
+    let sufficient = matches > 0;
     let reason = if sufficient {
         None
     } else if results.is_empty() {
@@ -242,6 +241,16 @@ mod tests {
         assert_eq!(v["sufficient"], false);
         assert_eq!(v["reason"], "results only partly cover the query terms");
         assert_eq!(v["confidence_signals"]["best_coverage"], 0.5);
+
+        let f28 = page(
+            "https://www.vaillant.co.uk/advice/understanding-an-f28-fault-code-on-a-vaillant-boiler",
+            "Understanding an F28 fault code on a Vaillant boiler",
+            "F28 means ignition failure.",
+        );
+        assert_eq!(
+            assess("vaillant ecotec fault code f28", &[f28], true)["sufficient"],
+            true
+        );
 
         let meta = json!({
             "url": "https://a.test/samsung-refrigerator-ice-maker",
