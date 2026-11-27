@@ -128,6 +128,24 @@ stopped) to compact them.
 `magnet scout --promote` only stages changes in `registry.pending.yaml`; review
 them before copying over `registry.yaml` (or use `--promote --apply`).
 
+### Fly.io (one command, ~$5/mo)
+
+`fly.toml` is included. With the Fly CLI logged in:
+
+```bash
+flyctl launch --no-deploy --name kriko-magnet --region fra   # adopts fly.toml
+flyctl volumes create magnet_data --size 5 --region fra --app kriko-magnet
+flyctl deploy --local-only --app kriko-magnet                # uses the local Docker image
+flyctl secrets set MAGNET_API_TOKEN=... MAGNET_ADMIN_TOKEN=... --app kriko-magnet
+# Upload the index and Tranco list into the volume once:
+tar -czf - -C <dir-with-data> site_index.sqlite tranco_top100k.txt \
+  | flyctl ssh console -C 'tar -xzf - -C /app/data' --app kriko-magnet
+```
+
+Then set `KRIKO_MAGNET_URL=https://kriko-magnet.fly.dev`, `KRIKO_MAGNET_TOKEN`
+and `KRIKO_MAGNET_ADMIN_TOKEN` on the Kriko gateway Worker; it will search
+Magnet first and push opted-in signals to its `/learn` every 6 h.
+
 ## Sufficiency Signal
 
 Every search response (HTTP, CLI and `magnet_search`) carries a calibrated
