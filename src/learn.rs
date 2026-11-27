@@ -11,6 +11,7 @@ use serde_json::{Value, json};
 use url::{Host, Url};
 
 use crate::discover::base_domain;
+use crate::planner::{Registry, Site};
 use crate::text::fold;
 
 const PERSONAL_SEGMENTS: &[&str] = &[
@@ -199,6 +200,16 @@ pub fn sanitize_url(raw: &str) -> Option<String> {
     }
     let out = format!("{}://{host}{path}", u.scheme());
     (out.chars().count() <= MAX_URL_CHARS).then_some(out)
+}
+
+pub fn site_for_url<'a>(reg: &'a Registry, url: &str) -> Option<&'a Site> {
+    let host = Url::parse(url).ok()?.host_str()?.to_ascii_lowercase();
+    let host = host.strip_prefix("www.").unwrap_or(&host);
+    reg.sites.iter().find(|s| {
+        let d = s.domain.to_ascii_lowercase();
+        let d = d.strip_prefix("www.").unwrap_or(&d);
+        host == d || host.ends_with(&format!(".{d}"))
+    })
 }
 
 fn hint_domain(raw: &str) -> Option<String> {

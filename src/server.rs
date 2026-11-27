@@ -16,7 +16,7 @@ use serde_json::{Value, json};
 use sha2::{Digest, Sha256};
 use tokio::net::TcpListener;
 
-use crate::learn::today;
+use crate::learn::{Hints, today};
 use crate::search::Searcher;
 use crate::{env_num, log};
 
@@ -163,6 +163,11 @@ struct HttpSearchReq {
     #[serde(default = "default_true")]
     fetch: bool,
     budget_ms: Option<u64>,
+    #[serde(default)]
+    prefer_domains: Vec<String>,
+    #[serde(default)]
+    avoid_domains: Vec<String>,
+    lang: Option<String>,
 }
 
 fn default_k() -> usize {
@@ -287,13 +292,17 @@ async fn search(State(st): State<Arc<AppState>>, Json(req): Json<HttpSearchReq>)
     if !(1..=MAX_K).contains(&req.k) {
         return error_response(StatusCode::BAD_REQUEST, &format!("k must be 1..={MAX_K}"));
     }
+    let hints = match Hints::new(&req.prefer_domains, &req.avoid_domains, req.lang.as_deref()) {
+        Ok(h) => h,
+        Err(e) => return error_response(StatusCode::BAD_REQUEST, &e),
+    };
     let budget = req.budget_ms.map(|b| b.min(MAX_BUDGET_MS));
     let (s, q) = (st.searcher.clone(), query.to_string());
-    let payload =
-        match tokio::spawn(async move { s.search(&q, req.k, req.fetch, budget).await }).await {
-            Ok(v) => v,
-            Err(_) => return error_response(StatusCode::INTERNAL_SERVER_ERROR, "internal error"),
-        };
+    let run = async move { s.search(&q, req.k, req.fetch, budget, &hints).await };
+    let payload = match tokio::spawn(run).await {
+        Ok(v) => v,
+        Err(_) => return error_response(StatusCode::INTERNAL_SERVER_ERROR, "internal error"),
+    };
     let fields = search_fields(&payload, query);
     if payload["query_cache_hit"] == true {
         st.metrics.query_cache_hits.fetch_add(1, Ordering::Relaxed);

@@ -29,7 +29,7 @@ use url::Url;
 use crate::discover::base_domain;
 use crate::http::{Fetcher, USER_AGENT};
 use crate::index::{SiteIndex, build_index};
-use crate::learn::{LearnConfig, LearnStore};
+use crate::learn::{Hints, LearnConfig, LearnStore, MAX_HINT_DOMAINS};
 use crate::measure::{
     baseline_default_path, calibrate_from_cache, load_baseline, measure_urls_sequential,
 };
@@ -216,7 +216,9 @@ async fn cmd_search(args: &[String]) -> Result<i32, String> {
         return Err("missing <query>".into());
     }
     let searcher = Searcher::open(cfg)?;
-    let out = searcher.search(&query, k, fetch_pages, None).await;
+    let out = searcher
+        .search(&query, k, fetch_pages, None, &Hints::default())
+        .await;
     println!("{}", serde_json::to_string_pretty(&out).unwrap());
     Ok(0)
 }
@@ -826,7 +828,15 @@ fn mcp_tool_defs() -> Value {
                     "query": { "type": "string", "description": "Natural-language search query." },
                     "k": { "type": "integer", "default": 5, "minimum": 1, "maximum": 10 },
                     "lang": { "type": ["string", "null"], "enum": ["en", "tr", null] },
-                    "fetch": { "type": "boolean", "default": true }
+                    "fetch": { "type": "boolean", "default": true },
+                    "prefer_domains": {
+                        "type": "array", "items": { "type": "string" }, "maxItems": MAX_HINT_DOMAINS,
+                        "description": "Domains to rank up for this request only, e.g. from a profile kept on the user's device. Never stored or logged."
+                    },
+                    "avoid_domains": {
+                        "type": "array", "items": { "type": "string" }, "maxItems": MAX_HINT_DOMAINS,
+                        "description": "Domains to rank down (not hide) for this request only. Never stored or logged."
+                    }
                 }
             }
         },
@@ -884,6 +894,22 @@ async fn mcp_search(
         }
     };
     let fetch = args.get("fetch").and_then(|v| v.as_bool()).unwrap_or(true);
+    let domains = |key: &str| -> Result<Vec<String>, String> {
+        let err = || format!("{key} must be an array of domain strings");
+        match args.get(key) {
+            None | Some(Value::Null) => Ok(Vec::new()),
+            Some(Value::Array(items)) => items
+                .iter()
+                .map(|v| v.as_str().map(str::to_string).ok_or_else(err))
+                .collect(),
+            Some(_) => Err(err()),
+        }
+    };
+    let hints = Hints::new(
+        &domains("prefer_domains")?,
+        &domains("avoid_domains")?,
+        lang.as_deref(),
+    )?;
 
     let _permit = slots
         .acquire()
@@ -896,7 +922,7 @@ async fn mcp_search(
     let b_rob = st.robots_skips.load(Ordering::Relaxed);
     let b_ret = st.retries.load(Ordering::Relaxed);
 
-    let payload = searcher.search(&query, k, fetch, None).await;
+    let payload = searcher.search(&query, k, fetch, None, &hints).await;
     let mut rows = Vec::new();
     for (idx, item) in payload["results"]
         .as_array()
