@@ -16,6 +16,7 @@ use crate::discover::{
 use crate::extract::{SOFT_MIN_CHARS, classify_fetch, extract_text};
 use crate::http::{Fetcher, GetOpts, now_epoch};
 use crate::index::SiteIndex;
+use crate::log;
 use crate::planner::{Registry, load_registry, load_tranco};
 use crate::ranker::rank_docs;
 use crate::scout::SourceTrustStore;
@@ -193,7 +194,7 @@ pub fn spawn_pruner(searcher: Arc<Searcher>, cfg: PruneConfig) {
             let s = searcher.clone();
             let run = move || prune_storage(&s.fetcher, &s.cache, &cfg, false);
             if let Ok(report) = tokio::task::spawn_blocking(run).await {
-                eprintln!("{report}");
+                log::emit(log::Level::Info, report);
             }
             if cfg.interval_mins <= 0.0 {
                 break;
@@ -244,9 +245,32 @@ pub struct Searcher {
     pub page_budget_ms: u64,
     pub max_sites: usize,
     pub per_domain_limit: usize,
+    pub started: Instant,
+    fetch_cache_path: PathBuf,
+    cache_path: PathBuf,
+}
+
+fn file_bytes(path: &Path) -> u64 {
+    let wal = PathBuf::from(format!("{}-wal", path.display()));
+    [path, wal.as_path()]
+        .iter()
+        .filter_map(|p| std::fs::metadata(p).ok())
+        .map(|m| m.len())
+        .sum()
 }
 
 impl Searcher {
+    pub fn storage_bytes(&self) -> Vec<(&'static str, u64)> {
+        let mut out = vec![
+            ("fetch_cache", file_bytes(&self.fetch_cache_path)),
+            ("pipeline_cache", file_bytes(&self.cache_path)),
+        ];
+        if let Some(ref idx) = self.index {
+            out.push(("site_index", file_bytes(&idx.path)));
+        }
+        out
+    }
+
     pub fn open(cfg: SearchConfig) -> Result<Self, String> {
         let registry = load_registry(&cfg.registry_path)?;
         let site_languages = registry
@@ -278,6 +302,9 @@ impl Searcher {
             page_budget_ms: cfg.page_budget_ms,
             max_sites: cfg.max_sites,
             per_domain_limit: cfg.per_domain_limit,
+            started: Instant::now(),
+            fetch_cache_path: cfg.fetch_cache_path,
+            cache_path: cfg.cache_path,
         })
     }
 
@@ -353,6 +380,7 @@ impl Searcher {
                 }
             }
             payload["elapsed_ms"] = json!(ms);
+            payload["query_cache_hit"] = json!(true);
             let verdict = assess(
                 query,
                 payload["results"].as_array().map_or(&[], Vec::as_slice),
@@ -546,6 +574,7 @@ impl Searcher {
         let mut payload = json!({
             "query": query,
             "elapsed_ms": elapsed_ms,
+            "query_cache_hit": false,
             "results": results,
             "plan": {
                 "language": disc.plan.language,
@@ -675,6 +704,8 @@ impl Searcher {
             "circuit_open": circuit_open,
             "circuit": snap,
             "fetcher": self.fetcher.stats.snapshot(),
+            "storage_bytes": self.storage_bytes().into_iter().collect::<HashMap<_, _>>(),
+            "uptime_s": self.started.elapsed().as_secs(),
         });
 
         if probe {

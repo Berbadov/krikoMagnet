@@ -3,6 +3,7 @@ mod discover;
 mod extract;
 mod http;
 mod index;
+mod log;
 mod measure;
 mod planner;
 mod ranker;

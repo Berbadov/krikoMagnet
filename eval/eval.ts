@@ -213,6 +213,7 @@ async function startServer(
       MAGNET_API_TOKEN: "",
       MAGNET_ADMIN_TOKEN: adminToken,
       MAGNET_RATE_PER_MIN: "0",
+      MAGNET_LOG: "off",
     },
   });
 

@@ -1,5 +1,7 @@
 use std::collections::HashMap;
+use std::fmt::Write;
 use std::net::{IpAddr, Ipv4Addr, SocketAddr};
+use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{Arc, Mutex, PoisonError};
 use std::time::Instant;
 
@@ -14,9 +16,10 @@ use serde_json::{Value, json};
 use sha2::{Digest, Sha256};
 use tokio::net::TcpListener;
 
-use crate::env_num;
 use crate::search::Searcher;
+use crate::{env_num, log};
 
+const ROUTES: &[&str] = &["/health", "/search", "/metrics", "/cache/clear-queries"];
 const MAX_QUERY_CHARS: usize = 512;
 const MAX_K: usize = 20;
 const MAX_BUDGET_MS: u64 = 120_000;
@@ -103,10 +106,32 @@ impl RateLimiter {
     }
 }
 
+type RequestStats = HashMap<(&'static str, u16), (u64, f64)>;
+
+#[derive(Default)]
+struct Metrics {
+    requests: Mutex<RequestStats>,
+    query_cache_hits: AtomicU64,
+    insufficient: AtomicU64,
+}
+
+impl Metrics {
+    fn record(&self, route: &'static str, status: u16, secs: f64) {
+        let mut map = self.requests.lock().unwrap_or_else(PoisonError::into_inner);
+        let entry = map.entry((route, status)).or_insert((0, 0.0));
+        entry.0 += 1;
+        entry.1 += secs;
+    }
+}
+
+#[derive(Clone)]
+struct LogFields(Value);
+
 pub struct AppState {
     pub searcher: Arc<Searcher>,
     pub cfg: ServerConfig,
     limiter: RateLimiter,
+    metrics: Metrics,
 }
 
 impl AppState {
@@ -116,6 +141,7 @@ impl AppState {
             searcher,
             cfg,
             limiter,
+            metrics: Metrics::default(),
         })
     }
 }
@@ -152,7 +178,46 @@ fn wants_probe(query: Option<&str>) -> bool {
         .any(|(k, v)| k == "probe" && v != "false")
 }
 
-async fn guard(State(st): State<Arc<AppState>>, req: Request, next: Next) -> Response {
+fn route_label(path: &str) -> &'static str {
+    ROUTES
+        .iter()
+        .copied()
+        .find(|r| *r == path)
+        .unwrap_or("other")
+}
+
+async fn observe(State(st): State<Arc<AppState>>, req: Request, next: Next) -> Response {
+    let t0 = Instant::now();
+    let method = req.method().to_string();
+    let route = route_label(req.uri().path());
+    let resp = guard(&st, req, next).await;
+    let secs = t0.elapsed().as_secs_f64();
+    let status = resp.status().as_u16();
+    st.metrics.record(route, status, secs);
+    let at = if status >= 500 {
+        log::Level::Error
+    } else {
+        log::Level::Info
+    };
+    if log::enabled(at) {
+        let mut line = json!({
+            "event": "request",
+            "method": method,
+            "route": route,
+            "status": status,
+            "latency_ms": (secs * 1_000_000.0).round() / 1000.0,
+        });
+        if let (Some(obj), Some(LogFields(Value::Object(extra)))) =
+            (line.as_object_mut(), resp.extensions().get::<LogFields>())
+        {
+            obj.extend(extra.clone());
+        }
+        log::emit(at, line);
+    }
+    resp
+}
+
+async fn guard(st: &AppState, req: Request, next: Next) -> Response {
     let ip = req
         .extensions()
         .get::<ConnectInfo<SocketAddr>>()
@@ -214,7 +279,46 @@ async fn search(State(st): State<Arc<AppState>>, Json(req): Json<HttpSearchReq>)
     }
     let budget = req.budget_ms.map(|b| b.min(MAX_BUDGET_MS));
     let (s, q) = (st.searcher.clone(), query.to_string());
-    isolate(async move { s.search(&q, req.k, req.fetch, budget).await }).await
+    let payload =
+        match tokio::spawn(async move { s.search(&q, req.k, req.fetch, budget).await }).await {
+            Ok(v) => v,
+            Err(_) => return error_response(StatusCode::INTERNAL_SERVER_ERROR, "internal error"),
+        };
+    let fields = search_fields(&payload, query);
+    if payload["query_cache_hit"] == true {
+        st.metrics.query_cache_hits.fetch_add(1, Ordering::Relaxed);
+    }
+    if payload["sufficient"] == false {
+        st.metrics.insufficient.fetch_add(1, Ordering::Relaxed);
+    }
+    let mut resp = Json(payload).into_response();
+    resp.extensions_mut().insert(LogFields(fields));
+    resp
+}
+
+fn search_fields(p: &Value, query: &str) -> Value {
+    let results = p["results"].as_array().map_or(&[][..], Vec::as_slice);
+    let count = |f: &dyn Fn(&Value) -> bool| results.iter().filter(|r| f(&r["status"])).count();
+    let mut fields = json!({
+        "query_cache_hit": p["query_cache_hit"],
+        "results": results.len(),
+        "result_cache_hits": results.iter().filter(|r| r["cache_hit"] == true).count(),
+        "sources_tried": p["plan"]["sites"].as_array().map_or(0, Vec::len),
+        "sources_with_results": p["plan"]["sources_with_results"],
+        "fetches": p["fetch_stats"]["total_fetches"],
+        "robots_skips": p["fetch_stats"]["robots_skips"],
+        "blocks": count(&|s| {
+            matches!(s.as_u64(), Some(401 | 403 | 429))
+                || matches!(s.as_str(), Some("robots" | "robots-denied"))
+        }),
+        "errors": count(&|s| s.as_str() == Some("ERR") || s.as_u64().is_some_and(|c| c >= 500)),
+        "sufficient": p["sufficient"],
+        "confidence": p["confidence"],
+    });
+    if log::enabled(log::Level::Debug) {
+        fields["query"] = json!(query);
+    }
+    fields
 }
 
 async fn clear_queries(State(st): State<Arc<AppState>>) -> Response {
@@ -222,13 +326,101 @@ async fn clear_queries(State(st): State<Arc<AppState>>) -> Response {
     Json(json!({ "ok": true })).into_response()
 }
 
+async fn metrics(State(st): State<Arc<AppState>>) -> Response {
+    (
+        [(header::CONTENT_TYPE, "text/plain; version=0.0.4")],
+        render_metrics(&st),
+    )
+        .into_response()
+}
+
+fn render_metrics(st: &AppState) -> String {
+    let mut out = String::new();
+    let mut put = |kind: &str, name: &str, rows: Vec<(String, String)>| {
+        let _ = writeln!(out, "# TYPE {name} {kind}");
+        for (labels, value) in rows {
+            let _ = writeln!(out, "{name}{labels} {value}");
+        }
+    };
+    let mut reqs: Vec<_> = st
+        .metrics
+        .requests
+        .lock()
+        .unwrap_or_else(PoisonError::into_inner)
+        .iter()
+        .map(|(k, v)| (*k, *v))
+        .collect();
+    reqs.sort_by_key(|(k, _)| *k);
+    let label = |r: &str, s: u16| format!("{{route=\"{r}\",status=\"{s}\"}}");
+    put(
+        "counter",
+        "magnet_http_requests_total",
+        reqs.iter()
+            .map(|((r, s), (n, _))| (label(r, *s), n.to_string()))
+            .collect(),
+    );
+    put(
+        "counter",
+        "magnet_http_request_seconds_total",
+        reqs.iter()
+            .map(|((r, s), (_, secs))| (label(r, *s), format!("{secs:.6}")))
+            .collect(),
+    );
+    let m = &st.metrics;
+    let f = &st.searcher.fetcher.stats;
+    for (name, v) in [
+        ("magnet_search_query_cache_hits_total", &m.query_cache_hits),
+        ("magnet_search_insufficient_total", &m.insufficient),
+        ("magnet_fetch_requests_total", &f.requests),
+        ("magnet_fetch_cache_hits_total", &f.cache_hits),
+        ("magnet_fetch_robots_skips_total", &f.robots_skips),
+        ("magnet_fetch_retries_total", &f.retries),
+        ("magnet_fetch_bytes_total", &f.bytes),
+    ] {
+        put(
+            "counter",
+            name,
+            vec![(String::new(), v.load(Ordering::Relaxed).to_string())],
+        );
+    }
+    put(
+        "gauge",
+        "magnet_uptime_seconds",
+        vec![(
+            String::new(),
+            st.searcher.started.elapsed().as_secs().to_string(),
+        )],
+    );
+    put(
+        "gauge",
+        "magnet_storage_bytes",
+        st.searcher
+            .storage_bytes()
+            .into_iter()
+            .map(|(k, v)| (format!("{{store=\"{k}\"}}"), v.to_string()))
+            .collect(),
+    );
+    let mut circuits: Vec<_> = st.searcher.breaker.snapshot().into_iter().collect();
+    circuits.sort_by(|a, b| a.0.cmp(&b.0));
+    put(
+        "gauge",
+        "magnet_circuit_open",
+        circuits
+            .into_iter()
+            .map(|(site, e)| (format!("{{site=\"{site}\"}}"), u8::from(e.open).to_string()))
+            .collect(),
+    );
+    out
+}
+
 pub fn router(state: Arc<AppState>) -> Router {
     Router::new()
         .route("/health", get(health))
         .route("/search", post(search))
+        .route("/metrics", get(metrics))
         .route("/cache/clear-queries", post(clear_queries))
         .layer(DefaultBodyLimit::max(state.cfg.max_body_bytes))
-        .layer(middleware::from_fn_with_state(state.clone(), guard))
+        .layer(middleware::from_fn_with_state(state.clone(), observe))
         .with_state(state)
 }
 
@@ -406,6 +598,65 @@ mod tests {
 
         let _ = std::fs::remove_dir_all(&dir);
         let _ = std::fs::remove_dir_all(&dir2);
+    }
+
+    #[tokio::test]
+    async fn metrics_and_health_report_observability_fields() {
+        let (base, dir) = spawn(cfg(Some("secret"), None)).await;
+        let c = reqwest::Client::new();
+        let health: Value = c
+            .get(format!("{base}/health"))
+            .send()
+            .await
+            .unwrap()
+            .json()
+            .await
+            .unwrap();
+        assert!(health["uptime_s"].is_u64());
+        assert!(health["storage_bytes"]["fetch_cache"].as_u64().unwrap() > 0);
+        assert!(health["circuit"].is_object());
+
+        let denied = c.get(format!("{base}/metrics")).send().await.unwrap();
+        assert_eq!(denied.status().as_u16(), 401);
+        let text = c
+            .get(format!("{base}/metrics"))
+            .bearer_auth("secret")
+            .send()
+            .await
+            .unwrap()
+            .text()
+            .await
+            .unwrap();
+        assert!(text.contains("magnet_http_requests_total{route=\"/health\",status=\"200\"} 1"));
+        assert!(text.contains("magnet_http_requests_total{route=\"/metrics\",status=\"401\"} 1"));
+        assert!(text.contains("# TYPE magnet_fetch_requests_total counter"));
+        assert!(text.contains("magnet_storage_bytes{store=\"fetch_cache\"}"));
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn search_log_fields_count_blocks_and_errors() {
+        let payload = json!({
+            "query_cache_hit": false,
+            "sufficient": false,
+            "confidence": 0.2,
+            "plan": {"sites": ["a", "b", "c"], "sources_with_results": 2},
+            "fetch_stats": {"total_fetches": 7, "robots_skips": 1},
+            "results": [
+                {"status": 200, "cache_hit": true},
+                {"status": 403, "cache_hit": false},
+                {"status": "robots", "cache_hit": false},
+                {"status": "ERR", "cache_hit": false},
+                {"status": 503, "cache_hit": false},
+            ],
+        });
+        let f = search_fields(&payload, "q");
+        assert_eq!(f["results"], 5);
+        assert_eq!(f["result_cache_hits"], 1);
+        assert_eq!(f["sources_tried"], 3);
+        assert_eq!(f["blocks"], 2);
+        assert_eq!(f["errors"], 2);
+        assert_eq!(f["fetches"], 7);
     }
 
     #[tokio::test]
