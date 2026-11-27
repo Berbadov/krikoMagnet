@@ -16,6 +16,7 @@ use crate::discover::{
 use crate::extract::{SOFT_MIN_CHARS, classify_fetch, extract_text};
 use crate::http::{Fetcher, GetOpts, now_epoch};
 use crate::index::SiteIndex;
+use crate::learn::{LearnConfig, LearnStore, today};
 use crate::log;
 use crate::planner::{Registry, load_registry, load_tranco};
 use crate::ranker::rank_docs;
@@ -173,17 +174,20 @@ impl PruneConfig {
 pub fn prune_storage(
     fetcher: &Fetcher,
     cache: &PipelineCache,
+    learn: Option<&LearnStore>,
     cfg: &PruneConfig,
     vacuum: bool,
 ) -> Value {
     let t0 = Instant::now();
     let fetch = fetcher.prune(cfg.fetch_max_age_s, cfg.fetch_max_bytes, vacuum);
     let (queries, pages) = cache.prune(vacuum);
+    let learned = learn.map(|l| l.prune(today()));
     json!({
         "event": "prune",
         "fetch_cache": fetch,
         "query_cache_expired": queries,
         "content_cache_expired": pages,
+        "learned": learned,
         "ms": t0.elapsed().as_millis() as u64,
     })
 }
@@ -192,7 +196,7 @@ pub fn spawn_pruner(searcher: Arc<Searcher>, cfg: PruneConfig) {
     tokio::spawn(async move {
         loop {
             let s = searcher.clone();
-            let run = move || prune_storage(&s.fetcher, &s.cache, &cfg, false);
+            let run = move || prune_storage(&s.fetcher, &s.cache, s.learn.as_deref(), &cfg, false);
             if let Ok(report) = tokio::task::spawn_blocking(run).await {
                 log::emit(log::Level::Info, report);
             }
@@ -211,6 +215,7 @@ pub struct SearchConfig {
     pub cache_path: PathBuf,
     pub fetch_cache_path: PathBuf,
     pub sources_path: PathBuf,
+    pub learn_path: PathBuf,
     pub page_budget_ms: u64,
     pub max_sites: usize,
     pub per_domain_limit: usize,
@@ -225,6 +230,7 @@ impl Default for SearchConfig {
             cache_path: PipelineCache::default_path(),
             fetch_cache_path: Fetcher::default_cache_path(),
             sources_path: SourceTrustStore::default_path(),
+            learn_path: LearnStore::default_path(),
             page_budget_ms: 0,
             max_sites: 6,
             per_domain_limit: 2,
@@ -240,6 +246,7 @@ pub struct Searcher {
     pub fetcher: Arc<Fetcher>,
     pub cache: PipelineCache,
     pub trust: Option<Arc<SourceTrustStore>>,
+    pub learn: Option<Arc<LearnStore>>,
     pub breaker: Arc<CircuitBreaker>,
     pub sitemap_mem: Arc<SitemapMem>,
     pub page_budget_ms: u64,
@@ -268,6 +275,9 @@ impl Searcher {
         if let Some(ref idx) = self.index {
             out.push(("site_index", file_bytes(&idx.path)));
         }
+        if let Some(ref l) = self.learn {
+            out.push(("learn", file_bytes(&l.path)));
+        }
         out
     }
 
@@ -289,6 +299,9 @@ impl Searcher {
         let fetcher = Arc::new(Fetcher::open(&cfg.fetch_cache_path)?);
         let cache = PipelineCache::open(&cfg.cache_path)?;
         let trust = SourceTrustStore::open(&cfg.sources_path).ok().map(Arc::new);
+        let learn = LearnStore::open(&cfg.learn_path, LearnConfig::from_env())
+            .ok()
+            .map(Arc::new);
         Ok(Self {
             registry,
             tranco,
@@ -297,6 +310,7 @@ impl Searcher {
             fetcher,
             cache,
             trust,
+            learn,
             breaker: Arc::new(CircuitBreaker::new(3, 300.0)),
             sitemap_mem: Arc::new(Mutex::new(HashMap::new())),
             page_budget_ms: cfg.page_budget_ms,
@@ -979,7 +993,7 @@ mod tests {
             fetch_max_bytes: 2500,
             interval_mins: 0.0,
         };
-        let report = prune_storage(&fetcher, &cache, &cfg, true);
+        let report = prune_storage(&fetcher, &cache, None, &cfg, true);
         assert_eq!(report["fetch_cache"]["expired"], 1);
         assert_eq!(report["fetch_cache"]["evicted"], 1);
         assert_eq!(report["fetch_cache"]["stored_bytes"], 2004);

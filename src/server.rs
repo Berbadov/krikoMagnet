@@ -475,6 +475,7 @@ mod tests {
             cache_path: dir.join("pipe.sqlite"),
             fetch_cache_path: dir.join("fetch.sqlite"),
             sources_path: dir.join("sources.sqlite"),
+            learn_path: dir.join("learn.sqlite"),
             ..Default::default()
         };
         (Arc::new(Searcher::open(cfg).unwrap()), dir)

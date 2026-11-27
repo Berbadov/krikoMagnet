@@ -3,6 +3,7 @@ mod discover;
 mod extract;
 mod http;
 mod index;
+mod learn;
 mod log;
 mod measure;
 mod planner;
@@ -28,6 +29,7 @@ use url::Url;
 use crate::discover::base_domain;
 use crate::http::{Fetcher, USER_AGENT};
 use crate::index::{SiteIndex, build_index};
+use crate::learn::{LearnConfig, LearnStore};
 use crate::measure::{
     baseline_default_path, calibrate_from_cache, load_baseline, measure_urls_sequential,
 };
@@ -89,6 +91,7 @@ fn parse_search_cfg(
                 cfg.fetch_cache_path = PathBuf::from(next_val(args, &mut i, "--fetch-cache")?)
             }
             "--sources" => cfg.sources_path = PathBuf::from(next_val(args, &mut i, "--sources")?),
+            "--learn" => cfg.learn_path = PathBuf::from(next_val(args, &mut i, "--learn")?),
             "--index" => cfg.index_path = Some(PathBuf::from(next_val(args, &mut i, "--index")?)),
             "--no-index" => cfg.index_path = None,
             "--budget-ms" | "--page-budget" => {
@@ -140,7 +143,7 @@ fn print_usage() {
            magnet measure <url...> [--baseline PATH]\n  \
            magnet scout <domain...> [--file PATH] [--sample 8] [--promote [--apply [--build-index]]] [--json]\n  \
            magnet tranco\n  \
-           magnet prune [--vacuum] [--cache PATH] [--fetch-cache PATH]"
+           magnet prune [--vacuum] [--cache PATH] [--fetch-cache PATH] [--learn PATH]"
     );
 }
 
@@ -155,7 +158,14 @@ fn cmd_prune(args: &[String]) -> Result<i32, String> {
     }
     let fetcher = Fetcher::open(&cfg.fetch_cache_path)?;
     let cache = PipelineCache::open(&cfg.cache_path)?;
-    let report = prune_storage(&fetcher, &cache, &PruneConfig::from_env(), vacuum);
+    let learn = LearnStore::open(&cfg.learn_path, LearnConfig::from_env())?;
+    let report = prune_storage(
+        &fetcher,
+        &cache,
+        Some(&learn),
+        &PruneConfig::from_env(),
+        vacuum,
+    );
     println!("{}", serde_json::to_string_pretty(&report).unwrap());
     Ok(0)
 }
@@ -1013,6 +1023,7 @@ mod tests {
             index_path: None,
             cache_path: dir.join("pipe.sqlite"),
             fetch_cache_path: dir.join("fetch.sqlite"),
+            learn_path: dir.join("learn.sqlite"),
             ..Default::default()
         };
         let searcher = Arc::new(Searcher::open(cfg).unwrap());
@@ -1057,6 +1068,7 @@ mod tests {
             cache_path: dir.join("pipe.sqlite"),
             fetch_cache_path: dir.join("fetch.sqlite"),
             sources_path: dir.join("sources.sqlite"),
+            learn_path: dir.join("learn.sqlite"),
             ..Default::default()
         };
         let searcher = Arc::new(Searcher::open(cfg).unwrap());
