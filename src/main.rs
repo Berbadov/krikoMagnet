@@ -125,6 +125,7 @@ async fn run_cli(args: &[String]) -> Result<i32, String> {
         "scout" => cmd_scout(tail).await,
         "tranco" => cmd_tranco().await,
         "prune" => cmd_prune(tail),
+        "learn" => cmd_learn(tail),
         _ => Err(format!("unknown subcommand '{cmd}' (run --help)")),
     }
 }
@@ -143,8 +144,30 @@ fn print_usage() {
            magnet measure <url...> [--baseline PATH]\n  \
            magnet scout <domain...> [--file PATH] [--sample 8] [--promote [--apply [--build-index]]] [--json]\n  \
            magnet tranco\n  \
-           magnet prune [--vacuum] [--cache PATH] [--fetch-cache PATH] [--learn PATH]"
+           magnet prune [--vacuum] [--cache PATH] [--fetch-cache PATH] [--learn PATH]\n  \
+           magnet learn <file.ndjson> | --export | --stats [--learn PATH]"
     );
+}
+
+fn cmd_learn(args: &[String]) -> Result<i32, String> {
+    let (cfg, rest) = parse_search_cfg(args, 0)?;
+    let store = LearnStore::open(&cfg.learn_path, LearnConfig::from_env())?;
+    let out = match rest.as_slice() {
+        [flag] if flag == "--export" => {
+            for line in store.export() {
+                println!("{line}");
+            }
+            return Ok(0);
+        }
+        [flag] if flag == "--stats" => store.stats(),
+        [path] if !path.starts_with('-') => {
+            let body = std::fs::read_to_string(path).map_err(|e| format!("read {path}: {e}"))?;
+            store.ingest(&body, learn::today())?
+        }
+        _ => return Err("usage: magnet learn <file.ndjson> | --export | --stats".into()),
+    };
+    println!("{}", serde_json::to_string_pretty(&out).unwrap());
+    Ok(0)
 }
 
 fn cmd_prune(args: &[String]) -> Result<i32, String> {

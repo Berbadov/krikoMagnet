@@ -16,11 +16,20 @@ use serde_json::{Value, json};
 use sha2::{Digest, Sha256};
 use tokio::net::TcpListener;
 
+use crate::learn::today;
 use crate::search::Searcher;
 use crate::{env_num, log};
 
-const ROUTES: &[&str] = &["/health", "/search", "/metrics", "/cache/clear-queries"];
+const ROUTES: &[&str] = &[
+    "/health",
+    "/search",
+    "/metrics",
+    "/cache/clear-queries",
+    "/learn",
+    "/learn/stats",
+];
 const MAX_QUERY_CHARS: usize = 512;
+const MAX_LEARN_BODY_BYTES: usize = 1024 * 1024;
 const MAX_K: usize = 20;
 const MAX_BUDGET_MS: u64 = 120_000;
 const MAX_RATE_KEYS: usize = 10_000;
@@ -230,7 +239,8 @@ async fn guard(st: &AppState, req: Request, next: Next) -> Response {
         return resp;
     }
     let path = req.uri().path();
-    let required = if path.starts_with("/cache/") {
+    let admin = path.starts_with("/cache/") || path == "/learn" || path.starts_with("/learn/");
+    let required = if admin {
         match st.cfg.admin_token {
             Some(ref t) => Some(t),
             None => return error_response(StatusCode::NOT_FOUND, "admin routes are disabled"),
@@ -326,6 +336,29 @@ async fn clear_queries(State(st): State<Arc<AppState>>) -> Response {
     Json(json!({ "ok": true })).into_response()
 }
 
+async fn learn(State(st): State<Arc<AppState>>, body: String) -> Response {
+    let Some(store) = st.searcher.learn.clone() else {
+        return error_response(
+            StatusCode::SERVICE_UNAVAILABLE,
+            "learning store unavailable",
+        );
+    };
+    match tokio::task::spawn_blocking(move || store.ingest(&body, today())).await {
+        Ok(Ok(report)) => Json(report).into_response(),
+        _ => error_response(StatusCode::INTERNAL_SERVER_ERROR, "internal error"),
+    }
+}
+
+async fn learn_stats(State(st): State<Arc<AppState>>) -> Response {
+    let Some(store) = st.searcher.learn.clone() else {
+        return error_response(
+            StatusCode::SERVICE_UNAVAILABLE,
+            "learning store unavailable",
+        );
+    };
+    isolate(async move { store.stats() }).await
+}
+
 async fn metrics(State(st): State<Arc<AppState>>) -> Response {
     (
         [(header::CONTENT_TYPE, "text/plain; version=0.0.4")],
@@ -419,6 +452,11 @@ pub fn router(state: Arc<AppState>) -> Router {
         .route("/search", post(search))
         .route("/metrics", get(metrics))
         .route("/cache/clear-queries", post(clear_queries))
+        .route(
+            "/learn",
+            post(learn).layer(DefaultBodyLimit::max(MAX_LEARN_BODY_BYTES)),
+        )
+        .route("/learn/stats", get(learn_stats))
         .layer(DefaultBodyLimit::max(state.cfg.max_body_bytes))
         .layer(middleware::from_fn_with_state(state.clone(), observe))
         .with_state(state)
@@ -597,6 +635,70 @@ mod tests {
             .unwrap();
         assert_eq!(status(admin), 200);
 
+        let _ = std::fs::remove_dir_all(&dir);
+        let _ = std::fs::remove_dir_all(&dir2);
+    }
+
+    #[tokio::test]
+    async fn learn_routes_need_admin_and_reject_identifying_fields() {
+        let c = reqwest::Client::new();
+        let (base, dir) = spawn(cfg(Some("secret"), None)).await;
+        for (method, path) in [("POST", "/learn"), ("GET", "/learn/stats")] {
+            let r = c
+                .request(method.parse().unwrap(), format!("{base}{path}"))
+                .bearer_auth("secret")
+                .send()
+                .await
+                .unwrap();
+            assert_eq!(r.status().as_u16(), 404, "{path}");
+        }
+
+        let (base, dir2) = spawn(cfg(Some("secret"), Some("adm"))).await;
+        let user = c
+            .get(format!("{base}/learn/stats"))
+            .bearer_auth("secret")
+            .send()
+            .await
+            .unwrap();
+        assert_eq!(user.status().as_u16(), 401);
+
+        let good = json!({
+            "product": "acme widget", "kind": "review", "lang": "en", "country": "",
+            "url": "https://acme-widgets.com/widget-review", "signal": "useful",
+            "count": 3, "day": crate::learn::today().format("%Y-%m-%d").to_string(),
+        });
+        let mut lines = vec![good.to_string()];
+        for field in ["user_id", "device", "ip", "email", "session"] {
+            let mut v = good.clone();
+            v[field] = json!("someone");
+            lines.push(v.to_string());
+        }
+        let body = lines.join("\n") + &" ".repeat(32 * 1024);
+        let report: Value = c
+            .post(format!("{base}/learn"))
+            .bearer_auth("adm")
+            .body(body)
+            .send()
+            .await
+            .unwrap()
+            .json()
+            .await
+            .unwrap();
+        assert_eq!(report["accepted"], 1);
+        assert_eq!(report["rejected"], 5);
+        assert!(!report.to_string().contains("someone"));
+
+        let stats: Value = c
+            .get(format!("{base}/learn/stats"))
+            .bearer_auth("adm")
+            .send()
+            .await
+            .unwrap()
+            .json()
+            .await
+            .unwrap();
+        assert_eq!(stats["urls"], 1);
+        assert_eq!(stats["top_domains"][0]["domain"], "acme-widgets.com");
         let _ = std::fs::remove_dir_all(&dir);
         let _ = std::fs::remove_dir_all(&dir2);
     }
