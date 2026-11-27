@@ -152,15 +152,15 @@ fn parse_crawl_delay(body: &str, agent: &str) -> Option<f64> {
             } else if !in_group {
                 specific_match = false;
             }
-        } else if key == "crawl-delay" && in_group {
-            if let Ok(d) = val.parse::<f64>()
-                && d > 0.0
-            {
-                if specific_match {
-                    specific_delay = Some(d);
-                } else if generic_delay.is_none() {
-                    generic_delay = Some(d);
-                }
+        } else if key == "crawl-delay"
+            && in_group
+            && let Ok(d) = val.parse::<f64>()
+            && d > 0.0
+        {
+            if specific_match {
+                specific_delay = Some(d);
+            } else if generic_delay.is_none() {
+                generic_delay = Some(d);
             }
         }
     }
@@ -634,7 +634,7 @@ impl Fetcher {
                     now_epoch(),
                 );
                 let wait = if let (Some(secs), true) = (ra, matches!(raw.status, 429 | 503)) {
-                    secs.max(1.0).min(MAX_BACKOFF_S)
+                    secs.clamp(1.0, MAX_BACKOFF_S)
                 } else {
                     let jitter: f64 = rand::rng().random_range(0.75..=1.0);
                     (2.0 * (attempt + 1) as f64 * jitter).min(MAX_BACKOFF_S)
@@ -664,8 +664,10 @@ mod tests {
         calls: AtomicUsize,
     }
 
+    type MockEntry<'a> = (&'a str, u16, &'a str, Vec<(&'a str, &'a str)>);
+
     impl MockTransport {
-        fn new(entries: Vec<(&str, u16, &str, Vec<(&str, &str)>)>) -> Self {
+        fn new(entries: Vec<MockEntry>) -> Self {
             let mut map: HashMap<String, Vec<RawResponse>> = HashMap::new();
             for (u, st, body, hdrs) in entries {
                 let mut h = HashMap::new();

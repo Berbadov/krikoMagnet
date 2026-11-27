@@ -217,6 +217,8 @@ pub struct AdapterOutcome {
     pub error: Option<String>,
 }
 
+pub type SitemapMem = Mutex<HashMap<String, (Instant, String, Vec<XmlEntry>)>>;
+
 #[derive(Clone, Debug, Default)]
 pub struct XmlEntry {
     pub loc: Option<String>,
@@ -401,10 +403,8 @@ fn assign_xml_field(root_kind: &str, tag: &str, val: &str, cur: &mut XmlEntry) {
                 cur.link = Some(val.to_string());
             }
         }
-        ("feed", "link") => {
-            if cur.link.is_none() {
-                cur.link = Some(val.to_string());
-            }
+        ("feed", "link") if cur.link.is_none() => {
+            cur.link = Some(val.to_string());
         }
         _ => {}
     }
@@ -423,16 +423,14 @@ fn finalize_xml_entry(root_kind: &str, mut cur: XmlEntry, out: &mut Vec<XmlEntry
                 out.push(cur);
             }
         }
-        "rss" | "feed" => {
-            if cur.link.is_some() {
-                cur.fold_text = fold(&format!(
-                    "{} {} {}",
-                    cur.title.as_deref().unwrap_or(""),
-                    cur.description.as_deref().unwrap_or(""),
-                    cur.category.as_deref().unwrap_or("")
-                ));
-                out.push(cur);
-            }
+        "rss" | "feed" if cur.link.is_some() => {
+            cur.fold_text = fold(&format!(
+                "{} {} {}",
+                cur.title.as_deref().unwrap_or(""),
+                cur.description.as_deref().unwrap_or(""),
+                cur.category.as_deref().unwrap_or("")
+            ));
+            out.push(cur);
         }
         _ => {}
     }
@@ -947,11 +945,7 @@ fn iso_any(v: Option<&Value>) -> Option<String> {
     }
 }
 
-async fn load_xml(
-    fetcher: &Fetcher,
-    url: &str,
-    mem: &Mutex<HashMap<String, (Instant, String, Vec<XmlEntry>)>>,
-) -> (String, Vec<XmlEntry>) {
+async fn load_xml(fetcher: &Fetcher, url: &str, mem: &SitemapMem) -> (String, Vec<XmlEntry>) {
     {
         let guard = mem.lock().unwrap();
         if let Some((at, kind, entries)) = guard.get(url)
@@ -978,7 +972,7 @@ pub async fn run_site(
     site: &Site,
     query: &str,
     fetcher: &Fetcher,
-    sitemap_mem: &Mutex<HashMap<String, (Instant, String, Vec<XmlEntry>)>>,
+    sitemap_mem: &SitemapMem,
 ) -> Vec<AdapterOutcome> {
     let mut outcomes = Vec::new();
     for method in &site.methods {
@@ -1009,7 +1003,7 @@ async fn run_sitemap(
     method: &Method,
     query: &str,
     fetcher: &Fetcher,
-    sitemap_mem: &Mutex<HashMap<String, (Instant, String, Vec<XmlEntry>)>>,
+    sitemap_mem: &SitemapMem,
 ) -> AdapterOutcome {
     let max_sitemaps = method.max_sitemaps.unwrap_or(4);
     let max_urls = method.max_urls.unwrap_or(20_000);
@@ -1152,7 +1146,7 @@ async fn run_rss(
     method: &Method,
     query: &str,
     fetcher: &Fetcher,
-    sitemap_mem: &Mutex<HashMap<String, (Instant, String, Vec<XmlEntry>)>>,
+    sitemap_mem: &SitemapMem,
 ) -> AdapterOutcome {
     let url = method
         .url
@@ -1723,7 +1717,7 @@ async fn run_open_web(
                     )
                     .await;
                 if !res.ok() {
-                    if matches!(res.status, Some(502 | 503 | 504) | None) {
+                    if matches!(res.status, Some(502..=504) | None) {
                         *OPEN_WEB_DOWN_UNTIL.lock().unwrap() =
                             Some(Instant::now() + Duration::from_secs_f64(OPEN_WEB_COOLDOWN_S));
                     }
@@ -1798,6 +1792,7 @@ fn is_recall_only_site(site: &Site) -> bool {
         || (site.topics.len() == 1 && site.topics[0] == "recalls")
 }
 
+#[allow(clippy::too_many_arguments)]
 pub async fn discover(
     query: &str,
     reg: &Registry,
@@ -1805,7 +1800,7 @@ pub async fn discover(
     fetcher: &std::sync::Arc<Fetcher>,
     index: Option<&std::sync::Arc<SiteIndex>>,
     breaker: &std::sync::Arc<CircuitBreaker>,
-    sitemap_mem: &std::sync::Arc<Mutex<HashMap<String, (Instant, String, Vec<XmlEntry>)>>>,
+    sitemap_mem: &std::sync::Arc<SitemapMem>,
     trust: &HashMap<String, f64>,
     max_sites: usize,
     max_candidates: usize,
@@ -1819,7 +1814,7 @@ pub async fn discover(
     let indexed_sites: Vec<&Site> = reg
         .sites
         .iter()
-        .filter(|s| indexable(s, idx_ref) && !(is_recall_only_site(s) && !recall_query))
+        .filter(|s| indexable(s, idx_ref) && (!is_recall_only_site(s) || recall_query))
         .collect();
 
     if let Some(idx) = index

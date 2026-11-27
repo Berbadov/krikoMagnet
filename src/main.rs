@@ -543,8 +543,8 @@ async fn cmd_scout(args: &[String]) -> Result<i32, String> {
         println!("{}", serde_json::to_string_pretty(&reports).unwrap());
     } else {
         println!(
-            "{:<28} {:<10} {:>3} {:>6} {:>15} {:>6} {:>6} {:>10}  {}",
-            "domain", "method", "n", "p_gold", "[low, high]", "burst", "dup", "action", "note"
+            "{:<28} {:<10} {:>3} {:>6} {:>15} {:>6} {:>6} {:>10}  note",
+            "domain", "method", "n", "p_gold", "[low, high]", "burst", "dup", "action"
         );
         for r in &reports {
             println!(

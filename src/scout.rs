@@ -103,8 +103,9 @@ impl SourceTrustStore {
         if !is_ok && !is_bad {
             return;
         }
+        type SourceRow = (Option<String>, f64, f64, f64, String, i64, i64, i64);
         let conn = self.conn.lock().unwrap();
-        let prev: Option<(Option<String>, f64, f64, f64, String, i64, i64, i64)> = conn
+        let prev: Option<SourceRow> = conn
             .query_row(
                 "SELECT site_id, alpha, beta, shape_log_odds, decision, pages_sampled, ok_fetches, blocked_fetches
                  FROM sources WHERE host=?1",
@@ -216,10 +217,10 @@ pub fn extract_sitemap_directives(robots_body: &str) -> Vec<String> {
         let trimmed = line.trim();
         if trimmed.len() > 8 && trimmed[..8].eq_ignore_ascii_case("sitemap:") {
             let url = trimmed[8..].trim();
-            if url.starts_with("http://") || url.starts_with("https://") {
-                if !out.iter().any(|x| x == url) {
-                    out.push(url.to_string());
-                }
+            if (url.starts_with("http://") || url.starts_with("https://"))
+                && !out.iter().any(|x| x == url)
+            {
+                out.push(url.to_string());
             }
         }
     }
@@ -375,6 +376,7 @@ fn rejected_report(host: &str, domain: String, reason: String) -> ScoutReport {
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 pub async fn scout_domain(
     target: &str,
     reg: &Registry,
@@ -487,7 +489,7 @@ pub async fn scout_domain(
                 .filter_map(|e| e.loc)
                 .filter(|u| pol.allowed(u))
                 .collect();
-            kids.sort_by(|a, b| score_child_sitemap(b).cmp(&score_child_sitemap(a)));
+            kids.sort_by_key(|u| std::cmp::Reverse(score_child_sitemap(u)));
             kids.truncate(3);
             if !kids.is_empty() {
                 used_sitemaps.push(sm_url.clone());

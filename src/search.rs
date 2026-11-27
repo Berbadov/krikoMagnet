@@ -9,8 +9,8 @@ use tokio::task::JoinSet;
 use url::Url;
 
 use crate::discover::{
-    Candidate, CircuitBreaker, DiscoveryResult, XmlEntry, base_domain, discover, health_query_for,
-    run_site, to_rank_inputs,
+    Candidate, CircuitBreaker, DiscoveryResult, SitemapMem, base_domain, discover,
+    health_query_for, run_site, to_rank_inputs,
 };
 use crate::extract::{SOFT_MIN_CHARS, classify_fetch, extract_text};
 use crate::http::{Fetcher, GetOpts, now_epoch};
@@ -163,7 +163,7 @@ pub struct Searcher {
     pub cache: PipelineCache,
     pub trust: Option<Arc<SourceTrustStore>>,
     pub breaker: Arc<CircuitBreaker>,
-    pub sitemap_mem: Arc<Mutex<HashMap<String, (Instant, String, Vec<XmlEntry>)>>>,
+    pub sitemap_mem: Arc<SitemapMem>,
     pub page_budget_ms: u64,
     pub max_sites: usize,
     pub per_domain_limit: usize,
@@ -564,7 +564,8 @@ impl Searcher {
         let snap = self.breaker.snapshot();
         let mut circuit_open: Vec<String> = snap
             .iter()
-            .filter_map(|(k, v)| v.open.then(|| k.clone()))
+            .filter(|(_, v)| v.open)
+            .map(|(k, _)| k.clone())
             .collect();
         circuit_open.sort();
 
