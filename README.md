@@ -29,8 +29,11 @@ Rewritten as a single minimal Rust binary (`magnet`) with Bun TypeScript tooling
    Readability + SSR/JSON-LD prose extraction, and SQLite WAL caches.
 5. **Serve & MCP** ([src/main.rs](src/main.rs), [src/server.rs](src/server.rs)) —
    CLI, Axum HTTP server (`POST /search`, `GET /health`, `GET /metrics`,
-   `POST /cache/clear-queries`), and stdio MCP server (`magnet_search`,
-   `magnet_fetch`, `magnet_health`).
+   `POST /cache/clear-queries`, `POST /learn`, `GET /learn/stats`), and stdio
+   MCP server (`magnet_search`, `magnet_fetch`, `magnet_health`).
+6. **Learn** ([src/learn.rs](src/learn.rs)) — anonymous, k-gated aggregates
+   about products and sources improve ranking and grow the index; see
+   [Learning and privacy](#learning-and-privacy).
 
 ## Quick Start
 
@@ -50,6 +53,11 @@ cargo test
 ./target/release/magnet calibrate
 ./target/release/magnet measure https://example.com/a https://example.com/b
 ./target/release/magnet scout docs.rs --sample 6
+
+# Learning: ingest anonymous aggregates, inspect them, export what is above k
+./target/release/magnet learn signals.ndjson
+./target/release/magnet learn --stats
+./target/release/magnet learn --export > learned.ndjson
 
 # HTTP server (http://127.0.0.1:8000)
 ./target/release/magnet serve
@@ -71,16 +79,16 @@ it listens on a non-loopback address without `MAGNET_API_TOKEN`.
 | Variable | Default | Purpose |
 |---|---|---|
 | `MAGNET_API_TOKEN` | unset (open) | Bearer token required on every route except plain `GET /health` (`/health?probe=true` and `/metrics` need it). **Set it whenever the port is reachable by anything but Kriko.** |
-| `MAGNET_ADMIN_TOKEN` | unset | Bearer token for `/cache/*`; those routes return `404` when unset. |
+| `MAGNET_ADMIN_TOKEN` | unset | Bearer token for `/cache/*`, `POST /learn` and `GET /learn/stats`; those routes return `404` when unset. |
 | `MAGNET_HOST` / `MAGNET_PORT` | `127.0.0.1` / `8000` | Bind address (`--host` / `--port` override). The Docker image sets `0.0.0.0`. |
 | `MAGNET_RATE_PER_MIN` / `MAGNET_RATE_BURST` | `60` / `20` | Per-client-IP token bucket; `0` per minute disables it. Behind a reverse proxy every client shares the proxy's IP. |
 | `MAGNET_MAX_BODY_BYTES` | `16384` | Request body limit (`413` above it). |
 | `MAGNET_FETCH_CACHE_TTL_HOURS` | `168` | Fetch-cache entries older than this are deleted. |
 | `MAGNET_FETCH_CACHE_MAX_MB` | `512` | Oldest fetch-cache entries are evicted above this many stored bytes. |
-| `MAGNET_PRUNE_MINS` | `60` | Cache pruning interval for `serve`/`mcp` (always once at startup; `0` = startup only). Expired query (6 h) and page (7 d) rows go too. |
+| `MAGNET_PRUNE_MINS` | `60` | Cache pruning interval for `serve`/`mcp` (always once at startup; `0` = startup only). Expired query (6 h) and page (7 d) rows go too, learned data is aged (see [Learning and privacy](#learning-and-privacy)), and the index grows from learned URLs. |
 | `MAGNET_DB_READERS` | `4` | SQLite connections for the site index. |
 | `MAGNET_MCP_CONCURRENCY` | `4` | Concurrent `magnet_search` calls in `magnet mcp`. |
-| `MAGNET_LOG` | `info` (falls back to `KRIKO_LOG`) | `off`, `error`, `info` or `debug`. `info` writes one JSON line per request to stderr (latency, query-cache hit, sources tried, fetches, blocks, errors, sufficiency); `debug` adds the query text. |
+| `MAGNET_LOG` | `info` (falls back to `KRIKO_LOG`) | `off`, `error`, `info` or `debug`. `info` writes one JSON line per request to stderr (latency, query-cache hit, sources tried, fetches, blocks, errors, sufficiency); `debug` adds the query text. No level logs ranking hints. |
 | `KRIKO_PAGE_BUDGET_MS` | `0` | Default page-fetch budget for `serve` (`--budget-ms` overrides). |
 | `KRIKO_REFRESH_MINUTES` | `0` | Incremental index refresh interval for `serve` (`--refresh-mins` overrides). |
 
@@ -119,6 +127,24 @@ stopped) to compact them.
 
 `magnet scout --promote` only stages changes in `registry.pending.yaml`; review
 them before copying over `registry.yaml` (or use `--promote --apply`).
+
+### Fly.io (one command, ~$5/mo)
+
+`fly.toml` is included. With the Fly CLI logged in:
+
+```bash
+flyctl launch --no-deploy --name kriko-magnet --region fra   # adopts fly.toml
+flyctl volumes create magnet_data --size 5 --region fra --app kriko-magnet
+flyctl deploy --local-only --app kriko-magnet                # uses the local Docker image
+flyctl secrets set MAGNET_API_TOKEN=... MAGNET_ADMIN_TOKEN=... --app kriko-magnet
+# Upload the index and Tranco list into the volume once:
+tar -czf - -C <dir-with-data> site_index.sqlite tranco_top100k.txt \
+  | flyctl ssh console -C 'tar -xzf - -C /app/data' --app kriko-magnet
+```
+
+Then set `KRIKO_MAGNET_URL=https://kriko-magnet.fly.dev`, `KRIKO_MAGNET_TOKEN`
+and `KRIKO_MAGNET_ADMIN_TOKEN` on the Kriko gateway Worker; it will search
+Magnet first and push opted-in signals to its `/learn` every 6 h.
 
 ## Sufficiency Signal
 
@@ -167,6 +193,154 @@ coverage threshold rejects one more near miss but also marks the exact Vaillant
 F28 fault-code page insufficient for `vaillant ecotec fault code f28`.
 
 `bun run eval` re-checks `sufficient` against the qrels on a live run.
+
+## Learning and privacy
+
+Magnet gets better with use by learning about **products and sources, never
+about people**. It is designed so that it cannot be used for targeted ads. The
+short version is in [PRIVACY.md](PRIVACY.md).
+
+### What is learned
+
+`data/learn.sqlite` holds two tables, with dates at day precision only
+(`YYYY-MM-DD`):
+
+- `learned_urls`: `product_key, url, domain, kind, lang, country, useful,
+  unhelpful, served, first_day, last_day`, one row per
+  `(product_key, url, kind, lang, country)`.
+- `domain_stats`: `domain, useful, unhelpful, served, last_day`.
+
+### Where it comes from
+
+1. `magnet learn <file.ndjson>` and `POST /learn` (`MAGNET_ADMIN_TOKEN`
+   required; `404` when unset; body up to 1 MiB, NDJSON or a JSON array). Both
+   accept one JSON object per line:
+
+   ```json
+   {"product":"sony wh-1000xm5","kind":"review","lang":"tr","country":"TR","url":"https://www.rtings.com/headphones/reviews/sony/wh-1000xm5","signal":"useful","count":4,"day":"2026-11-27"}
+   ```
+
+   `kind` is one of `problems`, `recall`, `review`, `manual`, `repair`,
+   `price`, `compare`, `other`; `signal` is `useful`, `unhelpful` or `served`;
+   `count` is `1..=1000`; `lang` is two letters; `country` is two letters or
+   `""`; `day` is `YYYY-MM-DD`, at most one day ahead and inside the retention
+   window. `magnet learn --export` prints the rows above k in this same
+   format, one line per non-zero signal.
+
+   The gateway's corpus export rows are accepted too:
+   `{product, kind, language, country, outcome, count, topUrls: [{url, domain, title?}], lastSeen}`.
+   `outcome` (`hit`/`miss`/`unknown`) says whether the product was in Kriko's
+   offline catalogue, not whether a page helped, so **every** `topUrls` entry
+   is recorded as `served` with the row's `count`; `lastSeen` is cut to its
+   day; `domain` and `title` are ignored.
+
+   Any unknown field (`user_id`, `device`, `ip`, `email`, `session`, ...)
+   rejects the whole item. The response lists rejected line numbers and a
+   fixed reason, never the submitted values.
+2. Magnet's own serving: each search without hints adds one `served` to the
+   `domain_stats` row of every domain it returned. The query text is never
+   stored in learned data. Fetch successes and blocks keep feeding the
+   existing per-host trust in `data/sources.sqlite`.
+
+### Input sanitising
+
+- **Product key:** NFKD with marks stripped, Turkish letters folded
+  (`ı ş ç ğ ö ü → i s c g o u`), lowercased, characters outside
+  `[a-z0-9 .+-/_]` replaced by spaces, spaces collapsed; 3–120 characters and
+  at most 8 tokens (free text is not a product). Keys containing an email
+  address, a `+`-prefixed phone number, an IBAN or `http` are rejected.
+- **URL:** `http(s)` only; query string and fragment dropped; host lowercased
+  with `www.` stripped; IP literals, `localhost`, single-label hosts,
+  non-public TLDs (`.local`, `.internal`, `.lan`, `.test`, `.onion`, ...),
+  user info and explicit ports rejected. A path segment rejects the URL when it
+  is a personal or transactional segment (`account(s)`, `profile`, `user(s)`,
+  `member`, `login`, `signin`, `signup`, `cart`, `basket`, `checkout`,
+  `order(s)`, `siparis`, `sepet`, `hesabim`, `hesap`, `uye`, `uyelik`, `odeme`,
+  `payment`, `invoice`, `fatura`, `track(ing)`, `unsubscribe`, `reset`,
+  `token`, `session`, `me`, or starts with `my-`), contains `@`, or looks like
+  a token: 32+ characters of `[A-Za-z0-9_-]` with a 16+ character run that
+  mixes letters and digits, or 32+ hex digits (UUIDs included). Hyphenated
+  slugs and public numeric product IDs (`...-p-123456789`) are kept. At most
+  300 characters.
+
+### k-anonymity, retention and decay
+
+A row affects ranking, index growth, `--export`, `--stats` and
+`GET /learn/stats` only once its `useful + unhelpful + served` reaches
+`MAGNET_LEARN_MIN_COUNT`. Rows below it are stored so they can accumulate, but
+nothing reads them back out. Every prune (`MAGNET_PRUNE_MINS`, `magnet prune`)
+deletes rows whose `last_day` is older than `MAGNET_LEARN_RETENTION_DAYS` and
+halves all counts every `MAGNET_LEARN_HALF_LIFE_DAYS`; ingested counts are
+aged from their `day` the same way, so stale signals fade below k again.
+
+`GET /learn/stats` (admin) returns only totals above k: learned URLs,
+products, domains, and the top 10 domains by usefulness with rounded counts.
+
+### How it is used
+
+- **Ranking** (`MAGNET_LEARN_RANKING`, default on). Each candidate's score is
+  multiplied by a smoothed domain usefulness prior
+  `p = (useful + 2) / (useful + unhelpful + 4)`, mapped to `0.8–1.25`
+  (`p = 0.5` is neutral). When the query contains a learned product key (the
+  longest matching run of up to 8 query tokens), that product's URLs get the
+  same bounded multiplier; the combined learned factor is clamped to
+  `0.75–1.4`. Up to 5 of those URLs that are not net-unhelpful join the
+  candidates even when the index has no hit (`plan.learned` counts them). The
+  sufficiency signal is computed on the final results as before.
+- **Index growth.** A learned URL above k on a registered sitemap/RSS site is
+  fetched through the polite fetcher (robots.txt, rate limits) and added to
+  the site index with its page title, at most 10 per prune cycle. A domain
+  outside the registry whose useful count reaches
+  `MAGNET_LEARN_SCOUT_MIN_USEFUL` is appended to `data/scout_queue.txt`
+  (next to `learn.sqlite`, so it lives on the Docker volume). Review it with
+  `magnet scout --file data/scout_queue.txt --promote`, which stages into
+  `registry.pending.yaml`. Learned data never edits `registry.yaml`.
+
+### Per-user improvement without a server profile
+
+`POST /search` and `magnet_search` accept optional, ephemeral hints:
+
+```json
+{ "query": "lg c1 burn in", "prefer_domains": ["rtings.com"],
+  "avoid_domains": ["example-affiliate.com"], "lang": "en" }
+```
+
+Up to 20 domains each; invalid domains are dropped. Hints only reshape that
+request's ranking: preferred `×1.2`, avoided `×0.7` (demoted, never hidden),
+matching site language `×1.1`, clamped to `0.7–1.3`. They are designed to come
+from a profile kept on the user's own device. Magnet never writes them to any
+table, cache key or log line: hinted searches bypass the query cache and
+record no `served` self-signals.
+
+| Variable | Default | Purpose |
+|---|---|---|
+| `MAGNET_LEARN_MIN_COUNT` | `3` | k: contributions a row needs before anything reads it. |
+| `MAGNET_LEARN_RETENTION_DAYS` | `180` | Rows and signal days older than this are dropped or rejected. |
+| `MAGNET_LEARN_HALF_LIFE_DAYS` | `90` | Half-life of learned counts. |
+| `MAGNET_LEARN_RANKING` | `on` | `off`/`0`/`false` disables learned ranking and candidates. |
+| `MAGNET_LEARN_SCOUT_MIN_USEFUL` | `10` | Useful count that queues an unknown domain for scout review. |
+
+### What Magnet never stores
+
+- people, user IDs, accounts, devices, install IDs, advertising IDs, cookies or
+  sessions;
+- IP addresses (the rate limiter keeps them in memory only);
+- timestamps finer than a day in learned data;
+- free-text queries in learned data (query text reaches the logs only at
+  `MAGNET_LOG=debug`);
+- request hints (`prefer_domains`, `avoid_domains`, `lang`), anywhere;
+- URLs with query strings, fragments, personal or transactional paths.
+
+A test opens every SQLite database Magnet creates and fails if any table or
+column name matches
+`/user|device|ip|session|email|phone|account|token|cookie|uid|install|ad_id|advert/i`
+(only `pages.snippet` is allow-listed).
+
+### No targeted ads
+
+Learned data describes products and sources only. It holds nothing that
+identifies or can be joined to a person, a device or a session. It must not
+be sold, shared for advertising, or used for ad targeting or profiling.
 
 ## Benchmarks
 
@@ -289,7 +463,10 @@ src/
   extract.rs        Readability + SSR/JSON-LD HTML-to-Markdown extraction
   measure.rs        probabilistic source shape & AI-slop estimator + calibration
   scout.rs          autonomous domain scout + runtime Beta source trust DB
+  learn.rs          k-anonymous product/source learning, sanitisers, hints, index growth
   search.rs         pipeline orchestration, domain diversification, pipeline cache
+tests/
+  privacy.rs        end-to-end privacy invariants (DB columns, logs, hints, k)
 eval/
   queries.jsonl     60 EN/TR benchmark queries (59 judged closed-set qrels)
   open_qrels.jsonl  682 blind pooled open-web graded qrels across Magnet/DeepSeek/Linkup

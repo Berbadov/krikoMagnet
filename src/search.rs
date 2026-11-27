@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex, PoisonError};
 use std::time::{Duration, Instant};
@@ -16,11 +16,14 @@ use crate::discover::{
 use crate::extract::{SOFT_MIN_CHARS, classify_fetch, extract_text};
 use crate::http::{Fetcher, GetOpts, now_epoch};
 use crate::index::SiteIndex;
+use crate::learn::{
+    Hints, LearnConfig, LearnStore, LearnedUrl, grow, sanitize_url, site_for_url, today,
+};
 use crate::log;
 use crate::planner::{Registry, load_registry, load_tranco};
 use crate::ranker::rank_docs;
 use crate::scout::SourceTrustStore;
-use crate::text::{ranker_query, sha16};
+use crate::text::{ranker_query, sha16, unslug};
 
 pub const QUERY_TTL_S: f64 = 6.0 * 3600.0;
 pub const CONTENT_TTL_S: f64 = 7.0 * 24.0 * 3600.0;
@@ -173,17 +176,20 @@ impl PruneConfig {
 pub fn prune_storage(
     fetcher: &Fetcher,
     cache: &PipelineCache,
+    learn: Option<&LearnStore>,
     cfg: &PruneConfig,
     vacuum: bool,
 ) -> Value {
     let t0 = Instant::now();
     let fetch = fetcher.prune(cfg.fetch_max_age_s, cfg.fetch_max_bytes, vacuum);
     let (queries, pages) = cache.prune(vacuum);
+    let learned = learn.map(|l| l.prune(today()));
     json!({
         "event": "prune",
         "fetch_cache": fetch,
         "query_cache_expired": queries,
         "content_cache_expired": pages,
+        "learned": learned,
         "ms": t0.elapsed().as_millis() as u64,
     })
 }
@@ -192,8 +198,15 @@ pub fn spawn_pruner(searcher: Arc<Searcher>, cfg: PruneConfig) {
     tokio::spawn(async move {
         loop {
             let s = searcher.clone();
-            let run = move || prune_storage(&s.fetcher, &s.cache, &cfg, false);
+            let run = move || prune_storage(&s.fetcher, &s.cache, s.learn.as_deref(), &cfg, false);
             if let Ok(report) = tokio::task::spawn_blocking(run).await {
+                log::emit(log::Level::Info, report);
+            }
+            if let Some(report) = searcher.grow_from_learned().await
+                && ["indexed", "skipped", "scout_queued"]
+                    .iter()
+                    .any(|k| report[k] != 0)
+            {
                 log::emit(log::Level::Info, report);
             }
             if cfg.interval_mins <= 0.0 {
@@ -211,6 +224,7 @@ pub struct SearchConfig {
     pub cache_path: PathBuf,
     pub fetch_cache_path: PathBuf,
     pub sources_path: PathBuf,
+    pub learn_path: PathBuf,
     pub page_budget_ms: u64,
     pub max_sites: usize,
     pub per_domain_limit: usize,
@@ -225,6 +239,7 @@ impl Default for SearchConfig {
             cache_path: PipelineCache::default_path(),
             fetch_cache_path: Fetcher::default_cache_path(),
             sources_path: SourceTrustStore::default_path(),
+            learn_path: LearnStore::default_path(),
             page_budget_ms: 0,
             max_sites: 6,
             per_domain_limit: 2,
@@ -240,6 +255,7 @@ pub struct Searcher {
     pub fetcher: Arc<Fetcher>,
     pub cache: PipelineCache,
     pub trust: Option<Arc<SourceTrustStore>>,
+    pub learn: Option<Arc<LearnStore>>,
     pub breaker: Arc<CircuitBreaker>,
     pub sitemap_mem: Arc<SitemapMem>,
     pub page_budget_ms: u64,
@@ -248,6 +264,7 @@ pub struct Searcher {
     pub started: Instant,
     fetch_cache_path: PathBuf,
     cache_path: PathBuf,
+    grow_tried: Mutex<HashSet<String>>,
 }
 
 fn file_bytes(path: &Path) -> u64 {
@@ -267,6 +284,9 @@ impl Searcher {
         ];
         if let Some(ref idx) = self.index {
             out.push(("site_index", file_bytes(&idx.path)));
+        }
+        if let Some(ref l) = self.learn {
+            out.push(("learn", file_bytes(&l.path)));
         }
         out
     }
@@ -289,6 +309,9 @@ impl Searcher {
         let fetcher = Arc::new(Fetcher::open(&cfg.fetch_cache_path)?);
         let cache = PipelineCache::open(&cfg.cache_path)?;
         let trust = SourceTrustStore::open(&cfg.sources_path).ok().map(Arc::new);
+        let learn = LearnStore::open(&cfg.learn_path, LearnConfig::from_env())
+            .ok()
+            .map(Arc::new);
         Ok(Self {
             registry,
             tranco,
@@ -297,6 +320,7 @@ impl Searcher {
             fetcher,
             cache,
             trust,
+            learn,
             breaker: Arc::new(CircuitBreaker::new(3, 300.0)),
             sitemap_mem: Arc::new(Mutex::new(HashMap::new())),
             page_budget_ms: cfg.page_budget_ms,
@@ -305,7 +329,24 @@ impl Searcher {
             started: Instant::now(),
             fetch_cache_path: cfg.fetch_cache_path,
             cache_path: cfg.cache_path,
+            grow_tried: Mutex::new(HashSet::new()),
         })
+    }
+
+    pub async fn grow_from_learned(&self) -> Option<Value> {
+        let learn = self.learn.as_ref()?;
+        let queue = learn.path.with_file_name("scout_queue.txt");
+        Some(
+            grow(
+                learn,
+                &self.registry,
+                self.index.as_deref(),
+                &self.fetcher,
+                &queue,
+                &self.grow_tried,
+            )
+            .await,
+        )
     }
 
     fn diversify(
@@ -365,10 +406,12 @@ impl Searcher {
         k: usize,
         fetch_pages: bool,
         budget_override_ms: Option<u64>,
+        hints: &Hints,
     ) -> Value {
         let t0 = Instant::now();
         let qh = sha16(&format!("registry|{k}|{query}"));
-        if fetch_pages
+        let cacheable = fetch_pages && hints.is_empty();
+        if cacheable
             && let Some(cached_raw) = self.cache.get_query(&qh)
             && let Ok(mut payload) = serde_json::from_str::<Value>(&cached_raw)
         {
@@ -411,7 +454,7 @@ impl Searcher {
             .as_ref()
             .map(|t| t.trust_map())
             .unwrap_or_default();
-        let disc: DiscoveryResult = discover(
+        let mut disc: DiscoveryResult = discover(
             query,
             &self.registry,
             &self.tranco,
@@ -444,6 +487,12 @@ impl Searcher {
             .load(std::sync::atomic::Ordering::Relaxed)
             - f_rob0;
 
+        let (boosts, learned) = match self.learn {
+            Some(ref l) => l.boosts(query),
+            None => Default::default(),
+        };
+        let injected = self.inject_learned(&mut disc.candidates, learned);
+
         let rank_inputs = to_rank_inputs(&disc.candidates);
         let r_query = ranker_query(query);
         let ranked = rank_docs(&r_query, &rank_inputs, &self.tranco, now_epoch());
@@ -453,7 +502,17 @@ impl Searcher {
             .enumerate()
             .map(|(i, c)| (format!("c{i:04}"), c))
             .collect();
-        let pairs: Vec<(String, f64)> = ranked.into_iter().map(|r| (r.id, r.score)).collect();
+        let mut pairs: Vec<(String, f64)> = ranked
+            .into_iter()
+            .map(|r| {
+                let f = orig.get(&r.id).map_or(1.0, |c| {
+                    let lang = site_for_url(&self.registry, &c.url).map(|s| s.language.as_str());
+                    boosts.factor(&c.url) * hints.factor(&base_domain(&c.url), lang)
+                });
+                (r.id, r.score * f)
+            })
+            .collect();
+        pairs.sort_by(|a, b| b.1.total_cmp(&a.1));
         let chosen = self.diversify(&pairs, &orig, k);
 
         let mut results: Vec<Value> = Vec::new();
@@ -583,6 +642,7 @@ impl Searcher {
                 "fallback": disc.plan.fallback,
                 "open_web": disc.open_web_used,
                 "sources_with_results": disc.sources_with_results,
+                "learned": injected,
             },
             "fetch_stats": {
                 "discovery_fetches": disc_fetches,
@@ -596,10 +656,40 @@ impl Searcher {
         });
         merge(&mut payload, verdict);
         let has_err = results.iter().any(|r| r["status"].as_str() == Some("ERR"));
-        if fetch_pages && !results.is_empty() && !has_err {
+        if cacheable && !results.is_empty() && !has_err {
             self.cache.set_query(&qh, &payload.to_string());
         }
+        if hints.is_empty()
+            && let Some(ref l) = self.learn
+        {
+            let served: HashSet<String> = results
+                .iter()
+                .filter(|r| r["status"] == 200 || r["status"] == "not-fetched")
+                .filter_map(|r| r["url"].as_str())
+                .map(base_domain)
+                .collect();
+            l.record_served(&served, today());
+        }
         payload
+    }
+
+    fn inject_learned(&self, cands: &mut Vec<Candidate>, learned: Vec<LearnedUrl>) -> usize {
+        let known: HashSet<String> = cands.iter().filter_map(|c| sanitize_url(&c.url)).collect();
+        let before = cands.len();
+        for l in learned.into_iter().filter(|l| !known.contains(&l.url)) {
+            cands.push(Candidate {
+                source: site_for_url(&self.registry, &l.url)
+                    .map_or_else(|| "learned".to_string(), |s| s.id.clone()),
+                title: unslug(&l.url),
+                snippet: l.product,
+                published: None,
+                method: "learned".into(),
+                score: l.counts.usefulness(),
+                body: String::new(),
+                url: l.url,
+            });
+        }
+        cands.len() - before
     }
 
     pub async fn fetch_one_page(&self, raw_url: &str) -> Value {
@@ -909,6 +999,105 @@ fn url_host(raw: &str) -> String {
 mod tests {
     use super::*;
 
+    pub(crate) const OFFLINE_REGISTRY: &str = "version: 1
+sites:
+  - id: acme
+    name: Acme
+    domain: acme-widgets.com
+    topics: [general]
+    language: en
+    methods:
+      - type: url_pattern
+        max_query_terms: 0
+";
+
+    #[tokio::test]
+    async fn learned_urls_join_ranking_and_hints_stay_per_request() {
+        let dir = std::env::temp_dir().join(format!("magnet-learnq-{}", rand::random::<u64>()));
+        std::fs::create_dir_all(&dir).unwrap();
+        std::fs::write(dir.join("registry.yaml"), OFFLINE_REGISTRY).unwrap();
+        let mut searcher = Searcher::open(SearchConfig {
+            registry_path: dir.join("registry.yaml"),
+            tranco_path: dir.join("missing_tranco.txt"),
+            index_path: None,
+            cache_path: dir.join("pipe.sqlite"),
+            fetch_cache_path: dir.join("fetch.sqlite"),
+            sources_path: dir.join("sources.sqlite"),
+            learn_path: dir.join("learn.sqlite"),
+            ..Default::default()
+        })
+        .unwrap();
+        let learn_db = dir.join("learn.sqlite");
+        let store = LearnStore::open(&learn_db, LearnConfig::default()).unwrap();
+        let d = today().format("%Y-%m-%d").to_string();
+        let line = |url: &str, n: u32| {
+            json!({"product": "acme widget", "kind": "review", "lang": "en", "country": "",
+                   "url": url, "signal": "useful", "count": n, "day": d})
+            .to_string()
+        };
+        store
+            .ingest(
+                &[
+                    line("https://www.acme-widgets.com/widget-review", 3),
+                    line("https://acme-widgets.com/rare", 2),
+                    line("https://other-widgets.com/acme-widget-teardown", 3),
+                ]
+                .join("\n"),
+                today(),
+            )
+            .unwrap();
+        searcher.learn = Some(Arc::new(store));
+
+        let q = "acme widget review";
+        let plain = searcher.search(q, 5, false, None, &Hints::default()).await;
+        let score = |p: &Value, needle: &str| -> f64 {
+            p["results"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .find(|r| r["url"].as_str().unwrap().contains(needle))
+                .map(|r| r["rank_score"].as_f64().unwrap())
+                .unwrap_or_else(|| panic!("{needle} missing from {p}"))
+        };
+        assert_eq!(plain["plan"]["learned"], 2);
+        assert!(plain["sufficient"].is_boolean() && plain["confidence"].is_number());
+        assert!(!plain.to_string().contains("acme-widgets.com/rare"));
+        assert_eq!(plain["results"][0]["source"], "acme");
+        let ratio = score(&plain, "teardown") / score(&plain, "widget-review");
+
+        let hints = Hints::new(
+            &["other-widgets.com".into()],
+            &["acme-widgets.com".into()],
+            None,
+        )
+        .unwrap();
+        let hinted = searcher.search(q, 5, false, None, &hints).await;
+        let hinted_ratio = score(&hinted, "teardown") / score(&hinted, "widget-review");
+        assert!(
+            hinted_ratio > ratio * 1.6,
+            "{ratio} -> {hinted_ratio}: avoid demotes, prefer boosts"
+        );
+
+        let off = LearnConfig {
+            ranking: false,
+            ..LearnConfig::default()
+        };
+        searcher.learn = Some(Arc::new(LearnStore::open(&learn_db, off).unwrap()));
+        let unlearned = searcher.search(q, 5, false, None, &Hints::default()).await;
+        assert_eq!(unlearned["plan"]["learned"], 0);
+        assert!(unlearned["results"].as_array().unwrap().is_empty());
+
+        let qh = sha16(&format!("registry|5|{q}"));
+        let seeded = r#"{"results":[],"plan":{}}"#;
+        searcher.cache.set_query(&qh, seeded);
+        let with_hints = searcher.search(q, 5, true, None, &hints).await;
+        assert_eq!(with_hints["query_cache_hit"], false);
+        assert_eq!(searcher.cache.get_query(&qh).as_deref(), Some(seeded));
+        let cached = searcher.search(q, 5, true, None, &Hints::default()).await;
+        assert_eq!(cached["query_cache_hit"], true);
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
     #[test]
     fn pipeline_cache_roundtrip_and_clear() {
         let dir = std::env::temp_dir().join(format!("magnet-pipe-{}", rand::random::<u64>()));
@@ -979,7 +1168,7 @@ mod tests {
             fetch_max_bytes: 2500,
             interval_mins: 0.0,
         };
-        let report = prune_storage(&fetcher, &cache, &cfg, true);
+        let report = prune_storage(&fetcher, &cache, None, &cfg, true);
         assert_eq!(report["fetch_cache"]["expired"], 1);
         assert_eq!(report["fetch_cache"]["evicted"], 1);
         assert_eq!(report["fetch_cache"]["stored_bytes"], 2004);

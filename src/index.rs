@@ -119,6 +119,17 @@ impl SiteIndex {
         .unwrap_or(0) as usize
     }
 
+    pub fn has_any_url(&self, urls: &[String]) -> bool {
+        let conn = self.conn();
+        urls.iter().any(|u| {
+            conn.query_row("SELECT 1 FROM pages WHERE url=?1", params![u], |_| Ok(()))
+                .optional()
+                .ok()
+                .flatten()
+                .is_some()
+        })
+    }
+
     pub fn stats(&self) -> IndexStats {
         let conn = self.conn();
         let mut per_site = HashMap::new();
