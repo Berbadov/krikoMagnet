@@ -27,8 +27,9 @@ Rewritten as a single minimal Rust binary (`magnet`) with Bun TypeScript tooling
    honest `KrikoMagnet/0.2` user agent, `robots.txt` enforced and cached, >=1 s
    per host + `Crawl-delay`, conditional GET, `Retry-After` backoff, pure-Rust
    Readability + SSR/JSON-LD prose extraction, and SQLite WAL caches.
-5. **Serve & MCP** ([src/main.rs](src/main.rs)) — CLI, Axum HTTP server
-   (`POST /search`, `GET /health`), and stdio MCP server (`magnet_search`,
+5. **Serve & MCP** ([src/main.rs](src/main.rs), [src/server.rs](src/server.rs)) —
+   CLI, Axum HTTP server (`POST /search`, `GET /health`, `GET /metrics`,
+   `POST /cache/clear-queries`), and stdio MCP server (`magnet_search`,
    `magnet_fetch`, `magnet_health`).
 
 ## Quick Start
@@ -61,6 +62,63 @@ bun run eval:fresh
 bun run bench:pro
 bun run bench -- --dry-run
 ```
+
+## Production
+
+`serve` binds `127.0.0.1:8000` unless told otherwise and prints a warning when
+it listens on a non-loopback address without `MAGNET_API_TOKEN`.
+
+| Variable | Default | Purpose |
+|---|---|---|
+| `MAGNET_API_TOKEN` | unset (open) | Bearer token required on every route except plain `GET /health` (`/health?probe=true` and `/metrics` need it). **Set it whenever the port is reachable by anything but Kriko.** |
+| `MAGNET_ADMIN_TOKEN` | unset | Bearer token for `/cache/*`; those routes return `404` when unset. |
+| `MAGNET_HOST` / `MAGNET_PORT` | `127.0.0.1` / `8000` | Bind address (`--host` / `--port` override). The Docker image sets `0.0.0.0`. |
+| `MAGNET_RATE_PER_MIN` / `MAGNET_RATE_BURST` | `60` / `20` | Per-client-IP token bucket; `0` per minute disables it. Behind a reverse proxy every client shares the proxy's IP. |
+| `MAGNET_MAX_BODY_BYTES` | `16384` | Request body limit (`413` above it). |
+| `MAGNET_FETCH_CACHE_TTL_HOURS` | `168` | Fetch-cache entries older than this are deleted. |
+| `MAGNET_FETCH_CACHE_MAX_MB` | `512` | Oldest fetch-cache entries are evicted above this many stored bytes. |
+| `MAGNET_PRUNE_MINS` | `60` | Cache pruning interval for `serve`/`mcp` (always once at startup; `0` = startup only). Expired query (6 h) and page (7 d) rows go too. |
+| `MAGNET_DB_READERS` | `4` | SQLite connections for the site index. |
+| `MAGNET_MCP_CONCURRENCY` | `4` | Concurrent `magnet_search` calls in `magnet mcp`. |
+| `MAGNET_LOG` | `info` (falls back to `KRIKO_LOG`) | `off`, `error`, `info` or `debug`. `info` writes one JSON line per request to stderr (latency, query-cache hit, sources tried, fetches, blocks, errors, sufficiency); `debug` adds the query text. |
+| `KRIKO_PAGE_BUDGET_MS` | `0` | Default page-fetch budget for `serve` (`--budget-ms` overrides). |
+| `KRIKO_REFRESH_MINUTES` | `0` | Incremental index refresh interval for `serve` (`--refresh-mins` overrides). |
+
+`GET /health` reports index pages and bytes, cache file sizes, circuit-breaker
+states and uptime. `GET /metrics` serves Prometheus text: request counts and
+seconds by route and status, query-cache hits, insufficient searches, fetcher
+counters, storage bytes, open circuits and uptime. `serve` drains in-flight
+requests on `SIGTERM`/Ctrl-C.
+
+### Docker
+
+```bash
+docker build -t kriko-magnet .
+docker volume create magnet-data
+
+# Tranco top-100k authority prior: not in the image or the repo. Fetch it once
+# into the volume (downloads tranco-list.s3.amazonaws.com/top-1m.csv.zip and
+# writes data/tranco_top100k.txt); refresh it monthly. Without it ranking
+# silently drops the authority prior.
+docker run --rm -v magnet-data:/app/data kriko-magnet tranco
+
+# Site index: build it in the volume (slow, polite) or copy an existing
+# data/site_index.sqlite into it.
+docker run --rm -v magnet-data:/app/data kriko-magnet index build
+
+docker run -d --name magnet -p 127.0.0.1:8000:8000 -v magnet-data:/app/data \
+  -e MAGNET_API_TOKEN=... -e MAGNET_ADMIN_TOKEN=... \
+  kriko-magnet serve --budget-ms 15000 --refresh-mins 720
+```
+
+The image runs as uid `10001`, keeps all state under the `/app/data` volume,
+and health-checks `GET /health`. Outside Docker, run `magnet tranco` from the
+directory that holds `data/`. Caches created before this release were not in
+incremental auto-vacuum mode; run `magnet prune --vacuum` once (with `serve`
+stopped) to compact them.
+
+`magnet scout --promote` only stages changes in `registry.pending.yaml`; review
+them before copying over `registry.yaml` (or use `--promote --apply`).
 
 ## Sufficiency Signal
 
@@ -215,8 +273,13 @@ Strictly measures exact URL recovery inside Magnet's `21` curated domains:
 Cargo.toml          single Rust binary crate (`magnet`)
 package.json        Bun task scripts
 registry.yaml       21 consumer sites + 5 general sources + skipped reasons
+Dockerfile          multi-stage image (non-root, /app/data volume, healthcheck)
+.github/workflows/  CI: fmt, clippy, test, release build
 src/
-  main.rs           CLI, HTTP server (Axum), stdio MCP server
+  main.rs           CLI, stdio MCP server
+  server.rs         HTTP server: auth, rate limit, logs, metrics, shutdown
+  confidence.rs     sufficiency / "nothing good found" signal
+  log.rs            JSON log lines and levels
   text.rs           TR/EN folding, stemming, aliases, query normalization
   planner.rs        registry + Tranco loading, topic/site routing
   http.rs           polite HTTP fetcher, robots.txt, rate limiter, SQLite cache
