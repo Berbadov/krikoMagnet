@@ -4,7 +4,7 @@ use std::io::Read;
 use std::path::{Path, PathBuf};
 use std::pin::Pin;
 use std::sync::atomic::{AtomicU64, Ordering};
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, Mutex, PoisonError};
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
 use flate2::read::GzDecoder;
@@ -301,7 +301,7 @@ impl RateLimiter {
             return;
         }
         let slot = {
-            let mut map = self.hosts.lock().unwrap();
+            let mut map = self.hosts.lock().unwrap_or_else(PoisonError::into_inner);
             map.entry(host.to_string())
                 .or_insert_with(|| Arc::new(AsyncMutex::new(None)))
                 .clone()
@@ -397,7 +397,7 @@ impl Fetcher {
 
     pub fn prune(&self, max_age_s: f64, max_bytes: u64, vacuum: bool) -> FetchPruneReport {
         let now = now_epoch();
-        let conn = self.conn.lock().unwrap();
+        let conn = self.conn.lock().unwrap_or_else(PoisonError::into_inner);
         let expired = conn
             .execute(
                 "DELETE FROM http_cache WHERE fetched_at < ?1",
@@ -450,7 +450,7 @@ impl Fetcher {
         url: &str,
         ttl: Option<f64>,
     ) -> Option<(i64, HashMap<String, String>, Vec<u8>)> {
-        let conn = self.conn.lock().unwrap();
+        let conn = self.conn.lock().unwrap_or_else(PoisonError::into_inner);
         let row: Option<(i64, String, Vec<u8>, f64)> = conn
             .query_row(
                 "SELECT status, headers, body, fetched_at FROM http_cache WHERE url=?1",
@@ -475,7 +475,7 @@ impl Fetcher {
             return;
         }
         let hdrs = serde_json::to_string(headers).unwrap_or_else(|_| "{}".to_string());
-        let conn = self.conn.lock().unwrap();
+        let conn = self.conn.lock().unwrap_or_else(PoisonError::into_inner);
         let _ = conn.execute(
             "INSERT OR REPLACE INTO http_cache(url,status,headers,body,fetched_at) VALUES (?1,?2,?3,?4,?5)",
             params![url, status, hdrs, body, now_epoch()],
@@ -483,7 +483,7 @@ impl Fetcher {
     }
 
     fn cache_touch(&self, url: &str) {
-        let conn = self.conn.lock().unwrap();
+        let conn = self.conn.lock().unwrap_or_else(PoisonError::into_inner);
         let _ = conn.execute(
             "UPDATE http_cache SET fetched_at=?1 WHERE url=?2",
             params![now_epoch(), url],
@@ -491,7 +491,7 @@ impl Fetcher {
     }
 
     fn robots_db_get(&self, origin: &str) -> Option<(i64, String)> {
-        let conn = self.conn.lock().unwrap();
+        let conn = self.conn.lock().unwrap_or_else(PoisonError::into_inner);
         let row: Option<(i64, String, f64)> = conn
             .query_row(
                 "SELECT status, body, fetched_at FROM robots WHERE origin=?1",
@@ -509,7 +509,7 @@ impl Fetcher {
     }
 
     fn robots_db_set(&self, origin: &str, status: i64, body: &str) {
-        let conn = self.conn.lock().unwrap();
+        let conn = self.conn.lock().unwrap_or_else(PoisonError::into_inner);
         let _ = conn.execute(
             "INSERT OR REPLACE INTO robots(origin,status,body,fetched_at) VALUES (?1,?2,?3,?4)",
             params![origin, status, body, now_epoch()],
@@ -518,22 +518,40 @@ impl Fetcher {
 
     pub async fn robots_policy(&self, url: &str) -> RobotsPolicy {
         let origin = origin_of(url);
-        if let Some(p) = self.robots_mem.lock().unwrap().get(&origin).cloned() {
+        if let Some(p) = self
+            .robots_mem
+            .lock()
+            .unwrap_or_else(PoisonError::into_inner)
+            .get(&origin)
+            .cloned()
+        {
             return p;
         }
         let lock = {
-            let mut map = self.robots_locks.lock().unwrap();
+            let mut map = self
+                .robots_locks
+                .lock()
+                .unwrap_or_else(PoisonError::into_inner);
             map.entry(origin.clone())
                 .or_insert_with(|| Arc::new(AsyncMutex::new(())))
                 .clone()
         };
         let _guard = lock.lock().await;
-        if let Some(p) = self.robots_mem.lock().unwrap().get(&origin).cloned() {
+        if let Some(p) = self
+            .robots_mem
+            .lock()
+            .unwrap_or_else(PoisonError::into_inner)
+            .get(&origin)
+            .cloned()
+        {
             return p;
         }
         if let Some((status, body)) = self.robots_db_get(&origin) {
             let p = RobotsPolicy::parse(&body, status);
-            self.robots_mem.lock().unwrap().insert(origin, p.clone());
+            self.robots_mem
+                .lock()
+                .unwrap_or_else(PoisonError::into_inner)
+                .insert(origin, p.clone());
             return p;
         }
         let robots_url = format!("{origin}/robots.txt");
@@ -562,7 +580,7 @@ impl Fetcher {
         let policy = RobotsPolicy::parse(&body, status);
         self.robots_mem
             .lock()
-            .unwrap()
+            .unwrap_or_else(PoisonError::into_inner)
             .insert(origin, policy.clone());
         policy
     }
@@ -756,7 +774,10 @@ mod tests {
         ) -> Pin<Box<dyn Future<Output = Result<RawResponse, String>> + Send + 'a>> {
             Box::pin(async move {
                 self.calls.fetch_add(1, Ordering::Relaxed);
-                let mut guard = self.responses.lock().unwrap();
+                let mut guard = self
+                    .responses
+                    .lock()
+                    .unwrap_or_else(PoisonError::into_inner);
                 let queue = guard.get_mut(url);
                 if let Some(q) = queue
                     && !q.is_empty()
@@ -818,7 +839,7 @@ mod tests {
 
         // Force expiry of cache entry and verify 304 conditional refresh
         {
-            let conn = fetcher.conn.lock().unwrap();
+            let conn = fetcher.conn.lock().unwrap_or_else(PoisonError::into_inner);
             conn.execute("UPDATE http_cache SET fetched_at = 0", [])
                 .unwrap();
         }

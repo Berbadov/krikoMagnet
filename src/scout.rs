@@ -1,6 +1,6 @@
 use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
-use std::sync::Mutex;
+use std::sync::{Mutex, PoisonError};
 
 use rusqlite::{Connection, OptionalExtension, params};
 use scraper::{Html, Selector};
@@ -59,7 +59,7 @@ impl SourceTrustStore {
 
     pub fn record_estimate(&self, site_id: Option<&str>, est: &PosteriorEstimate) {
         let host = est.host.to_ascii_lowercase();
-        let conn = self.conn.lock().unwrap();
+        let conn = self.conn.lock().unwrap_or_else(PoisonError::into_inner);
         let prev: Option<(f64, f64, i64, i64)> = conn
             .query_row(
                 "SELECT alpha, beta, ok_fetches, blocked_fetches FROM sources WHERE host=?1",
@@ -104,7 +104,7 @@ impl SourceTrustStore {
             return;
         }
         type SourceRow = (Option<String>, f64, f64, f64, String, i64, i64, i64);
-        let conn = self.conn.lock().unwrap();
+        let conn = self.conn.lock().unwrap_or_else(PoisonError::into_inner);
         let prev: Option<SourceRow> = conn
             .query_row(
                 "SELECT site_id, alpha, beta, shape_log_odds, decision, pages_sampled, ok_fetches, blocked_fetches
@@ -153,7 +153,7 @@ impl SourceTrustStore {
 
     pub fn trust_map(&self) -> HashMap<String, f64> {
         let mut out = HashMap::new();
-        let conn = self.conn.lock().unwrap();
+        let conn = self.conn.lock().unwrap_or_else(PoisonError::into_inner);
         if let Ok(mut stmt) = conn.prepare("SELECT host, p_trust FROM sources")
             && let Ok(rows) =
                 stmt.query_map([], |r| Ok((r.get::<_, String>(0)?, r.get::<_, f64>(1)?)))
@@ -170,7 +170,7 @@ impl SourceTrustStore {
     }
 
     pub fn stats(&self) -> Value {
-        let conn = self.conn.lock().unwrap();
+        let conn = self.conn.lock().unwrap_or_else(PoisonError::into_inner);
         let total: i64 = conn
             .query_row("SELECT COUNT(*) FROM sources", [], |r| r.get(0))
             .unwrap_or(0);

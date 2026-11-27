@@ -1,6 +1,7 @@
 use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
-use std::sync::Mutex;
+use std::sync::atomic::{AtomicUsize, Ordering};
+use std::sync::{Mutex, MutexGuard, PoisonError};
 use std::time::Instant;
 
 use chrono::DateTime;
@@ -54,7 +55,8 @@ pub struct IndexRow {
 
 pub struct SiteIndex {
     pub path: PathBuf,
-    conn: Mutex<Connection>,
+    conns: Vec<Mutex<Connection>>,
+    next: AtomicUsize,
 }
 
 impl SiteIndex {
@@ -63,6 +65,10 @@ impl SiteIndex {
     }
 
     pub fn open(path: &Path) -> Result<Self, String> {
+        Self::open_pool(path, 1)
+    }
+
+    pub fn open_pool(path: &Path, size: usize) -> Result<Self, String> {
         if let Some(parent) = path.parent()
             && !parent.as_os_str().is_empty()
         {
@@ -78,14 +84,33 @@ impl SiteIndex {
         conn.execute_batch(SCHEMA_SQL)
             .map_err(|e| format!("schema index: {e}"))?;
         migrate(&conn)?;
+        let mut conns = vec![Mutex::new(conn)];
+        for _ in 1..size.max(1) {
+            let extra = Connection::open(path).map_err(|e| format!("open index: {e}"))?;
+            extra
+                .execute_batch("PRAGMA busy_timeout=30000;")
+                .map_err(|e| format!("pragma index: {e}"))?;
+            conns.push(Mutex::new(extra));
+        }
         Ok(Self {
             path: path.to_path_buf(),
-            conn: Mutex::new(conn),
+            conns,
+            next: AtomicUsize::new(0),
         })
     }
 
+    fn conn(&self) -> MutexGuard<'_, Connection> {
+        for c in &self.conns {
+            if let Ok(guard) = c.try_lock() {
+                return guard;
+            }
+        }
+        let i = self.next.fetch_add(1, Ordering::Relaxed) % self.conns.len();
+        self.conns[i].lock().unwrap_or_else(PoisonError::into_inner)
+    }
+
     pub fn site_pages(&self, site_id: &str) -> usize {
-        let conn = self.conn.lock().unwrap();
+        let conn = self.conn();
         conn.query_row(
             "SELECT COUNT(*) FROM pages WHERE site=?1",
             params![site_id],
@@ -95,7 +120,7 @@ impl SiteIndex {
     }
 
     pub fn stats(&self) -> IndexStats {
-        let conn = self.conn.lock().unwrap();
+        let conn = self.conn();
         let mut per_site = HashMap::new();
         let mut pages = 0usize;
         if let Ok(mut stmt) =
@@ -150,7 +175,7 @@ impl SiteIndex {
             return Ok(0);
         }
         let now = now_epoch();
-        let mut conn = self.conn.lock().unwrap();
+        let mut conn = self.conn();
         let tx = conn.transaction().map_err(|e| format!("tx: {e}"))?;
         if full {
             tx.execute(
@@ -246,7 +271,7 @@ impl SiteIndex {
         lastmod: Option<&str>,
         entries: usize,
     ) {
-        let conn = self.conn.lock().unwrap();
+        let conn = self.conn();
         let _ = conn.execute(
             "INSERT OR REPLACE INTO feeds(url,site,kind,etag,lastmod,entries,fetched_at) VALUES (?1,?2,?3,?4,?5,?6,?7)",
             params![url, site, kind, etag, lastmod, entries as i64, now_epoch()],
@@ -336,7 +361,7 @@ impl SiteIndex {
             .join(" OR ");
         let site_set: HashSet<&str> = site_ids.iter().map(String::as_str).collect();
 
-        let conn = self.conn.lock().unwrap();
+        let conn = self.conn();
         let global_sql = "SELECT p.site, p.url, p.title, p.snippet, p.lastmod, p.method
                           FROM pages_fts f JOIN pages p ON p.rowid=f.rowid
                           WHERE pages_fts MATCH ?1 ORDER BY rank LIMIT ?2";
@@ -883,6 +908,25 @@ mod tests {
             "expected cross-lingual concept CNF hit on ca"
         );
 
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn reader_pool_serves_while_one_connection_is_busy() {
+        let dir = std::env::temp_dir().join(format!("magnet-pool-{}", rand::rng().random::<u64>()));
+        let idx = SiteIndex::open_pool(&dir.join("index.sqlite"), 2).unwrap();
+        let row = IndexRow {
+            url: "https://example.com/a".into(),
+            title: "a".into(),
+            snippet: String::new(),
+            lastmod: None,
+            method: "sitemap".into(),
+            text: "alpha".into(),
+        };
+        idx.replace_site("s", vec![row], true).unwrap();
+        let busy = idx.conn();
+        assert_eq!(idx.site_pages("s"), 1);
+        drop(busy);
         let _ = std::fs::remove_dir_all(&dir);
     }
 }

@@ -1,5 +1,5 @@
 use std::collections::{HashMap, HashSet};
-use std::sync::{Mutex, OnceLock};
+use std::sync::{Mutex, OnceLock, PoisonError};
 use std::time::{Duration, Instant};
 
 use chrono::{DateTime, Datelike, Utc};
@@ -947,7 +947,7 @@ fn iso_any(v: Option<&Value>) -> Option<String> {
 
 async fn load_xml(fetcher: &Fetcher, url: &str, mem: &SitemapMem) -> (String, Vec<XmlEntry>) {
     {
-        let guard = mem.lock().unwrap();
+        let guard = mem.lock().unwrap_or_else(PoisonError::into_inner);
         if let Some((at, kind, entries)) = guard.get(url)
             && at.elapsed().as_secs_f64() < SITEMAP_MEMORY_TTL_S
         {
@@ -960,7 +960,7 @@ async fn load_xml(fetcher: &Fetcher, url: &str, mem: &SitemapMem) -> (String, Ve
     }
     let (kind, entries) = parse_xml(&res.text);
     if !kind.is_empty() {
-        mem.lock().unwrap().insert(
+        mem.lock().unwrap_or_else(PoisonError::into_inner).insert(
             url.to_string(),
             (Instant::now(), kind.clone(), entries.clone()),
         );
@@ -1588,7 +1588,7 @@ impl CircuitBreaker {
     }
 
     pub fn allow(&self, site: &str) -> bool {
-        let guard = self.state.lock().unwrap();
+        let guard = self.state.lock().unwrap_or_else(PoisonError::into_inner);
         let Some(st) = guard.get(site) else {
             return true;
         };
@@ -1599,14 +1599,14 @@ impl CircuitBreaker {
     }
 
     pub fn success(&self, site: &str) {
-        let mut guard = self.state.lock().unwrap();
+        let mut guard = self.state.lock().unwrap_or_else(PoisonError::into_inner);
         let st = guard.entry(site.to_string()).or_default();
         st.failures = 0;
         st.opened_at = None;
     }
 
     pub fn failure(&self, site: &str) {
-        let mut guard = self.state.lock().unwrap();
+        let mut guard = self.state.lock().unwrap_or_else(PoisonError::into_inner);
         let st = guard.entry(site.to_string()).or_default();
         st.failures += 1;
         if st.failures >= self.threshold {
@@ -1618,7 +1618,7 @@ impl CircuitBreaker {
     }
 
     pub fn snapshot(&self) -> HashMap<String, BreakerEntry> {
-        let guard = self.state.lock().unwrap();
+        let guard = self.state.lock().unwrap_or_else(PoisonError::into_inner);
         guard
             .iter()
             .map(|(k, v)| {
@@ -1670,7 +1670,9 @@ async fn run_open_web(
     if !cfg.enabled {
         return Vec::new();
     }
-    if let Some(until) = *OPEN_WEB_DOWN_UNTIL.lock().unwrap()
+    if let Some(until) = *OPEN_WEB_DOWN_UNTIL
+        .lock()
+        .unwrap_or_else(PoisonError::into_inner)
         && Instant::now() < until
     {
         return Vec::new();
@@ -1718,7 +1720,9 @@ async fn run_open_web(
                     .await;
                 if !res.ok() {
                     if matches!(res.status, Some(502..=504) | None) {
-                        *OPEN_WEB_DOWN_UNTIL.lock().unwrap() =
+                        *OPEN_WEB_DOWN_UNTIL
+                            .lock()
+                            .unwrap_or_else(PoisonError::into_inner) =
                             Some(Instant::now() + Duration::from_secs_f64(OPEN_WEB_COOLDOWN_S));
                     }
                     return found;
@@ -1755,7 +1759,9 @@ async fn run_open_web(
     let found = match tokio::time::timeout(Duration::from_secs_f64(OPEN_WEB_BUDGET_S), work).await {
         Ok(v) => v,
         Err(_) => {
-            *OPEN_WEB_DOWN_UNTIL.lock().unwrap() =
+            *OPEN_WEB_DOWN_UNTIL
+                .lock()
+                .unwrap_or_else(PoisonError::into_inner) =
                 Some(Instant::now() + Duration::from_secs_f64(OPEN_WEB_COOLDOWN_S));
             return Vec::new();
         }

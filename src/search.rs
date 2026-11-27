@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, Mutex, PoisonError};
 use std::time::{Duration, Instant};
 
 use rusqlite::{Connection, OptionalExtension, params};
@@ -61,7 +61,7 @@ impl PipelineCache {
     }
 
     pub fn get_query(&self, query_hash: &str) -> Option<String> {
-        let conn = self.conn.lock().unwrap();
+        let conn = self.conn.lock().unwrap_or_else(PoisonError::into_inner);
         let row: Option<(String, f64)> = conn
             .query_row(
                 "SELECT payload, cached_at FROM qcache WHERE query_hash=?1",
@@ -79,7 +79,7 @@ impl PipelineCache {
     }
 
     pub fn set_query(&self, query_hash: &str, payload: &str) {
-        let conn = self.conn.lock().unwrap();
+        let conn = self.conn.lock().unwrap_or_else(PoisonError::into_inner);
         let _ = conn.execute(
             "INSERT OR REPLACE INTO qcache(query_hash, payload, cached_at) VALUES (?1,?2,?3)",
             params![query_hash, payload, now_epoch()],
@@ -87,7 +87,7 @@ impl PipelineCache {
     }
 
     pub fn get_content(&self, url_hash: &str, query_hash: &str) -> Option<(String, String)> {
-        let conn = self.conn.lock().unwrap();
+        let conn = self.conn.lock().unwrap_or_else(PoisonError::into_inner);
         let row: Option<(String, String, f64)> = conn
             .query_row(
                 "SELECT markdown, status, fetched_at FROM cache WHERE url_hash=?1 AND query_hash=?2",
@@ -113,7 +113,7 @@ impl PipelineCache {
         markdown: &str,
         status: &str,
     ) {
-        let conn = self.conn.lock().unwrap();
+        let conn = self.conn.lock().unwrap_or_else(PoisonError::into_inner);
         let _ = conn.execute(
             "INSERT OR REPLACE INTO cache(url_hash,query_hash,url,domain,markdown,status,fetched_at)
              VALUES (?1,?2,?3,?4,?5,?6,?7)",
@@ -122,13 +122,13 @@ impl PipelineCache {
     }
 
     pub fn clear_queries(&self) {
-        let conn = self.conn.lock().unwrap();
+        let conn = self.conn.lock().unwrap_or_else(PoisonError::into_inner);
         let _ = conn.execute("DELETE FROM qcache", []);
     }
 
     pub fn prune(&self, vacuum: bool) -> (usize, usize) {
         let now = now_epoch();
-        let conn = self.conn.lock().unwrap();
+        let conn = self.conn.lock().unwrap_or_else(PoisonError::into_inner);
         let queries = conn
             .execute(
                 "DELETE FROM qcache WHERE cached_at < ?1",
@@ -255,7 +255,10 @@ impl Searcher {
             .collect();
         let tranco = load_tranco(&cfg.tranco_path);
         let index = match cfg.index_path {
-            Some(ref p) => Some(Arc::new(SiteIndex::open(p)?)),
+            Some(ref p) => Some(Arc::new(SiteIndex::open_pool(
+                p,
+                crate::env_num("MAGNET_DB_READERS", 4),
+            )?)),
             None => None,
         };
         let fetcher = Arc::new(Fetcher::open(&cfg.fetch_cache_path)?);
@@ -916,7 +919,7 @@ mod tests {
         cache.set_query("old", "{}");
         cache.set_content("u", "old", "https://e.test/x", "e.test", "md", "200");
         {
-            let conn = cache.conn.lock().unwrap();
+            let conn = cache.conn.lock().unwrap_or_else(PoisonError::into_inner);
             conn.execute(
                 "UPDATE qcache SET cached_at = 0 WHERE query_hash = 'old'",
                 [],
