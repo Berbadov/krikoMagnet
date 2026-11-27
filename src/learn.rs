@@ -1592,7 +1592,7 @@ skipped:
         let fetcher =
             Fetcher::with_transport(&dir.join("f.sqlite"), Box::new(Stub(pages)), 2, 0.0).unwrap();
         let index = SiteIndex::open(&dir.join("index.sqlite")).unwrap();
-        let queue = reg_path.with_extension("scout.txt");
+        let queue = dir.join("scout_queue.txt");
         let tried = Mutex::new(HashSet::new());
 
         let r = grow(&s, &reg, Some(&index), &fetcher, &queue, &tried).await;

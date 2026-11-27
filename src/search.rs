@@ -264,7 +264,6 @@ pub struct Searcher {
     pub started: Instant,
     fetch_cache_path: PathBuf,
     cache_path: PathBuf,
-    registry_path: PathBuf,
     grow_tried: Mutex<HashSet<String>>,
 }
 
@@ -330,14 +329,13 @@ impl Searcher {
             started: Instant::now(),
             fetch_cache_path: cfg.fetch_cache_path,
             cache_path: cfg.cache_path,
-            registry_path: cfg.registry_path,
             grow_tried: Mutex::new(HashSet::new()),
         })
     }
 
     pub async fn grow_from_learned(&self) -> Option<Value> {
         let learn = self.learn.as_ref()?;
-        let queue = self.registry_path.with_extension("scout.txt");
+        let queue = learn.path.with_file_name("scout_queue.txt");
         Some(
             grow(
                 learn,

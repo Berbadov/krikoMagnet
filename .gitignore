@@ -19,4 +19,4 @@ data/source_baseline.json
 stage1_rs/
 bench/
 registry.pending.yaml
-registry.scout.txt
+data/scout_queue.txt
