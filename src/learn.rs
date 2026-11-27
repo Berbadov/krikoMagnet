@@ -6,13 +6,16 @@ use chrono::{Duration, NaiveDate, Utc};
 use regex::Regex;
 use rusqlite::types::Value as SqlValue;
 use rusqlite::{Connection, OptionalExtension, params, params_from_iter};
+use scraper::{Html, Selector};
 use serde::Deserialize;
 use serde_json::{Value, json};
 use url::{Host, Url};
 
 use crate::discover::base_domain;
+use crate::http::{Fetcher, GetOpts};
+use crate::index::{IndexRow, SiteIndex};
 use crate::planner::{Registry, Site};
-use crate::text::fold;
+use crate::text::{fold, ranker_text, unslug};
 
 const PERSONAL_SEGMENTS: &[&str] = &[
     "account",
@@ -68,6 +71,7 @@ const MAX_QUERY_TOKENS: usize = 32;
 const MAX_COUNT: u32 = 1000;
 const MAX_ERRORS: usize = 50;
 const MAX_INJECTED: usize = 5;
+const MAX_GROW_PER_RUN: usize = 10;
 const PRIOR: f64 = 2.0;
 pub const MAX_HINT_DOMAINS: usize = 20;
 
@@ -771,6 +775,38 @@ impl LearnStore {
         (boosts, inject)
     }
 
+    fn growth_urls(&self) -> Vec<String> {
+        let conn = self.lock();
+        let sql = format!(
+            "SELECT url FROM learned_urls WHERE {VISIBLE} GROUP BY url
+             HAVING SUM(unhelpful) <= SUM(useful)
+             ORDER BY SUM(useful) DESC, SUM(served) DESC, url LIMIT 200"
+        );
+        let Ok(mut stmt) = conn.prepare(&sql) else {
+            return Vec::new();
+        };
+        stmt.query_map(params![self.cfg.min_count], |r| r.get(0))
+            .map(|rows| rows.flatten().collect())
+            .unwrap_or_default()
+    }
+
+    fn scout_domains(&self) -> Vec<String> {
+        let conn = self.lock();
+        let sql = format!(
+            "SELECT domain FROM domain_stats WHERE {VISIBLE} AND useful >= ?2
+             ORDER BY useful DESC, domain LIMIT 50"
+        );
+        let Ok(mut stmt) = conn.prepare(&sql) else {
+            return Vec::new();
+        };
+        stmt.query_map(
+            params![self.cfg.min_count, self.cfg.scout_min_useful],
+            |r| r.get(0),
+        )
+        .map(|rows| rows.flatten().collect())
+        .unwrap_or_default()
+    }
+
     pub fn stats(&self) -> Value {
         let k = self.cfg.min_count;
         let conn = self.lock();
@@ -867,6 +903,130 @@ impl LearnStore {
         }
         out
     }
+}
+
+fn url_variants(url: &str) -> Vec<String> {
+    let Some((_, rest)) = url.split_once("://") else {
+        return vec![url.to_string()];
+    };
+    ["https://", "https://www.", "http://", "http://www."]
+        .iter()
+        .map(|p| format!("{p}{rest}"))
+        .collect()
+}
+
+fn page_title(html: &str) -> Option<String> {
+    let doc = Html::parse_document(html);
+    let sel = Selector::parse("title").ok()?;
+    let raw: String = doc.select(&sel).next()?.text().collect();
+    let title: String = raw
+        .split_whitespace()
+        .collect::<Vec<_>>()
+        .join(" ")
+        .chars()
+        .take(300)
+        .collect();
+    (!title.is_empty()).then_some(title)
+}
+
+fn learned_row(site: &Site, final_url: &str, html: &str) -> Option<IndexRow> {
+    let mut u = Url::parse(final_url).ok()?;
+    u.set_query(None);
+    u.set_fragment(None);
+    let url = u.to_string();
+    let title = page_title(html).unwrap_or_else(|| unslug(&url));
+    let snippet = format!("{} {}", site.name, unslug(&url));
+    let text = ranker_text(&format!("{} {} {}", unslug(&url), title, snippet));
+    Some(IndexRow {
+        url,
+        title,
+        snippet,
+        lastmod: None,
+        method: "learned".into(),
+        text,
+    })
+}
+
+fn queue_scout_domains(domains: Vec<String>, reg: &Registry, queue: &Path) -> usize {
+    let existing = std::fs::read_to_string(queue).unwrap_or_default();
+    let listed: HashSet<&str> = existing.lines().map(str::trim).collect();
+    let known = |d: &str| {
+        reg.sites.iter().any(|s| base_domain(&s.domain) == d)
+            || reg.skipped.iter().any(|s| base_domain(&s.domain) == d)
+    };
+    let fresh: Vec<String> = domains
+        .into_iter()
+        .filter(|d| !known(d) && !listed.contains(d.as_str()))
+        .collect();
+    if fresh.is_empty() {
+        return 0;
+    }
+    let mut out = String::new();
+    if existing.is_empty() {
+        out.push_str(&format!(
+            "# Domains users found useful; review with: magnet scout --file {} --promote\n",
+            queue.display()
+        ));
+    }
+    for d in &fresh {
+        out.push_str(d);
+        out.push('\n');
+    }
+    let appended = std::fs::OpenOptions::new()
+        .create(true)
+        .append(true)
+        .open(queue)
+        .and_then(|mut f| std::io::Write::write_all(&mut f, out.as_bytes()));
+    if appended.is_ok() { fresh.len() } else { 0 }
+}
+
+pub async fn grow(
+    learn: &LearnStore,
+    reg: &Registry,
+    index: Option<&SiteIndex>,
+    fetcher: &Fetcher,
+    queue: &Path,
+    tried: &Mutex<HashSet<String>>,
+) -> Value {
+    let (mut indexed, mut skipped) = (0usize, 0usize);
+    if let Some(index) = index {
+        let mut budget = MAX_GROW_PER_RUN;
+        for url in learn.growth_urls() {
+            if budget == 0 {
+                break;
+            }
+            let Some(site) = site_for_url(reg, &url).filter(|s| {
+                s.methods
+                    .iter()
+                    .any(|m| m.kind == "sitemap" || m.kind == "rss")
+            }) else {
+                continue;
+            };
+            if index.has_any_url(&url_variants(&url)) {
+                continue;
+            }
+            let fresh = tried
+                .lock()
+                .unwrap_or_else(PoisonError::into_inner)
+                .insert(url.clone());
+            if !fresh {
+                continue;
+            }
+            budget -= 1;
+            let res = fetcher.get(&url, GetOpts::default()).await;
+            let row = (res.ok() && sanitize_url(&res.final_url).as_deref() == Some(url.as_str()))
+                .then(|| learned_row(site, &res.final_url, &res.text))
+                .flatten();
+            let written = row.is_some_and(|r| index.replace_site(&site.id, vec![r], false).is_ok());
+            if written {
+                indexed += 1;
+            } else {
+                skipped += 1;
+            }
+        }
+    }
+    let queued = queue_scout_domains(learn.scout_domains(), reg, queue);
+    json!({ "event": "learn_grow", "indexed": indexed, "skipped": skipped, "scout_queued": queued })
 }
 
 fn upsert(conn: &Connection, o: &Obs) -> rusqlite::Result<()> {
@@ -1327,6 +1487,134 @@ mod tests {
         assert_eq!(stats["domains"], 2);
         assert_eq!(stats["urls"], 0);
         assert_eq!(stats["top_domains"][0]["served"], 3.0);
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[tokio::test]
+    async fn growth_indexes_registry_pages_and_queues_unknown_domains() {
+        use crate::http::{RawResponse, Transport};
+        use std::future::Future;
+        use std::pin::Pin;
+
+        struct Stub(HashMap<String, String>);
+        impl Transport for Stub {
+            fn get<'a>(
+                &'a self,
+                url: &'a str,
+                _h: &'a HashMap<String, String>,
+                _t: std::time::Duration,
+            ) -> Pin<Box<dyn Future<Output = Result<RawResponse, String>> + Send + 'a>>
+            {
+                Box::pin(async move {
+                    let body = self.0.get(url).cloned().unwrap_or_default();
+                    Ok(RawResponse {
+                        status: if body.is_empty() { 404 } else { 200 },
+                        body: body.into_bytes(),
+                        headers: HashMap::new(),
+                        final_url: url.to_string(),
+                    })
+                })
+            }
+        }
+
+        let (s, dir) = store();
+        let reg_path = dir.join("registry.yaml");
+        let reg_yaml = "version: 1
+sites:
+  - id: acme
+    name: Acme
+    domain: www.acme-widgets.com
+    topics: [general]
+    language: en
+    methods:
+      - type: sitemap
+        urls: [https://www.acme-widgets.com/sitemap.xml]
+skipped:
+  - domain: skipped-site.com
+";
+        std::fs::write(&reg_path, reg_yaml).unwrap();
+        let reg = crate::planner::load_registry(&reg_path).unwrap();
+        let today = today();
+        let d = day_str(today);
+        s.ingest(
+            &[
+                item(
+                    "acme widget",
+                    "https://acme-widgets.com/widget-review",
+                    "useful",
+                    3,
+                    &d,
+                ),
+                item(
+                    "acme widget",
+                    "https://acme-widgets.com/private/page",
+                    "useful",
+                    3,
+                    &d,
+                ),
+                item(
+                    "acme widget",
+                    "https://acme-widgets.com/rare",
+                    "useful",
+                    1,
+                    &d,
+                ),
+                item(
+                    "gizmo",
+                    "https://gadget-reviews.com/gizmo",
+                    "useful",
+                    12,
+                    &d,
+                ),
+                item("gizmo", "https://small-site.com/gizmo", "useful", 4, &d),
+                item("gizmo", "https://skipped-site.com/gizmo", "useful", 12, &d),
+            ]
+            .join("\n"),
+            today,
+        )
+        .unwrap();
+
+        let pages = HashMap::from([
+            (
+                "https://acme-widgets.com/robots.txt".to_string(),
+                "User-agent: *\nDisallow: /private\n".to_string(),
+            ),
+            (
+                "https://acme-widgets.com/widget-review".to_string(),
+                "<html><head><title> Acme Widget\n Review </title></head><body>x</body></html>"
+                    .to_string(),
+            ),
+            (
+                "https://acme-widgets.com/private/page".to_string(),
+                "<title>secret</title>".to_string(),
+            ),
+        ]);
+        let fetcher =
+            Fetcher::with_transport(&dir.join("f.sqlite"), Box::new(Stub(pages)), 2, 0.0).unwrap();
+        let index = SiteIndex::open(&dir.join("index.sqlite")).unwrap();
+        let queue = reg_path.with_extension("scout.txt");
+        let tried = Mutex::new(HashSet::new());
+
+        let r = grow(&s, &reg, Some(&index), &fetcher, &queue, &tried).await;
+        assert_eq!(r["indexed"], 1, "{r}");
+        assert_eq!(r["skipped"], 1, "{r}");
+        assert_eq!(r["scout_queued"], 1, "{r}");
+        assert!(index.has_any_url(&url_variants("https://acme-widgets.com/widget-review")));
+        assert!(!index.has_any_url(&url_variants("https://acme-widgets.com/private/page")));
+        assert!(!index.has_any_url(&url_variants("https://acme-widgets.com/rare")));
+        let hits = index.query(&["acme".into()], "acme widget review", 5, &HashMap::new());
+        assert_eq!(hits[0].title, "Acme Widget Review");
+
+        let listed = std::fs::read_to_string(&queue).unwrap();
+        let domains: Vec<&str> = listed.lines().filter(|l| !l.starts_with('#')).collect();
+        assert_eq!(domains, vec!["gadget-reviews.com"]);
+        assert_eq!(std::fs::read_to_string(&reg_path).unwrap(), reg_yaml);
+
+        let again = grow(&s, &reg, Some(&index), &fetcher, &queue, &tried).await;
+        assert_eq!(
+            (&again["indexed"], &again["skipped"], &again["scout_queued"]),
+            (&json!(0), &json!(0), &json!(0))
+        );
         let _ = std::fs::remove_dir_all(&dir);
     }
 

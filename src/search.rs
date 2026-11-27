@@ -16,7 +16,9 @@ use crate::discover::{
 use crate::extract::{SOFT_MIN_CHARS, classify_fetch, extract_text};
 use crate::http::{Fetcher, GetOpts, now_epoch};
 use crate::index::SiteIndex;
-use crate::learn::{Hints, LearnConfig, LearnStore, LearnedUrl, sanitize_url, site_for_url, today};
+use crate::learn::{
+    Hints, LearnConfig, LearnStore, LearnedUrl, grow, sanitize_url, site_for_url, today,
+};
 use crate::log;
 use crate::planner::{Registry, load_registry, load_tranco};
 use crate::ranker::rank_docs;
@@ -200,6 +202,13 @@ pub fn spawn_pruner(searcher: Arc<Searcher>, cfg: PruneConfig) {
             if let Ok(report) = tokio::task::spawn_blocking(run).await {
                 log::emit(log::Level::Info, report);
             }
+            if let Some(report) = searcher.grow_from_learned().await
+                && ["indexed", "skipped", "scout_queued"]
+                    .iter()
+                    .any(|k| report[k] != 0)
+            {
+                log::emit(log::Level::Info, report);
+            }
             if cfg.interval_mins <= 0.0 {
                 break;
             }
@@ -255,6 +264,8 @@ pub struct Searcher {
     pub started: Instant,
     fetch_cache_path: PathBuf,
     cache_path: PathBuf,
+    registry_path: PathBuf,
+    grow_tried: Mutex<HashSet<String>>,
 }
 
 fn file_bytes(path: &Path) -> u64 {
@@ -319,7 +330,25 @@ impl Searcher {
             started: Instant::now(),
             fetch_cache_path: cfg.fetch_cache_path,
             cache_path: cfg.cache_path,
+            registry_path: cfg.registry_path,
+            grow_tried: Mutex::new(HashSet::new()),
         })
+    }
+
+    pub async fn grow_from_learned(&self) -> Option<Value> {
+        let learn = self.learn.as_ref()?;
+        let queue = self.registry_path.with_extension("scout.txt");
+        Some(
+            grow(
+                learn,
+                &self.registry,
+                self.index.as_deref(),
+                &self.fetcher,
+                &queue,
+                &self.grow_tried,
+            )
+            .await,
+        )
     }
 
     fn diversify(
