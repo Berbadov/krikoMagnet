@@ -10,7 +10,7 @@ use axum::response::{IntoResponse, Response};
 use axum::routing::{get, post};
 use axum::{Json, Router};
 use serde::Deserialize;
-use serde_json::json;
+use serde_json::{Value, json};
 use sha2::{Digest, Sha256};
 use tokio::net::TcpListener;
 
@@ -186,8 +186,19 @@ async fn guard(State(st): State<Arc<AppState>>, req: Request, next: Next) -> Res
     next.run(req).await
 }
 
+async fn isolate<F>(fut: F) -> Response
+where
+    F: Future<Output = Value> + Send + 'static,
+{
+    match tokio::spawn(fut).await {
+        Ok(v) => Json(v).into_response(),
+        Err(_) => error_response(StatusCode::INTERNAL_SERVER_ERROR, "internal error"),
+    }
+}
+
 async fn health(State(st): State<Arc<AppState>>, Query(p): Query<HealthParams>) -> Response {
-    Json(st.searcher.health(p.probe).await).into_response()
+    let s = st.searcher.clone();
+    isolate(async move { s.health(p.probe).await }).await
 }
 
 async fn search(State(st): State<Arc<AppState>>, Json(req): Json<HttpSearchReq>) -> Response {
@@ -202,7 +213,8 @@ async fn search(State(st): State<Arc<AppState>>, Json(req): Json<HttpSearchReq>)
         return error_response(StatusCode::BAD_REQUEST, &format!("k must be 1..={MAX_K}"));
     }
     let budget = req.budget_ms.map(|b| b.min(MAX_BUDGET_MS));
-    Json(st.searcher.search(query, req.k, req.fetch, budget).await).into_response()
+    let (s, q) = (st.searcher.clone(), query.to_string());
+    isolate(async move { s.search(&q, req.k, req.fetch, budget).await }).await
 }
 
 async fn clear_queries(State(st): State<Arc<AppState>>) -> Response {
@@ -220,11 +232,36 @@ pub fn router(state: Arc<AppState>) -> Router {
         .with_state(state)
 }
 
-pub async fn run(listener: TcpListener, state: Arc<AppState>) -> Result<(), String> {
+pub async fn shutdown_signal() {
+    let ctrl_c = async {
+        let _ = tokio::signal::ctrl_c().await;
+    };
+    #[cfg(unix)]
+    let term = async {
+        match tokio::signal::unix::signal(tokio::signal::unix::SignalKind::terminate()) {
+            Ok(mut s) => {
+                s.recv().await;
+            }
+            Err(_) => std::future::pending::<()>().await,
+        }
+    };
+    #[cfg(not(unix))]
+    let term = std::future::pending::<()>();
+    tokio::select! {
+        _ = ctrl_c => {}
+        _ = term => {}
+    }
+}
+
+pub async fn run<S>(listener: TcpListener, state: Arc<AppState>, shutdown: S) -> Result<(), String>
+where
+    S: Future<Output = ()> + Send + 'static,
+{
     axum::serve(
         listener,
         router(state).into_make_service_with_connect_info::<SocketAddr>(),
     )
+    .with_graceful_shutdown(shutdown)
     .await
     .map_err(|e| format!("serve: {e}"))
 }
@@ -255,7 +292,11 @@ mod tests {
         let (searcher, dir) = test_searcher();
         let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
         let base = format!("http://{}", listener.local_addr().unwrap());
-        tokio::spawn(run(listener, AppState::new(searcher, cfg)));
+        tokio::spawn(run(
+            listener,
+            AppState::new(searcher, cfg),
+            std::future::pending(),
+        ));
         (base, dir)
     }
 
@@ -365,6 +406,21 @@ mod tests {
 
         let _ = std::fs::remove_dir_all(&dir);
         let _ = std::fs::remove_dir_all(&dir2);
+    }
+
+    #[tokio::test]
+    async fn graceful_shutdown_returns_cleanly() {
+        let (searcher, dir) = test_searcher();
+        let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let (tx, rx) = tokio::sync::oneshot::channel::<()>();
+        let state = AppState::new(searcher, cfg(None, None));
+        let handle = tokio::spawn(run(listener, state, async {
+            let _ = rx.await;
+        }));
+        tx.send(()).unwrap();
+        let res = tokio::time::timeout(Duration::from_secs(5), handle).await;
+        assert!(matches!(res, Ok(Ok(Ok(())))));
+        let _ = std::fs::remove_dir_all(&dir);
     }
 
     #[tokio::test]

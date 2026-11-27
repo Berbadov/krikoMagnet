@@ -20,7 +20,7 @@ use regex::Regex;
 use flate2::read::DeflateDecoder;
 use serde_json::{Value, json};
 use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
-use tokio::sync::Mutex as AsyncMutex;
+use tokio::sync::{Semaphore, mpsc};
 use url::Url;
 
 use crate::discover::base_domain;
@@ -261,7 +261,13 @@ async fn cmd_serve(args: &[String]) -> Result<i32, String> {
         eprintln!("warning: listening on {bound} without MAGNET_API_TOKEN; /search is open");
     }
     eprintln!("magnet listening on http://{bound}");
-    server::run(listener, AppState::new(searcher, server_cfg)).await?;
+    server::run(
+        listener,
+        AppState::new(searcher, server_cfg),
+        server::shutdown_signal(),
+    )
+    .await?;
+    eprintln!("magnet stopped");
     Ok(0)
 }
 
@@ -627,31 +633,54 @@ async fn cmd_mcp(args: &[String]) -> Result<i32, String> {
     let (cfg, _) = parse_search_cfg(args, 15_000)?;
     let searcher = Arc::new(Searcher::open(cfg)?);
     spawn_pruner(searcher.clone(), PruneConfig::from_env());
-    let search_lock = Arc::new(AsyncMutex::new(()));
-    let mut lines = BufReader::new(tokio::io::stdin()).lines();
-    let mut stdout = tokio::io::stdout();
+    let slots = Arc::new(Semaphore::new(
+        env_num("MAGNET_MCP_CONCURRENCY", 4usize).max(1),
+    ));
+    run_mcp_loop(tokio::io::stdin(), tokio::io::stdout(), searcher, slots).await;
+    Ok(0)
+}
 
-    while let Ok(Some(line)) = lines.next_line().await {
-        let trimmed = line.trim();
-        if trimmed.is_empty() {
-            continue;
+async fn run_mcp_loop<R, W>(input: R, mut output: W, searcher: Arc<Searcher>, slots: Arc<Semaphore>)
+where
+    R: tokio::io::AsyncRead + Unpin,
+    W: tokio::io::AsyncWrite + Unpin + Send + 'static,
+{
+    let (tx, mut rx) = mpsc::unbounded_channel::<String>();
+    let writer = tokio::spawn(async move {
+        while let Some(line) = rx.recv().await {
+            if output.write_all(line.as_bytes()).await.is_err() {
+                break;
+            }
+            let _ = output.flush().await;
         }
-        let Ok(req) = serde_json::from_str::<Value>(trimmed) else {
+    });
+    let mut lines = BufReader::new(input).lines();
+    while let Ok(Some(line)) = lines.next_line().await {
+        let Ok(req) = serde_json::from_str::<Value>(line.trim()) else {
             continue;
         };
         let Some(id) = req.get("id").cloned() else {
             continue; // notification
         };
-        let method = req["method"].as_str().unwrap_or("");
-        let params = &req["params"];
-        let resp = handle_mcp_request(id, method, params, &searcher, &search_lock).await;
-        let line_out = format!("{}\n", serde_json::to_string(&resp).unwrap());
-        if stdout.write_all(line_out.as_bytes()).await.is_err() {
-            break;
-        }
-        let _ = stdout.flush().await;
+        let (s, sl, tx) = (searcher.clone(), slots.clone(), tx.clone());
+        tokio::spawn(async move {
+            let inner_id = id.clone();
+            let method = req["method"].as_str().unwrap_or("").to_string();
+            let inner = tokio::spawn(async move {
+                handle_mcp_request(inner_id, &method, &req["params"], &s, &sl).await
+            });
+            let resp = inner.await.unwrap_or_else(|_| {
+                json!({
+                    "jsonrpc": "2.0",
+                    "id": id,
+                    "error": { "code": -32603, "message": "internal error" }
+                })
+            });
+            let _ = tx.send(format!("{resp}\n"));
+        });
     }
-    Ok(0)
+    drop(tx);
+    let _ = writer.await;
 }
 
 async fn handle_mcp_request(
@@ -659,7 +688,7 @@ async fn handle_mcp_request(
     method: &str,
     params: &Value,
     searcher: &Arc<Searcher>,
-    search_lock: &Arc<AsyncMutex<()>>,
+    search_slots: &Arc<Semaphore>,
 ) -> Value {
     match method {
         "initialize" => {
@@ -685,7 +714,7 @@ async fn handle_mcp_request(
             let name = params["name"].as_str().unwrap_or("");
             let args = &params["arguments"];
             let res = match name {
-                "magnet_search" => mcp_search(args, searcher, search_lock).await,
+                "magnet_search" => mcp_search(args, searcher, search_slots).await,
                 "magnet_fetch" => mcp_fetch(args, searcher).await,
                 "magnet_health" => mcp_health(args, searcher).await,
                 other => Err(format!("Unknown tool: {other}")),
@@ -753,7 +782,7 @@ fn mcp_tool_defs() -> Value {
 async fn mcp_search(
     args: &Value,
     searcher: &Arc<Searcher>,
-    lock: &Arc<AsyncMutex<()>>,
+    slots: &Arc<Semaphore>,
 ) -> Result<Value, String> {
     let query = args["query"].as_str().unwrap_or("").trim().to_string();
     if query.is_empty() {
@@ -781,7 +810,10 @@ async fn mcp_search(
     };
     let fetch = args.get("fetch").and_then(|v| v.as_bool()).unwrap_or(true);
 
-    let _guard = lock.lock().await;
+    let _permit = slots
+        .acquire()
+        .await
+        .map_err(|_| "server is shutting down")?;
     let st = &searcher.fetcher.stats;
     let b_req = st.requests.load(Ordering::Relaxed);
     let b_bytes = st.bytes.load(Ordering::Relaxed);
@@ -939,7 +971,7 @@ mod tests {
             ..Default::default()
         };
         let searcher = Arc::new(Searcher::open(cfg).unwrap());
-        let lock = Arc::new(AsyncMutex::new(()));
+        let lock = Arc::new(Semaphore::new(1));
 
         let init = handle_mcp_request(json!(1), "initialize", &json!({}), &searcher, &lock).await;
         assert_eq!(init["result"]["serverInfo"]["name"], "magnet");
@@ -967,6 +999,42 @@ mod tests {
         .await;
         assert_eq!(bad["result"]["isError"], true);
 
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[tokio::test]
+    async fn mcp_loop_answers_every_request_and_exits_on_eof() {
+        let dir = std::env::temp_dir().join(format!("magnet-mcp-{}", rand::rng().random::<u64>()));
+        let cfg = SearchConfig {
+            registry_path: PathBuf::from("registry.yaml"),
+            tranco_path: dir.join("missing_tranco.txt"),
+            index_path: None,
+            cache_path: dir.join("pipe.sqlite"),
+            fetch_cache_path: dir.join("fetch.sqlite"),
+            sources_path: dir.join("sources.sqlite"),
+            ..Default::default()
+        };
+        let searcher = Arc::new(Searcher::open(cfg).unwrap());
+        let input: &'static [u8] = b"{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"ping\"}\n\
+            {\"jsonrpc\":\"2.0\",\"method\":\"notifications/initialized\"}\n\
+            not json\n\
+            {\"jsonrpc\":\"2.0\",\"id\":2,\"method\":\"tools/list\"}\n\
+            {\"jsonrpc\":\"2.0\",\"id\":3,\"method\":\"tools/call\",\"params\":{\"name\":\"magnet_search\",\"arguments\":{\"query\":\" \"}}}\n";
+        let (mut client, server_side) = tokio::io::duplex(1 << 16);
+        run_mcp_loop(input, server_side, searcher, Arc::new(Semaphore::new(2))).await;
+        let mut out = String::new();
+        tokio::io::AsyncReadExt::read_to_string(&mut client, &mut out)
+            .await
+            .unwrap();
+        let resps: Vec<Value> = out
+            .lines()
+            .map(|l| serde_json::from_str(l).unwrap())
+            .collect();
+        let mut ids: Vec<i64> = resps.iter().map(|r| r["id"].as_i64().unwrap()).collect();
+        ids.sort();
+        assert_eq!(ids, vec![1, 2, 3]);
+        let search = resps.iter().find(|r| r["id"] == 3).unwrap();
+        assert_eq!(search["result"]["isError"], true);
         let _ = std::fs::remove_dir_all(&dir);
     }
 
