@@ -18,3 +18,4 @@ data/source_baseline.json
 .venv/
 stage1_rs/
 bench/
+registry.pending.yaml

@@ -17,7 +17,10 @@ Rewritten as a single minimal Rust binary (`magnet`) with Bun TypeScript tooling
 2. **Scout & Source Estimation** ([src/measure.rs](src/measure.rs), [src/scout.rs](src/scout.rs)) —
    empirical structural & linguistic shape estimator calibrates golden baselines
    (`data/source_baseline.json`) and autonomously vets candidate domains politely
-   with sequential Bayesian stopping (`magnet scout ... --promote --index`).
+   with sequential Bayesian stopping. `magnet scout ... --promote` only stages
+   additions and skips in `registry.pending.yaml` for review
+   (`diff registry.yaml registry.pending.yaml`); `--promote --apply
+   [--build-index]` edits `registry.yaml` directly.
 3. **Rank** ([src/ranker.rs](src/ranker.rs)) — in-process BM25 + Tranco
    authority prior + exponential freshness + discovery score.
 4. **Fetch & Extract** ([src/http.rs](src/http.rs), [src/extract.rs](src/extract.rs)) —

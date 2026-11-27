@@ -13,7 +13,7 @@ mod server;
 mod text;
 
 use std::io::Read;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::sync::atomic::Ordering;
 use std::sync::{Arc, LazyLock};
 
@@ -138,7 +138,7 @@ fn print_usage() {
            magnet health [--probe]\n  \
            magnet calibrate [--fetch-cache PATH] [--out PATH]\n  \
            magnet measure <url...> [--baseline PATH]\n  \
-           magnet scout <domain...> [--file PATH] [--sample 8] [--promote] [--index] [--json]\n  \
+           magnet scout <domain...> [--file PATH] [--sample 8] [--promote [--apply [--build-index]]] [--json]\n  \
            magnet tranco\n  \
            magnet prune [--vacuum] [--cache PATH] [--fetch-cache PATH]"
     );
@@ -450,11 +450,24 @@ async fn cmd_measure(args: &[String]) -> Result<i32, String> {
     Ok(0)
 }
 
+fn scout_target(registry: &Path, apply: bool) -> Result<PathBuf, String> {
+    if apply {
+        return Ok(registry.to_path_buf());
+    }
+    let pending = registry.with_extension("pending.yaml");
+    if !pending.exists() {
+        std::fs::copy(registry, &pending)
+            .map_err(|e| format!("create {}: {e}", pending.display()))?;
+    }
+    Ok(pending)
+}
+
 async fn cmd_scout(args: &[String]) -> Result<i32, String> {
     let (cfg, rest) = parse_search_cfg(args, 0)?;
     let mut baseline_path = baseline_default_path();
     let mut sample_limit = 8usize;
     let mut promote = false;
+    let mut apply = false;
     let mut do_index = false;
     let mut as_json = false;
     let mut targets = Vec::new();
@@ -478,7 +491,8 @@ async fn cmd_scout(args: &[String]) -> Result<i32, String> {
                 }
             }
             "--promote" => promote = true,
-            "--index" => do_index = true,
+            "--apply" => apply = true,
+            "--build-index" => do_index = true,
             "--json" => as_json = true,
             s if s.starts_with('-') => return Err(format!("unknown flag {s}")),
             s => targets.push(s.to_string()),
@@ -488,8 +502,19 @@ async fn cmd_scout(args: &[String]) -> Result<i32, String> {
     if targets.is_empty() {
         return Err("missing <domain...> or --file <path>".into());
     }
+    if apply && !promote {
+        return Err("--apply requires --promote".into());
+    }
+    if do_index && !apply {
+        return Err("--build-index requires --promote --apply".into());
+    }
 
-    let mut reg = load_registry(&cfg.registry_path)?;
+    let target_path = if promote {
+        scout_target(&cfg.registry_path, apply)?
+    } else {
+        cfg.registry_path.clone()
+    };
+    let mut reg = load_registry(&target_path)?;
     let tranco = load_tranco(&cfg.tranco_path);
     let baseline = load_baseline(&baseline_path);
     let fetcher = Fetcher::open(&cfg.fetch_cache_path)?;
@@ -498,8 +523,8 @@ async fn cmd_scout(args: &[String]) -> Result<i32, String> {
     let mut reports = Vec::new();
     let mut promoted_ids = Vec::new();
     for target in targets {
-        let promote_opt = promote.then_some(cfg.registry_path.as_path());
-        let rep = scout_domain(
+        let promote_opt = promote.then_some(target_path.as_path());
+        let mut rep = scout_domain(
             &target,
             &reg,
             &tranco,
@@ -512,11 +537,26 @@ async fn cmd_scout(args: &[String]) -> Result<i32, String> {
         .await;
         if rep.action == "promoted" {
             promoted_ids.push(rep.site_id.clone());
-            if let Ok(updated) = load_registry(&cfg.registry_path) {
+            if let Ok(updated) = load_registry(&target_path) {
                 reg = updated;
             }
         }
+        if !apply {
+            match rep.action.as_str() {
+                "promoted" => rep.action = "proposed".into(),
+                "skipped" => rep.action = "proposed-skip".into(),
+                _ => {}
+            }
+        }
         reports.push(rep);
+    }
+    if promote && !apply {
+        eprintln!(
+            "scout proposals are in {}; review with `diff {} {}`, then copy it over or rerun with --apply",
+            target_path.display(),
+            cfg.registry_path.display(),
+            target_path.display()
+        );
     }
 
     if do_index
@@ -1040,6 +1080,36 @@ mod tests {
         assert_eq!(ids, vec![1, 2, 3]);
         let search = resps.iter().find(|r| r["id"] == 3).unwrap();
         assert_eq!(search["result"]["isError"], true);
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[tokio::test]
+    async fn scout_stages_changes_unless_applied() {
+        let dir =
+            std::env::temp_dir().join(format!("magnet-scout-{}", rand::rng().random::<u64>()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let reg = dir.join("registry.yaml");
+        std::fs::copy("registry.yaml", &reg).unwrap();
+        let before = std::fs::read_to_string(&reg).unwrap();
+
+        let pending = scout_target(&reg, false).unwrap();
+        assert_eq!(pending, dir.join("registry.pending.yaml"));
+        scout::append_skipped_yaml(&pending, "staged.example", "test").unwrap();
+        assert_eq!(scout_target(&reg, false).unwrap(), pending);
+        let staged = load_registry(&pending).unwrap();
+        assert!(staged.skipped.iter().any(|s| s.domain == "staged.example"));
+        assert_eq!(std::fs::read_to_string(&reg).unwrap(), before);
+        assert_eq!(scout_target(&reg, true).unwrap(), reg);
+
+        let args = |a: &[&str]| a.iter().map(|s| s.to_string()).collect::<Vec<_>>();
+        let err = cmd_scout(&args(&["a.example", "--apply"]))
+            .await
+            .unwrap_err();
+        assert!(err.contains("--apply requires --promote"));
+        let err = cmd_scout(&args(&["a.example", "--promote", "--build-index"]))
+            .await
+            .unwrap_err();
+        assert!(err.contains("--build-index requires"));
         let _ = std::fs::remove_dir_all(&dir);
     }
 
